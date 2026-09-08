@@ -17,33 +17,20 @@ jobs:
           global-json-file: global.json
       - name: Test
         run: dotnet test Neptune.slnx -c Release
-      - name: Publish and sign MSIX
+      - name: Publish portable application
         shell: pwsh
-        env:
-          WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
-          WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
-          WINDOWS_SIGNING_PUBLISHER: ${{ secrets.WINDOWS_SIGNING_PUBLISHER }}
         run: |
           $version = $env:GITHUB_REF_NAME.Replace('neptune-windows-v', '')
-          if (!$env:WINDOWS_SIGNING_CERTIFICATE_BASE64 -or !$env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD -or !$env:WINDOWS_SIGNING_PUBLISHER) { throw 'Windows signing secrets are required.' }
-          $packageVersion = "$version.0"
-          dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:Version=$version -o artifacts/msix-layout
-          Copy-Item packaging/windows/Assets artifacts/msix-layout/Assets -Recurse
-          (Get-Content packaging/windows/AppxManifest.xml -Raw).Replace('__VERSION__', $packageVersion).Replace('__PUBLISHER__', $env:WINDOWS_SIGNING_PUBLISHER) | Set-Content artifacts/msix-layout/AppxManifest.xml
-          [IO.File]::WriteAllBytes('artifacts/signing.pfx', [Convert]::FromBase64String($env:WINDOWS_SIGNING_CERTIFICATE_BASE64))
-          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter MakeAppx.exe | Sort-Object FullName -Descending | Select-Object -First 1
-          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter SignTool.exe | Sort-Object FullName -Descending | Select-Object -First 1
-          if (!$makeAppx -or !$signTool) { throw 'Windows SDK packaging tools are missing.' }
-          $artifact = "artifacts/neptune-windows-$version-win-x64.msix"
-          & $makeAppx.FullName pack /d artifacts/msix-layout /p $artifact /o
-          & $signTool.FullName sign /fd SHA256 /f artifacts/signing.pfx /p $env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD $artifact
-          Remove-Item -LiteralPath artifacts/signing.pfx -Force
+          dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:Version=$version -o artifacts/win-x64
+          if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
+          $artifact = "artifacts/neptune-windows-$version-win-x64.zip"
+          Compress-Archive -Path artifacts/win-x64/* -DestinationPath $artifact -CompressionLevel Optimal
           $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  neptune-windows-$version-win-x64.msix" | Set-Content "artifacts/neptune-windows-$version-win-x64.msix.sha256"
-          @{ schema = 'exocortex.neptune.release.v1'; product = 'neptune-windows'; protocol_version = 1; version = $version; runtime = 'win-x64'; artifact = "neptune-windows-$version-win-x64.msix"; sha256 = $hash } | ConvertTo-Json -Compress | Set-Content artifacts/neptune-windows-release.json
+          "$hash  neptune-windows-$version-win-x64.zip" | Set-Content "artifacts/neptune-windows-$version-win-x64.zip.sha256"
+          @{ schema = 'exocortex.neptune.release.v1'; product = 'neptune-windows'; protocol_version = 1; version = $version; runtime = 'win-x64'; packaging = 'portable-zip'; artifact = "neptune-windows-$version-win-x64.zip"; sha256 = $hash } | ConvertTo-Json -Compress | Set-Content artifacts/neptune-windows-release.json
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/*.msix
+            artifacts/*.zip
             artifacts/*.sha256
             artifacts/*.json

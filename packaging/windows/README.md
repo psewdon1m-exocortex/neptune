@@ -1,10 +1,10 @@
 # Windows packaging
 
-The release workflow publishes a self-contained, signed Windows x64 MSIX. It
-requires `WINDOWS_SIGNING_CERTIFICATE_BASE64`, `WINDOWS_SIGNING_CERTIFICATE_PASSWORD`
-and `WINDOWS_SIGNING_PUBLISHER` repository secrets. The publisher string must
-match the subject of the certificate. The executable, Start entry, taskbar,
-installer and window use the Neptune planet icon family.
+The current release workflow publishes a self-contained Windows x64 portable
+ZIP plus a SHA-256 file and machine-readable manifest. It requires no signing
+certificate: extract the archive and run `Neptune.Windows.exe`. The checked-in
+MSIX manifest and assets are retained for a future publisher-signed installer.
+The executable, taskbar and window use the Neptune planet icon family.
 
 Run independent local clients with separate protected state and identities:
 

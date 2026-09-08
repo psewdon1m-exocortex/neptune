@@ -24,8 +24,8 @@ credentials and never exposes a web interface.
   native folder selection, DPAPI-protected tokens, watcher hints and periodic
   reconciliation;
 - `packaging/linux` contains the hardened systemd unit and installer;
-- `packaging/windows` contains the MSIX manifest and complete planet icon family;
-- `.github/workflows` publishes the two independent signed release streams.
+- `packaging/windows` contains the future MSIX manifest and complete planet icon family;
+- `.github/workflows` publishes two independent checksummed release streams.
 
 Build and test with the pinned .NET SDK:
 
@@ -49,7 +49,7 @@ The repository publishes two separate GitHub release streams:
 | Product | Tag | Manifest | Primary artifact |
 | --- | --- | --- | --- |
 | Linux | `neptune-linux-vMAJOR.MINOR.PATCH` | `neptune-linux-release-linux-x64.json` / `neptune-linux-release-linux-arm64.json` | architecture-specific `.tar.gz` |
-| Windows | `neptune-windows-vMAJOR.MINOR.PATCH` | `neptune-windows-release.json` | signed `.msix` |
+| Windows | `neptune-windows-vMAJOR.MINOR.PATCH` | `neptune-windows-release.json` | self-contained portable `.zip` |
 
 Linux and Windows product versions may advance independently. Both manifests
 declare the Neptune protocol version, artifact SHA-256, size, architecture,
@@ -230,9 +230,10 @@ only in page memory and are never returned later.
 
 ## 5. Windows application
 
-Neptune Windows is a per-user desktop application, not a Windows Service. It is
-packaged as signed MSIX, starts at user logon when enabled and keeps secrets in
-the current-user Windows credential protection scope.
+Neptune Windows is a per-user desktop application, not a Windows Service. The
+current release is a self-contained portable ZIP and keeps secrets in the
+current-user Windows credential protection scope. MSIX packaging and automatic
+startup remain deferred until publisher signing is enabled.
 
 The primary window has a tested client size of **800 x 500 logical pixels** and
 uses the common Exocortex visual language: black background, white text,
@@ -295,8 +296,9 @@ device-authenticated Saturn preference from the path published in Kernel Registe
 at connection time and during reconciliation, then updates WPF dynamic resources.
 
 The Windows application reads `repositories.neptune.url` and follows only the
-`neptune-windows-v*` release stream. Update installation uses signed MSIX update
-semantics and never trusts a mutable branch or an unsigned downloaded binary.
+`neptune-windows-v*` release stream. Current portable releases are immutable
+GitHub assets verified by the SHA-256 declared in the release manifest; automatic
+installation remains deferred until publisher-signed MSIX releases are enabled.
 
 ## 6. Required Saturn protocol work
 
