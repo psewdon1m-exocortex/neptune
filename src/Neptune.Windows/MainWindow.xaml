@@ -22,6 +22,7 @@
                               Checked="Autostart_Changed" Unchecked="Autostart_Changed" />
                     <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#697680" Margin="0,0,8,0" />
                     <TextBlock x:Name="ConnectionStatus" Text="Not configured" VerticalAlignment="Center" Margin="0,0,14,0" />
+                    <Button x:Name="UpdateButton" Content="Check updates" Click="Update_Click" Margin="0,0,8,0" />
                     <Button Content="Connection" Click="Connection_Click" />
                 </StackPanel>
             </Grid>

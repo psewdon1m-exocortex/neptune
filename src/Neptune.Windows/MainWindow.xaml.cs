@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -20,11 +21,16 @@ public partial class MainWindow : Window
     private readonly WindowsProfileContext _profile;
     private readonly WindowsConnectionStore _connections;
     private readonly WindowsAutostartService _autostart;
+    private readonly WindowsUpdateService _updates;
+    private readonly WindowsTrayIcon _tray;
     private readonly NeptuneStateStore _state;
     private readonly ObservableCollection<MappingViewModel> _mappings = [];
     private string _clientInstanceId = "initializing";
     private CancellationTokenSource? _syncCancellation;
     private bool _changingAutostart = true;
+    private bool _allowExit;
+    private bool _backgroundHintShown;
+    private bool _checkingUpdates;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly DispatcherTimer _reconciliationTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromSeconds(5) };
@@ -34,19 +40,24 @@ public partial class MainWindow : Window
         _profile = profile;
         _connections = new WindowsConnectionStore(profile.StateDirectory);
         _autostart = new WindowsAutostartService(profile);
+        _updates = new WindowsUpdateService(profile);
         _state = new NeptuneStateStore(Path.Combine(profile.StateDirectory, "neptune.db"));
         InitializeComponent();
-        if (profile.StartMinimized) WindowState = WindowState.Minimized;
+        _tray = new WindowsTrayIcon(profile.ProfileId, RestoreFromTray, SyncFromTrayAsync, CheckForUpdatesAsync, ExitFromTray);
         MappingsList.ItemsSource = _mappings;
         ProfileLabel.Text = $"profile / {profile.ProfileId}";
         SourceInitialized += (_, _) => SetClientSize(800, 500);
         Loaded += async (_, _) => await LoadAsync();
+        Closing += Window_Closing;
+        StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) HideToTray(showHint: false); };
+        Application.Current.SessionEnding += (_, _) => _allowExit = true;
         Closed += (_, _) =>
         {
             _reconciliationTimer.Stop();
             _watchDebounce.Stop();
             _syncCancellation?.Cancel();
             DisposeWatchers();
+            _tray.Dispose();
         };
         _reconciliationTimer.Tick += async (_, _) => await StartSyncAsync(interactive: false);
         _watchDebounce.Tick += async (_, _) => { _watchDebounce.Stop(); await StartSyncAsync(interactive: false); };
@@ -70,6 +81,39 @@ public partial class MainWindow : Window
             try { ApplyAccent(await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, connection)); }
             catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
         }
+        if (_profile.StartMinimized) HideToTray(showHint: false);
+    }
+
+    private void Window_Closing(object? sender, CancelEventArgs e)
+    {
+        if (_allowExit) return;
+        e.Cancel = true;
+        HideToTray(showHint: true);
+    }
+
+    private void HideToTray(bool showHint)
+    {
+        Hide();
+        if (showHint && !_backgroundHintShown) { _tray.ShowBackgroundHint(); _backgroundHintShown = true; }
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private async Task SyncFromTrayAsync()
+    {
+        RestoreFromTray();
+        await StartSyncAsync(interactive: true);
+    }
+
+    private void ExitFromTray()
+    {
+        _allowExit = true;
+        Close();
     }
 
     private void Autostart_Changed(object sender, RoutedEventArgs e)
@@ -98,6 +142,59 @@ public partial class MainWindow : Window
     }
 
     private async void Connection_Click(object sender, RoutedEventArgs e) => await PromptConnectionAsync();
+
+    private async void Update_Click(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync();
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (_checkingUpdates) return;
+        RestoreFromTray();
+        var connection = _connections.Read();
+        if (connection is null)
+        {
+            RestoreFromTray();
+            connection = await PromptConnectionAsync();
+            if (connection is null) return;
+        }
+        _checkingUpdates = true;
+        UpdateButton.IsEnabled = false;
+        UpdateButton.Content = "Checking…";
+        try
+        {
+            var release = await _updates.CheckAsync(connection);
+            if (release is null)
+            {
+                MessageBox.Show(this, $"Neptune {_updates.CurrentVersion.ToString(3)} is up to date.", "Neptune update", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            RestoreFromTray();
+            if (WindowsUpdateService.HasOtherInstances())
+            {
+                MessageBox.Show(this, "Close other Neptune profiles before installing the update.", "Neptune update", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var answer = MessageBox.Show(this, $"Neptune {release.VersionText} is available. Download and install it now?", "Neptune update", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+            UpdateButton.Content = "Downloading…";
+            var progress = new Progress<int>(value => { UpdateButton.Content = $"Downloading {value}%"; FooterStatus.Text = $"Downloading update · {value}%"; });
+            var staging = await _updates.DownloadAsync(release, progress);
+            FooterStatus.Text = "Applying update…";
+            _updates.BeginApply(staging);
+            _allowExit = true;
+            Application.Current.Shutdown();
+        }
+        catch (Exception error)
+        {
+            RestoreFromTray();
+            MessageBox.Show(this, error.Message, "Neptune update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _checkingUpdates = false;
+            UpdateButton.IsEnabled = true;
+            UpdateButton.Content = "Check updates";
+        }
+    }
 
     private async Task<WindowsConnection?> PromptConnectionAsync()
     {

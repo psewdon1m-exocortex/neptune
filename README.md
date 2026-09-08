@@ -22,7 +22,8 @@ credentials and never exposes a web interface.
 - `src/Neptune.Linux` is the host-wide daemon and authenticated Unix-socket API;
 - `src/Neptune.Windows` is the 800 x 500 WPF application with isolated profiles,
   native folder selection, DPAPI-protected tokens, watcher hints and periodic
-  reconciliation, plus per-profile current-user autostart;
+  reconciliation, tray operation, per-profile current-user autostart and a
+  checksummed portable updater;
 - `packaging/linux` contains the hardened systemd unit and installer;
 - `packaging/windows` contains the future MSIX manifest and complete planet icon family;
 - `.github/workflows` publishes two independent checksummed release streams.
@@ -56,7 +57,7 @@ declare the Neptune protocol version, artifact SHA-256, size, architecture,
 minimum supported OS and immutable release URL. Release signing and verification
 must follow the same trust model as the existing Exocortex Updater releases.
 
-Kernel Register contains the shared, non-secret coordinates:
+Kernel Register contains `volt://` references for the shared coordinates:
 
 ```text
 repositories.neptune.url
@@ -69,13 +70,16 @@ services.<project>.backup.saturn_slug
 intervals.neptune.register_refresh_sec
 ```
 
-Recommended path values are `/api/v1/backups` and `/dav/sync`. They are logical
+The referenced Volt values for the paths are normally `/api/v1/backups` and
+`/dav/sync`. They are logical
 Gateway paths, not physical Storage Box paths. Kernel URL, Kernel service token,
 Saturn producer/device tokens, local project endpoints and local control tokens
 remain installation secrets/configuration and must not be stored in Register.
-Neptune uses conditional Register reads, validates the snapshot checksum and
-keeps a last-known-good snapshot. A changed Register snapshot affects new work;
-it must not redirect an upload already in progress.
+Neptune uses conditional Register reads, validates and caches the reference
+snapshot, and resolves the required keys through Kernel. Resolved values remain
+in memory only, so a fresh process requires available Kernel and Volt. A changed
+Register snapshot affects new work; it must not redirect an upload already in
+progress.
 
 ## 2. Linux topology
 
@@ -238,6 +242,11 @@ enable autostart for each profile independently; Neptune writes the current
 portable executable path to the current user's Windows Run key and starts that
 profile minimized at sign-in without requiring administrator rights.
 
+While running, Neptune remains available in the Windows notification area. The
+window close button hides it instead of stopping synchronization; the tray menu
+can reopen the window, synchronize immediately, check for updates or explicitly
+exit the process.
+
 The primary window has a tested client size of **800 x 500 logical pixels** and
 uses the common Exocortex visual language: black background, white text,
 square one-pixel borders, Space Grotesk/monospace typography and Saturn's
@@ -262,7 +271,8 @@ The first release has one main panel:
 ```
 
 Directory selection uses the native Windows folder picker. The Saturn origin
-and base sync path come only from the verified Kernel Register snapshot and are
+and base sync path come only from values resolved through the verified Kernel
+Register snapshot and are
 not editable text fields. A stable local mapping ID determines the subdirectory
 below the registered `/dav/sync` base and prevents name collisions.
 
@@ -301,7 +311,11 @@ at connection time and during reconciliation, then updates WPF dynamic resources
 The Windows application reads `repositories.neptune.url` and follows only the
 `neptune-windows-v*` release stream. Current portable releases are immutable
 GitHub assets verified by the SHA-256 declared in the release manifest; automatic
-installation remains deferred until publisher-signed MSIX releases are enabled.
+portable updates can be started from the **Check updates** button or tray menu.
+Neptune downloads the Windows release selected from the repository URL in Kernel
+Register, verifies its manifest and SHA-256, replaces the application only after
+the current process exits and then relaunches the same profile. Other profiles
+using the same executable must be closed before replacement.
 
 ## 6. Required Saturn protocol work
 
@@ -345,7 +359,7 @@ reconciliation. Neptune never talks directly to SFTP.
 
 Release acceptance includes multi-project isolation, missed schedules, daemon
 and machine restarts at every state, network interruption and resume, Saturn
-pause/cancel, quota failures, token rotation/revocation, Register last-known-good
-behavior, exact archive interchangeability, real clean restore, Windows locked
+pause/cancel, quota failures, token rotation/revocation, Register reference-cache
+and broker-unavailable behavior, exact archive interchangeability, real clean restore, Windows locked
 files and reparse points, long paths/case collisions, installer rollback,
 accessibility at 800 x 500 and secret scans of logs, backups and release assets.

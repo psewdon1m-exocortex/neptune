@@ -3,3 +3,8 @@ global using System.IO;
 global using System.Linq;
 global using System.Threading;
 global using System.Threading.Tasks;
+global using Application = System.Windows.Application;
+global using Brush = System.Windows.Media.Brush;
+global using Color = System.Windows.Media.Color;
+global using ColorConverter = System.Windows.Media.ColorConverter;
+global using MessageBox = System.Windows.MessageBox;
