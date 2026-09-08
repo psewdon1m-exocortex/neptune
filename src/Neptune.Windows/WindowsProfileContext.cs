@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Neptune.Windows;
 
-public sealed partial record WindowsProfileContext(string ProfileId, string StateDirectory)
+public sealed partial record WindowsProfileContext(string ProfileId, string StateDirectory, bool StartMinimized)
 {
     public static WindowsProfileContext FromArguments(string[] arguments)
     {
@@ -12,7 +12,7 @@ public sealed partial record WindowsProfileContext(string ProfileId, string Stat
             throw new ArgumentException("Profile must contain only ASCII letters, digits, '-' or '_'.");
         profile = profile.ToLowerInvariant();
         var root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return new WindowsProfileContext(profile, Path.Combine(root, "Neptune", "profiles", profile));
+        return new WindowsProfileContext(profile, Path.Combine(root, "Neptune", "profiles", profile), arguments.Contains("--minimized", StringComparer.Ordinal));
     }
 
     [GeneratedRegex("^[A-Za-z0-9_-]{1,40}$", RegexOptions.CultureInvariant)]

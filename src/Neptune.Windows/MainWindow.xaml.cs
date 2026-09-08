@@ -19,10 +19,12 @@ public partial class MainWindow : Window
 {
     private readonly WindowsProfileContext _profile;
     private readonly WindowsConnectionStore _connections;
+    private readonly WindowsAutostartService _autostart;
     private readonly NeptuneStateStore _state;
     private readonly ObservableCollection<MappingViewModel> _mappings = [];
     private string _clientInstanceId = "initializing";
     private CancellationTokenSource? _syncCancellation;
+    private bool _changingAutostart = true;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly DispatcherTimer _reconciliationTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromSeconds(5) };
@@ -31,8 +33,10 @@ public partial class MainWindow : Window
     {
         _profile = profile;
         _connections = new WindowsConnectionStore(profile.StateDirectory);
+        _autostart = new WindowsAutostartService(profile);
         _state = new NeptuneStateStore(Path.Combine(profile.StateDirectory, "neptune.db"));
         InitializeComponent();
+        if (profile.StartMinimized) WindowState = WindowState.Minimized;
         MappingsList.ItemsSource = _mappings;
         ProfileLabel.Text = $"profile / {profile.ProfileId}";
         SourceInitialized += (_, _) => SetClientSize(800, 500);
@@ -50,6 +54,9 @@ public partial class MainWindow : Window
 
     private async Task LoadAsync()
     {
+        _changingAutostart = true;
+        try { AutostartToggle.IsChecked = _autostart.IsEnabled(); }
+        finally { _changingAutostart = false; }
         await _state.InitializeAsync();
         _clientInstanceId = await new ClientIdentityStore(_profile.StateDirectory).GetOrCreateAsync();
         ClientLabel.Text = _clientInstanceId;
@@ -62,6 +69,24 @@ public partial class MainWindow : Window
         {
             try { ApplyAccent(await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, connection)); }
             catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
+        }
+    }
+
+    private void Autostart_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_changingAutostart) return;
+        try
+        {
+            var enabled = AutostartToggle.IsChecked == true;
+            _autostart.SetEnabled(enabled);
+            FooterStatus.Text = enabled ? "Autostart enabled for this profile" : "Autostart disabled for this profile";
+        }
+        catch (Exception error)
+        {
+            _changingAutostart = true;
+            try { AutostartToggle.IsChecked = _autostart.IsEnabled(); }
+            finally { _changingAutostart = false; }
+            MessageBox.Show(this, error.Message, "Neptune autostart", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

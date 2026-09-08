@@ -22,7 +22,7 @@ credentials and never exposes a web interface.
 - `src/Neptune.Linux` is the host-wide daemon and authenticated Unix-socket API;
 - `src/Neptune.Windows` is the 800 x 500 WPF application with isolated profiles,
   native folder selection, DPAPI-protected tokens, watcher hints and periodic
-  reconciliation;
+  reconciliation, plus per-profile current-user autostart;
 - `packaging/linux` contains the hardened systemd unit and installer;
 - `packaging/windows` contains the future MSIX manifest and complete planet icon family;
 - `.github/workflows` publishes two independent checksummed release streams.
@@ -233,7 +233,10 @@ only in page memory and are never returned later.
 Neptune Windows is a per-user desktop application, not a Windows Service. The
 current release is a self-contained portable ZIP and keeps secrets in the
 current-user Windows credential protection scope. MSIX packaging and automatic
-startup remain deferred until publisher signing is enabled.
+installation remain deferred until publisher signing is enabled. The user can
+enable autostart for each profile independently; Neptune writes the current
+portable executable path to the current user's Windows Run key and starts that
+profile minimized at sign-in without requiring administrator rights.
 
 The primary window has a tested client size of **800 x 500 logical pixels** and
 uses the common Exocortex visual language: black background, white text,

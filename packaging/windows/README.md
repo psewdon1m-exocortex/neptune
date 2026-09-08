@@ -14,3 +14,9 @@ Neptune.Windows.exe --profile personal
 ```
 
 Only one process may use a given profile at a time.
+
+The **Start with Windows** toggle is stored separately for every profile in the
+current user's Windows Run key. It records the current portable executable path,
+so enable the toggle again after moving the extracted application directory.
+Autostart launches the selected profile minimized and requires no administrator
+rights.
