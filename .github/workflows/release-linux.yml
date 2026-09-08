@@ -14,10 +14,10 @@ jobs:
       matrix:
         runtime: [linux-x64, linux-arm64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.x
+          global-json-file: global.json
       - name: Test
         run: dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
       - name: Publish
