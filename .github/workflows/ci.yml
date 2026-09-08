@@ -1,0 +1,61 @@
+name: Neptune CI
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neptune-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Validate packaging scripts
+        run: sh -n packaging/linux/install.sh
+      - name: Build and test
+        run: |
+          dotnet build src/Neptune.Linux/Neptune.Linux.csproj -c Release
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
+      - name: Check vulnerable runtime dependencies
+        run: dotnet list src/Neptune.Linux/Neptune.Linux.csproj package --vulnerable --include-transitive
+      - name: Publish smoke test
+        run: |
+          dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/linux-x64
+          dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -o artifacts/linux-arm64
+          test -x artifacts/linux-x64/Neptune.Linux
+          test -x artifacts/linux-arm64/Neptune.Linux
+
+  windows:
+    name: Windows application
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Build and test
+        shell: pwsh
+        run: |
+          dotnet build Neptune.slnx -c Release
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --no-build
+      - name: Check vulnerable runtime dependencies
+        run: dotnet list src/Neptune.Windows/Neptune.Windows.csproj package --vulnerable --include-transitive
+      - name: Publish smoke test
+        shell: pwsh
+        run: |
+          dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/win-x64
+          if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
