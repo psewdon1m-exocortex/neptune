@@ -12,6 +12,7 @@ public partial class ConnectionWindow : Window
         KernelOrigin.Text = existing.KernelOrigin.AbsoluteUri;
         KernelToken.Password = existing.KernelToken;
         SaturnToken.Password = existing.SaturnToken;
+        RemoteFolder.Text = existing.RemoteFolder;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -26,7 +27,13 @@ public partial class ConnectionWindow : Window
             MessageBox.Show(this, "Both tokens are required.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password);
+        var remoteFolder = RemoteFolder.Text.Trim().Normalize();
+        if (remoteFolder.Length is < 1 or > 100 || remoteFolder is "." or ".." || remoteFolder.Any(value => char.IsControl(value) || value is '/' or '\\'))
+        {
+            MessageBox.Show(this, "Destination must contain 1-100 characters without slashes or control characters.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password, remoteFolder);
         DialogResult = true;
     }
 }

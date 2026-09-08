@@ -70,7 +70,7 @@ export token files, а также supplemental GID обоих sockets. Внут�
 публикуется только на loopback хоста. Browser никогда не получает локальные или
 Saturn tokens.
 
-Адрес Saturn, пути `backups`/`sync`, producer slug и URL репозитория Neptune агент
+Адрес Saturn, пути `backups`/`sync`/`sync_preferences`, producer slug и URL репозитория Neptune агент
 получает из проверенного Kernel Register. Updater повторно читает Register,
 проверяет manifest/SHA-256, атомарно заменяет binary и откатывает его при неуспешном
 health check.

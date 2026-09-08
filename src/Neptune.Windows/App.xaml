@@ -9,11 +9,10 @@
         <Style TargetType="Button">
             <Setter Property="Background" Value="#11151A" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
     </Application.Resources>
 </Application>
-

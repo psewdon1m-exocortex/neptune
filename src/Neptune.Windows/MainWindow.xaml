@@ -14,7 +14,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Image Source="neptune.png" Width="46" Height="46" Stretch="Uniform" />
                 <StackPanel Grid.Column="1" Margin="14,2,0,0">
-                    <TextBlock Text="NEPTUNE" FontSize="21" FontWeight="SemiBold" Foreground="#00A8FF" />
+                    <TextBlock Text="NEPTUNE" FontSize="21" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
                     <TextBlock x:Name="ProfileLabel" FontFamily="Cascadia Mono" FontSize="11" Foreground="#93A2AD" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -29,7 +29,7 @@
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <TextBlock Text="SYNC WITH SATURN" FontSize="18" FontWeight="SemiBold" />
             <TextBlock Grid.Row="1" Margin="0,4,0,14" Foreground="#93A2AD"
-                       Text="One-way copy of selected local directories to the sync root. Remote files never change this computer." />
+                       Text="One-way mirror of selected local directories. Local deletions are reflected in Saturn; remote changes never affect this computer." />
             <Border Grid.Row="2" Background="#11151A" BorderBrush="#33404A" BorderThickness="1">
                 <ListBox x:Name="MappingsList" Background="Transparent" BorderThickness="0" Foreground="White">
                     <ListBox.ItemTemplate>
@@ -40,7 +40,7 @@
                                     <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding LocalPath}" Foreground="#93A2AD" FontFamily="Cascadia Mono" FontSize="11" />
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="Ready" Foreground="#00A8FF" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="Ready" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
                                 <Button Grid.Column="2" Content="Remove" Tag="{Binding}" Click="Remove_Click" />
                             </Grid>
                         </DataTemplate>
@@ -49,7 +49,7 @@
             </Border>
             <Grid Grid.Row="3" Margin="0,14,0,0">
                 <Button Content="Add local directory" HorizontalAlignment="Left" Click="AddDirectory_Click" />
-                <Button x:Name="SyncButton" Content="Sync now" HorizontalAlignment="Right" Width="115" Background="#00A8FF" Foreground="#001018" FontWeight="SemiBold" Click="Sync_Click" />
+                <Button x:Name="SyncButton" Content="Sync now" HorizontalAlignment="Right" Width="115" Background="{DynamicResource AccentBrush}" Foreground="#001018" FontWeight="SemiBold" Click="Sync_Click" />
             </Grid>
         </Grid>
 
@@ -61,4 +61,3 @@
         </Border>
     </Grid>
 </Window>
-

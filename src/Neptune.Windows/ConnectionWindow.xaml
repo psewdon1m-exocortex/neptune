@@ -1,14 +1,15 @@
 <Window x:Class="Neptune.Windows.ConnectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Neptune connection" Width="520" Height="350" ResizeMode="NoResize"
+        Title="Neptune connection" Width="520" Height="420" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" Background="#090B0E" Foreground="White">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/><RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="CONNECTION" FontSize="20" FontWeight="SemiBold" Foreground="#00A8FF" />
+        <TextBlock Text="CONNECTION" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
         <TextBlock Grid.Row="1" Margin="0,16,0,5" Text="Kernel HTTPS origin" />
         <TextBox x:Name="KernelOrigin" Grid.Row="2" Height="30" Text="https://kernel.example.com" />
         <StackPanel Grid.Row="3" Margin="0,14,0,0">
@@ -19,9 +20,10 @@
             <TextBlock Text="Saturn device token" Margin="0,0,0,5" />
             <PasswordBox x:Name="SaturnToken" Height="30" />
         </StackPanel>
-        <TextBlock Grid.Row="5" Margin="0,14,0,0" Foreground="#93A2AD" TextWrapping="Wrap"
+        <TextBlock Grid.Row="5" Margin="0,14,0,5" Text="Destination folder in Saturn sync" />
+        <TextBox x:Name="RemoteFolder" Grid.Row="6" Height="30" />
+        <TextBlock Grid.Row="7" Margin="0,14,0,0" Foreground="#93A2AD" TextWrapping="Wrap"
                    Text="Saturn address and sync path are always read from the signed Kernel Register snapshot. Tokens are protected for the current Windows user." />
-        <Button Grid.Row="6" HorizontalAlignment="Right" Width="110" Content="Save" Click="Save_Click" />
+        <Button Grid.Row="8" HorizontalAlignment="Right" Width="110" Content="Save" Click="Save_Click" />
     </Grid>
 </Window>
-

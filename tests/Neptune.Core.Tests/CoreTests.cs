@@ -98,6 +98,41 @@ public sealed class CoreTests
     }
 
     [Fact]
+    public async Task WebDavNamespaceIsClaimedAndAccentComesFromSaturn()
+    {
+        var handler = new NamespaceProtocolHandler();
+        var client = new WebDavSyncClient(new HttpClient(handler));
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var root = await client.ClaimNamespaceAsync(
+            new Uri("https://saturn.example/dav/sync/"), "token", "User PC", "client-a", cancellationToken);
+        var accent = await client.ReadAccentAsync(
+            new Uri("https://saturn.example/api/v1/sync/preferences"), "token", cancellationToken);
+
+        Assert.Equal("https://saturn.example/dav/sync/User%20PC/", root.AbsoluteUri);
+        Assert.Equal("client-a", handler.Owner);
+        Assert.Equal("#7357FF", accent);
+    }
+
+    [Fact]
+    public async Task WebDavMirrorDeletesEntriesMissingLocally()
+    {
+        var handler = new MirrorProtocolHandler();
+        var client = new WebDavSyncClient(new HttpClient(handler));
+
+        await client.MirrorAsync(
+            new Uri("https://saturn.example/dav/sync/User%20PC/Project/"),
+            "token",
+            new HashSet<string>(["keep.txt"], StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal),
+            TestContext.Current.CancellationToken);
+
+        Assert.Contains("/dav/sync/User%20PC/Project/stale.txt", handler.Deleted);
+        Assert.Contains("/dav/sync/User%20PC/Project/old/", handler.Deleted);
+        Assert.DoesNotContain("/dav/sync/User%20PC/Project/keep.txt", handler.Deleted);
+    }
+
+    [Fact]
     public async Task SaturnUploadUsesCapabilitiesAndPreservesExactBytes()
     {
         var directory = Path.Combine(Path.GetTempPath(), "neptune-tests", Guid.NewGuid().ToString("N"));
@@ -157,5 +192,58 @@ public sealed class CoreTests
         }
 
         private static HttpResponseMessage Json<T>(T value) => new(HttpStatusCode.OK) { Content = JsonContent.Create(value) };
+    }
+
+    private sealed class NamespaceProtocolHandler : HttpMessageHandler
+    {
+        public string? Owner { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method.Method == "PROPFIND") return new HttpResponseMessage(HttpStatusCode.NotFound);
+            if (request.Method.Method == "MKCOL") return new HttpResponseMessage(HttpStatusCode.Created);
+            if (request.Method == HttpMethod.Put && request.RequestUri!.AbsolutePath.EndsWith("/_neptune-owner", StringComparison.Ordinal))
+            {
+                Owner = await request.Content!.ReadAsStringAsync(cancellationToken);
+                return new HttpResponseMessage(HttpStatusCode.Created);
+            }
+            if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/api/v1/sync/preferences", StringComparison.Ordinal))
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { accentColor = "#7357FF" }) };
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        }
+    }
+
+    private sealed class MirrorProtocolHandler : HttpMessageHandler
+    {
+        public List<string> Deleted { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (request.Method.Method == "PROPFIND")
+            {
+                var children = path.EndsWith("/old/", StringComparison.Ordinal)
+                    ? ""
+                    : """
+                      <d:response><d:href>/dav/sync/User%20PC/Project/keep.txt</d:href><d:propstat><d:prop><d:displayname>keep.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/stale.txt</d:href><d:propstat><d:prop><d:displayname>stale.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/old/</d:href><d:propstat><d:prop><d:displayname>old</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop></d:propstat></d:response>
+                      """;
+                var xml = $"""
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <d:multistatus xmlns:d="DAV:">
+                      <d:response><d:href>{path}</d:href><d:propstat><d:prop><d:displayname>Project</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop></d:propstat></d:response>
+                      {children}
+                    </d:multistatus>
+                    """;
+                return Task.FromResult(new HttpResponseMessage((HttpStatusCode)207) { Content = new StringContent(xml, Encoding.UTF8, "application/xml") });
+            }
+            if (request.Method == HttpMethod.Delete)
+            {
+                Deleted.Add(path);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
     }
 }

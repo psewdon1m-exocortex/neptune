@@ -5,44 +5,56 @@ using Neptune.Core;
 
 namespace Neptune.Windows;
 
+public sealed record WindowsSyncResult(int UploadedFiles, string AccentColor);
+
 public sealed class WindowsSyncService(WindowsProfileContext profile)
 {
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromHours(2) };
 
-    public async Task<int> SyncAsync(
+    public async Task<string> ConnectAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken = default)
+    {
+        var prepared = await PrepareAsync(clientInstanceId, connection, cancellationToken);
+        return prepared.AccentColor;
+    }
+
+    public async Task<WindowsSyncResult> SyncAsync(
         string clientInstanceId,
         IReadOnlyList<SyncMapping> mappings,
         WindowsConnection connection,
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-lkg.json"));
-        JsonDocument snapshot;
-        try { snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken); }
-        catch when (File.Exists(Path.Combine(profile.StateDirectory, "register-lkg.json"))) { snapshot = register.GetLastKnownGood(); }
-        using (snapshot)
+        var prepared = await PrepareAsync(clientInstanceId, connection, cancellationToken);
         {
             var state = new NeptuneStateStore(Path.Combine(profile.StateDirectory, "neptune.db"));
             await state.InitializeAsync(cancellationToken);
-            var values = snapshot.RootElement.GetProperty("values");
-            var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
-            var syncPath = RegisterValues.RequiredString(values, "services.saturn.paths.sync");
-            var syncRoot = new Uri(saturnOrigin, syncPath.TrimEnd('/') + "/");
             var client = new WebDavSyncClient(_http);
             var uploaded = 0;
             var failures = 0;
             foreach (var mapping in mappings.Where(item => item.Enabled))
             {
-                foreach (var file in SafeFiles(mapping.LocalPath))
+                var mappingName = Path.GetFileName(mapping.LocalPath.TrimEnd(Path.DirectorySeparatorChar));
+                if (string.IsNullOrWhiteSpace(mappingName)) mappingName = "root";
+                if (mappings.Any(other => other.MappingId != mapping.MappingId && string.Equals(Path.GetFileName(other.LocalPath.TrimEnd(Path.DirectorySeparatorChar)), mappingName, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException($"Two selected directories cannot use the same Saturn folder name '{mappingName}'.");
+                await client.EnsureDirectoryAsync(prepared.NamespaceRoot, connection.SaturnToken, mappingName, cancellationToken);
+                var mappingRoot = new Uri(prepared.NamespaceRoot, Uri.EscapeDataString(mappingName) + "/");
+                var entries = SafeEntries(mapping.LocalPath).ToArray();
+                var localFiles = entries.Where(value => !value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
+                var localDirectories = entries.Where(value => value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
+                foreach (var directory in localDirectories.OrderBy(value => value.Count(character => character == '/')))
+                    await client.EnsureDirectoryAsync(mappingRoot, connection.SaturnToken, directory, cancellationToken);
+                foreach (var entry in entries.Where(value => !value.IsDirectory))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var relative = Path.GetRelativePath(mapping.LocalPath, file);
+                    var file = entry.FullPath;
+                    var relative = entry.RelativePath;
                     var info = new FileInfo(file);
                     var modifiedAt = new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero);
                     var previous = await state.GetSyncFileAsync(mapping.MappingId, relative, cancellationToken);
                     if (previous is not null && previous.State == "synced" && previous.LocalSize == info.Length && previous.LocalModifiedAt == modifiedAt)
                     {
-                        var remoteEtag = await client.ReadEtagAsync(WebDavSyncClient.TargetUri(syncRoot, clientInstanceId, mapping.MappingId, relative), connection.SaturnToken, cancellationToken);
+                        var remoteEtag = await client.ReadEtagAsync(WebDavSyncClient.RelativeTargetUri(mappingRoot, relative), connection.SaturnToken, cancellationToken);
                         if (remoteEtag is not null && remoteEtag == previous.RemoteEtag) continue;
                     }
                     progress?.Report($"{Path.GetFileName(mapping.LocalPath)} · {relative}");
@@ -58,7 +70,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
                     }
                     try
                     {
-                        var etag = await client.UploadAsync(syncRoot, connection.SaturnToken, clientInstanceId, mapping.MappingId, relative, file, cancellationToken);
+                        var etag = await client.UploadAsync(mappingRoot, connection.SaturnToken, relative, file, cancellationToken);
                         var afterUpload = new FileInfo(file);
                         if (afterUpload.Length != info.Length || afterUpload.LastWriteTimeUtc != info.LastWriteTimeUtc)
                         {
@@ -75,13 +87,47 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
                         await state.UpsertSyncFileAsync(new SyncFileRecord(mapping.MappingId, relative, info.Length, modifiedAt, hash, previous?.RemoteEtag, "retry-wait", DateTimeOffset.UtcNow, error.Message), cancellationToken);
                     }
                 }
+                try { await client.MirrorAsync(mappingRoot, connection.SaturnToken, localFiles, localDirectories, cancellationToken); }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    failures++;
+                    progress?.Report($"{mappingName} · remote cleanup failed: {error.Message}");
+                }
             }
             if (failures > 0) throw new IOException($"{failures} file(s) could not be synchronized and remain queued for retry.");
-            return uploaded;
+            return new WindowsSyncResult(uploaded, prepared.AccentColor);
         }
     }
 
-    private static IEnumerable<string> SafeFiles(string root)
+    private async Task<PreparedConnection> PrepareAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken)
+    {
+        var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-lkg.json"));
+        JsonDocument snapshot;
+        try { snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken); }
+        catch when (File.Exists(Path.Combine(profile.StateDirectory, "register-lkg.json"))) { snapshot = register.GetLastKnownGood(); }
+        using (snapshot)
+        {
+            var values = snapshot.RootElement.GetProperty("values");
+            var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
+            var syncPath = RegisterValues.RequiredString(values, "services.saturn.paths.sync");
+            string preferencesPath;
+            try { preferencesPath = RegisterValues.RequiredString(values, "services.saturn.paths.sync_preferences"); }
+            catch (InvalidDataException) { preferencesPath = "/api/v1/sync/preferences"; }
+            var client = new WebDavSyncClient(_http);
+            var syncRoot = new Uri(saturnOrigin, syncPath.TrimEnd('/') + "/");
+            var namespaceRoot = await client.ClaimNamespaceAsync(syncRoot, connection.SaturnToken, connection.RemoteFolder, clientInstanceId, cancellationToken);
+            var accent = "#00A8FF";
+            try { accent = await client.ReadAccentAsync(new Uri(saturnOrigin, preferencesPath), connection.SaturnToken, cancellationToken); }
+            catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Older Saturn deployments have no preferences endpoint. The next
+                // successful connection after Saturn is upgraded replaces this fallback.
+            }
+            return new PreparedConnection(namespaceRoot, accent);
+        }
+    }
+
+    private static IEnumerable<LocalEntry> SafeEntries(string root)
     {
         var pending = new Stack<string>();
         pending.Push(root);
@@ -99,9 +145,17 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
                 catch (IOException) { continue; }
                 catch (UnauthorizedAccessException) { continue; }
                 if ((attributes & FileAttributes.ReparsePoint) != 0) continue;
-                if ((attributes & FileAttributes.Directory) != 0) pending.Push(entry);
-                else yield return entry;
+                var relative = Path.GetRelativePath(root, entry).Replace('\\', '/');
+                if ((attributes & FileAttributes.Directory) != 0)
+                {
+                    yield return new LocalEntry(entry, relative, true);
+                    pending.Push(entry);
+                }
+                else yield return new LocalEntry(entry, relative, false);
             }
         }
     }
+
+    private sealed record PreparedConnection(Uri NamespaceRoot, string AccentColor);
+    private sealed record LocalEntry(string FullPath, string RelativePath, bool IsDirectory);
 }

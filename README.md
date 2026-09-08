@@ -64,6 +64,7 @@ services.saturn.sni
 services.saturn.port
 services.saturn.paths.backup_ingest
 services.saturn.paths.sync
+services.saturn.paths.sync_preferences
 services.<project>.backup.saturn_slug
 intervals.neptune.register_refresh_sec
 ```
@@ -261,18 +262,22 @@ and base sync path come only from the verified Kernel Register snapshot and are
 not editable text fields. A stable local mapping ID determines the subdirectory
 below the registered `/dav/sync` base and prevents name collisions.
 
-Each Windows profile must use its own scoped Saturn device token. Remote paths
-are always `<client_instance_id>/<mapping_id>/<relative_path>`, so two Windows
-accounts, two PCs, or two named profiles on one PC cannot overwrite each other's
-namespace unless an operator deliberately reuses their state directory.
+Each Windows profile must use its own scoped Saturn device token and a unique,
+operator-selected destination such as `User PC`. Remote paths are
+`sync/<destination>/<local-directory-name>/<relative-path>`. Neptune atomically
+claims the destination with its stable client ID and rejects a folder already
+owned by another client. Directories with the same final name cannot be added to
+one profile.
 
 Version 1 behavior is deliberately one-way:
 
 - local creates and changes upload to Saturn;
 - overwrites use Saturn versions and ETag preconditions;
-- local deletion does not delete the Saturn copy;
+- local deletion deletes the corresponding object inside the claimed Saturn
+  destination, making each configured directory a one-way mirror;
 - remote deletion/change never mutates local files;
-- filesystem notifications are hints; periodic reconciliation is the source of
+- filesystem notifications are hints; periodic reconciliation and remote
+  enumeration are the source of
   truth;
 - locked or changing files retry after a stability check;
 - junctions, symlinks and reparse points are not followed by default;
@@ -284,6 +289,10 @@ file associations use one Neptune planet icon family rendered at all required
 Windows sizes. The taskbar icon also provides progress/error overlays where the
 platform supports them. No Saturn artwork is recolored and reused as Neptune;
 Neptune receives its own planet silhouette while sharing the accent token.
+
+The accent is not compiled into runtime controls. Neptune reads the current
+device-authenticated Saturn preference from the path published in Kernel Register
+at connection time and during reconciliation, then updates WPF dynamic resources.
 
 The Windows application reads `repositories.neptune.url` and follows only the
 `neptune-windows-v*` release stream. Update installation uses signed MSIX update

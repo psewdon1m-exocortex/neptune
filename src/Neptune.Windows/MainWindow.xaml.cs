@@ -57,22 +57,40 @@ public partial class MainWindow : Window
         RefreshWatchers();
         _reconciliationTimer.Start();
         ShowConnectionState();
+        var connection = _connections.Read();
+        if (connection is not null)
+        {
+            try { ApplyAccent(await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, connection)); }
+            catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
+        }
     }
 
     private void ShowConnectionState()
     {
         var configured = _connections.Read() is not null;
         ConnectionStatus.Text = configured ? "Saturn configured" : "Not configured";
-        ConnectionDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(configured ? "#00A8FF" : "#697680"));
+        ConnectionDot.Fill = configured ? (Brush)Application.Current.Resources["AccentBrush"] : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#697680"));
     }
 
-    private void Connection_Click(object sender, RoutedEventArgs e)
+    private async void Connection_Click(object sender, RoutedEventArgs e) => await PromptConnectionAsync();
+
+    private async Task<WindowsConnection?> PromptConnectionAsync()
     {
         var dialog = new ConnectionWindow(_connections.Read()) { Owner = this };
-        if (dialog.ShowDialog() == true && dialog.Connection is not null)
+        if (dialog.ShowDialog() != true || dialog.Connection is null) return null;
+        try
         {
+            var accent = await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, dialog.Connection);
             _connections.Write(dialog.Connection);
+            ApplyAccent(accent);
             ShowConnectionState();
+            FooterStatus.Text = $"Connected · sync/{dialog.Connection.RemoteFolder}";
+            return dialog.Connection;
+        }
+        catch (Exception error)
+        {
+            MessageBox.Show(this, error.Message, "Neptune connection failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            return null;
         }
     }
 
@@ -82,6 +100,12 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         var fullPath = Path.GetFullPath(dialog.FolderName).TrimEnd(Path.DirectorySeparatorChar);
         if (_mappings.Any(item => string.Equals(item.LocalPath, fullPath, StringComparison.OrdinalIgnoreCase))) return;
+        var folderName = Path.GetFileName(fullPath);
+        if (_mappings.Any(item => string.Equals(Path.GetFileName(item.LocalPath), folderName, StringComparison.OrdinalIgnoreCase)))
+        {
+            MessageBox.Show(this, $"Another selected directory already uses the Saturn folder name '{folderName}'.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         var mapping = new SyncMapping($"mapping-{Guid.NewGuid():N}", _clientInstanceId, fullPath, true, DateTimeOffset.UtcNow);
         await _state.AddMappingAsync(mapping);
         _mappings.Add(new MappingViewModel(mapping));
@@ -113,8 +137,7 @@ public partial class MainWindow : Window
         if (connection is null)
         {
             if (!interactive) return;
-            Connection_Click(this, new RoutedEventArgs());
-            connection = _connections.Read();
+            connection = await PromptConnectionAsync();
             if (connection is null) return;
         }
         _syncCancellation = new CancellationTokenSource();
@@ -123,8 +146,9 @@ public partial class MainWindow : Window
         try
         {
             var progress = new Progress<string>(value => FooterStatus.Text = "Uploading · " + value);
-            var count = await new WindowsSyncService(_profile).SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
-            FooterStatus.Text = $"Up to date · {count} file(s) uploaded · {DateTime.Now:t}";
+            var result = await new WindowsSyncService(_profile).SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
+            ApplyAccent(result.AccentColor);
+            FooterStatus.Text = $"Up to date · {result.UploadedFiles} file(s) uploaded · {DateTime.Now:t}";
         }
         catch (OperationCanceledException) { FooterStatus.Text = "Synchronization cancelled"; }
         catch (Exception error)
@@ -173,6 +197,14 @@ public partial class MainWindow : Window
     {
         foreach (var watcher in _watchers) watcher.Dispose();
         _watchers.Clear();
+    }
+
+    private void ApplyAccent(string value)
+    {
+        var color = (Color)ColorConverter.ConvertFromString(value);
+        Application.Current.Resources["AccentColor"] = color;
+        Application.Current.Resources["AccentBrush"] = new SolidColorBrush(color);
+        if (_connections.Read() is not null) ConnectionDot.Fill = (Brush)Application.Current.Resources["AccentBrush"];
     }
 
     private void SetClientSize(int width, int height)

@@ -59,3 +59,11 @@ jobs:
         run: |
           dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/win-x64
           if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
+      - name: Upload Windows test build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: neptune-windows-${{ github.sha }}
+          path: artifacts/win-x64
+          if-no-files-found: error
+          retention-days: 14

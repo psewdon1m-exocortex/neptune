@@ -4,8 +4,8 @@ using System.Text.Json;
 
 namespace Neptune.Windows;
 
-public sealed record WindowsConnection(Uri KernelOrigin, string KernelToken, string SaturnToken);
-internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken);
+public sealed record WindowsConnection(Uri KernelOrigin, string KernelToken, string SaturnToken, string RemoteFolder);
+internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken, string? RemoteFolder);
 
 public sealed class WindowsConnectionStore(string stateDirectory)
 {
@@ -16,13 +16,14 @@ public sealed class WindowsConnectionStore(string stateDirectory)
         if (!File.Exists(_path)) return null;
         var stored = JsonSerializer.Deserialize<StoredWindowsConnection>(File.ReadAllText(_path))
             ?? throw new InvalidDataException("Neptune connection configuration is invalid.");
-        return new WindowsConnection(new Uri(stored.KernelOrigin), Unprotect(stored.KernelToken), Unprotect(stored.SaturnToken));
+        return new WindowsConnection(new Uri(stored.KernelOrigin), Unprotect(stored.KernelToken), Unprotect(stored.SaturnToken),
+            string.IsNullOrWhiteSpace(stored.RemoteFolder) ? Environment.MachineName : stored.RemoteFolder);
     }
 
     public void Write(WindowsConnection connection)
     {
         Directory.CreateDirectory(stateDirectory);
-        var stored = new StoredWindowsConnection(connection.KernelOrigin.AbsoluteUri, Protect(connection.KernelToken), Protect(connection.SaturnToken));
+        var stored = new StoredWindowsConnection(connection.KernelOrigin.AbsoluteUri, Protect(connection.KernelToken), Protect(connection.SaturnToken), connection.RemoteFolder.Trim());
         var temporary = _path + ".tmp";
         File.WriteAllText(temporary, JsonSerializer.Serialize(stored, new JsonSerializerOptions { WriteIndented = true }));
         File.Move(temporary, _path, overwrite: true);
@@ -31,4 +32,3 @@ public sealed class WindowsConnectionStore(string stateDirectory)
     private static string Protect(string value) => Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(value.Trim()), null, DataProtectionScope.CurrentUser));
     private static string Unprotect(string value) => Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(value), null, DataProtectionScope.CurrentUser));
 }
-
