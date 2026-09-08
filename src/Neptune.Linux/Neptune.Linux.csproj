@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../Neptune.Core/Neptune.Core.csproj" />
+  </ItemGroup>
+</Project>
+

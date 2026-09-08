@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Neptune.Core/Neptune.Core.csproj" />
+    <Project Path="src/Neptune.Linux/Neptune.Linux.csproj" />
+    <Project Path="src/Neptune.Windows/Neptune.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj" />
+  </Folder>
+</Solution>
+

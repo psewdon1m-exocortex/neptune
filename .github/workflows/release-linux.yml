@@ -1,0 +1,40 @@
+name: Release Neptune Linux
+
+on:
+  push:
+    tags: ["neptune-linux-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: [linux-x64, linux-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Test
+        run: dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
+      - name: Publish
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#neptune-linux-v}"
+          dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r "${{ matrix.runtime }}" --self-contained true -p:PublishSingleFile=true -p:Version="$version" -o "artifacts/${{ matrix.runtime }}"
+          mv "artifacts/${{ matrix.runtime }}/Neptune.Linux" "artifacts/${{ matrix.runtime }}/neptuned"
+          cp packaging/linux/install.sh packaging/linux/neptune.service src/Neptune.Linux/appsettings.json "artifacts/${{ matrix.runtime }}/"
+          chmod 0755 "artifacts/${{ matrix.runtime }}/neptuned" "artifacts/${{ matrix.runtime }}/install.sh"
+          tar -C "artifacts/${{ matrix.runtime }}" -czf "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" .
+          checksum="$(sha256sum "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" | cut -d' ' -f1)"
+          printf '%s  %s\n' "$checksum" "neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" > "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz.sha256"
+          printf '{"schema":"exocortex.neptune.release.v1","product":"neptune-linux","protocol_version":1,"version":"%s","runtime":"%s","artifact":"%s","sha256":"%s"}\n' "$version" "${{ matrix.runtime }}" "neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" "$checksum" > "artifacts/neptune-linux-release-${{ matrix.runtime }}.json"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.sha256
+            artifacts/*.json

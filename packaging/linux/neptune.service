@@ -1,0 +1,27 @@
+[Unit]
+Description=Exocortex Neptune backup agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=neptune
+Group=neptune-clients
+SupplementaryGroups=neptune
+RuntimeDirectory=neptune
+RuntimeDirectoryMode=0750
+StateDirectory=neptune
+StateDirectoryMode=0700
+WorkingDirectory=/etc/neptune
+ExecStart=/usr/local/lib/neptune/neptuned --contentRoot /etc/neptune
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/neptune /run/neptune
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target
