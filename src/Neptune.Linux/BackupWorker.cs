@@ -111,7 +111,7 @@ public sealed class BackupWorker(
         var values = snapshot.RootElement.GetProperty("values");
         var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
         var backupPath = RegisterValues.RequiredString(values, "services.saturn.paths.backup_ingest");
-        var slug = RegisterValues.RequiredString(values, project.SaturnSlugRegisterKey);
+        var slug = project.SaturnSlug ?? RegisterValues.RequiredString(values, project.SaturnSlugRegisterKey);
         var token = await ReadSecretAsync(project.SaturnTokenFile, cancellationToken);
         var receipt = await new SaturnBackupClient(http).UploadAsync(
             new Uri(saturnOrigin, backupPath.TrimEnd('/') + "/"), slug, token, run,
@@ -129,12 +129,7 @@ public sealed class BackupWorker(
     {
         var token = await ReadSecretAsync(options.KernelTokenFile, cancellationToken);
         var client = new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"));
-        try { return await client.GetSnapshotAsync(options.KernelOrigin, token, cancellationToken); }
-        catch (Exception error) when (File.Exists(Path.Combine(options.StateDirectory, "register-lkg.json")))
-        {
-            logger.LogWarning(error, "Kernel Register refresh failed; using the last-known-good snapshot");
-            return client.GetLastKnownGood();
-        }
+        return await client.GetSnapshotAsync(options.KernelOrigin, token, cancellationToken);
     }
 
     private static async Task<string> ReadSecretAsync(string path, CancellationToken cancellationToken) =>

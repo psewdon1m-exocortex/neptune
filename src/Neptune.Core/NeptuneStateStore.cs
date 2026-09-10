@@ -8,7 +8,8 @@ public sealed class NeptuneStateStore(string databasePath)
     {
         DataSource = databasePath,
         Mode = SqliteOpenMode.ReadWriteCreate,
-        Cache = SqliteCacheMode.Shared
+        Cache = SqliteCacheMode.Shared,
+        DefaultTimeout = 30
     }.ToString();
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -58,8 +59,69 @@ public sealed class NeptuneStateStore(string databasePath)
                 PRIMARY KEY(mapping_id, relative_path),
                 FOREIGN KEY(mapping_id) REFERENCES sync_mappings(mapping_id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS remote_commands (
+                command_id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                state TEXT NOT NULL,
+                error TEXT,
+                updated_at TEXT NOT NULL
+            );
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<RemoteCommandResult?> GetRemoteCommandAsync(string commandId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT command_id, state, error FROM remote_commands WHERE command_id=$id";
+        command.Parameters.AddWithValue("$id", commandId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? new RemoteCommandResult(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2))
+            : null;
+    }
+
+    public async Task SaveRemoteCommandAsync(string commandId, string projectId, string kind, string payload, string state, string? error, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO remote_commands(command_id, project_id, kind, payload, state, error, updated_at)
+            VALUES($id,$projectId,$kind,$payload,$state,$error,$updatedAt)
+            ON CONFLICT(command_id) DO UPDATE SET state=excluded.state,error=excluded.error,updated_at=excluded.updated_at;
+            """;
+        command.Parameters.AddWithValue("$id", commandId);
+        command.Parameters.AddWithValue("$projectId", projectId);
+        command.Parameters.AddWithValue("$kind", kind);
+        command.Parameters.AddWithValue("$payload", payload);
+        command.Parameters.AddWithValue("$state", state);
+        command.Parameters.AddWithValue("$error", (object?)error ?? DBNull.Value);
+        command.Parameters.AddWithValue("$updatedAt", DateTimeOffset.UtcNow.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        await using var prune = connection.CreateCommand();
+        prune.CommandText = "DELETE FROM remote_commands WHERE project_id=$projectId AND state IN ('succeeded','failed') AND updated_at < $cutoff";
+        prune.Parameters.AddWithValue("$projectId", projectId);
+        prune.Parameters.AddWithValue("$cutoff", DateTimeOffset.UtcNow.AddDays(-30).ToString("O"));
+        await prune.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RemoteCommandResult>> ListRemoteCommandResultsAsync(string projectId, CancellationToken cancellationToken = default)
+    {
+        var result = new List<RemoteCommandResult>();
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT command_id, state, error FROM remote_commands WHERE project_id=$projectId AND state IN ('succeeded','failed') ORDER BY updated_at DESC LIMIT 100";
+        command.Parameters.AddWithValue("$projectId", projectId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new RemoteCommandResult(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2)));
+        return result;
     }
 
     public async Task AddRunAsync(BackupRun run, CancellationToken cancellationToken = default)

@@ -91,6 +91,35 @@ public sealed class CoreTests
     }
 
     [Fact]
+    public async Task RemoteCommandLedgerSurvivesRestartAndReportsTerminalResults()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var database = Path.Combine(directory, "state.db");
+            var cancellationToken = TestContext.Current.CancellationToken;
+            var store = new NeptuneStateStore(database);
+            await store.InitializeAsync(cancellationToken);
+            await store.SaveRemoteCommandAsync("command-1", "volt", "agent.update", "{\"version\":\"1.2.3\"}", "executing", null, cancellationToken);
+
+            var reopened = new NeptuneStateStore(database);
+            await reopened.InitializeAsync(cancellationToken);
+            Assert.Equal("executing", (await reopened.GetRemoteCommandAsync("command-1", cancellationToken))?.State);
+            await reopened.SaveRemoteCommandAsync("command-1", "volt", "agent.update", "{\"version\":\"1.2.3\"}", "succeeded", null, cancellationToken);
+
+            var results = await reopened.ListRemoteCommandResultsAsync("volt", cancellationToken);
+            var result = Assert.Single(results);
+            Assert.Equal("command-1", result.Id);
+            Assert.Equal("succeeded", result.State);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void WebDavPathSeparatesClientAndMappingAndEscapesSegments()
     {
         var uri = WebDavSyncClient.TargetUri(new Uri("https://saturn.example/dav/sync/"), "client-a", "mapping-b", "folder/a b.txt");
@@ -125,7 +154,7 @@ public sealed class CoreTests
             "token",
             new HashSet<string>(["keep.txt"], StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal),
-            TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("/dav/sync/User%20PC/Project/stale.txt", handler.Deleted);
         Assert.Contains("/dav/sync/User%20PC/Project/old/", handler.Deleted);

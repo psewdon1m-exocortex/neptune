@@ -69,6 +69,61 @@ public sealed class ProjectRegistry(string path)
             NextRunAt = registration.Enabled ? nextRunAt : null
         }, cancellationToken);
 
+    public Task UpdateMirrorScheduleAsync(string projectId, bool enabled, int intervalMinutes, CancellationToken cancellationToken = default)
+    {
+        if (intervalMinutes is < 1 or > 10_080) throw new ArgumentOutOfRangeException(nameof(intervalMinutes));
+        return MutateAsync(projectId, registration => registration.Mirror is null
+            ? throw new InvalidOperationException($"Project '{projectId}' has no mirror pipeline.")
+            : registration with
+            {
+                Mirror = registration.Mirror with
+                {
+                    Enabled = enabled,
+                    IntervalMinutes = intervalMinutes,
+                    NextRunAt = enabled ? DateTimeOffset.UtcNow.AddMinutes(intervalMinutes) : null
+                }
+            }, cancellationToken);
+    }
+
+    public Task UpdateMirrorNextRunAsync(string projectId, DateTimeOffset nextRunAt, CancellationToken cancellationToken = default) =>
+        MutateAsync(projectId, registration => registration.Mirror is null
+            ? registration
+            : registration with { Mirror = registration.Mirror with { NextRunAt = registration.Mirror.Enabled ? nextRunAt : null } }, cancellationToken);
+
+    public Task ApplyRemoteDesiredAsync(
+        string projectId,
+        long revision,
+        bool archiveEnabled,
+        int archiveIntervalHours,
+        bool mirrorEnabled,
+        int mirrorIntervalMinutes,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(projectId, registration =>
+        {
+            if (revision <= registration.ControlRevision) return registration;
+            var now = DateTimeOffset.UtcNow;
+            var archiveChanged = registration.Enabled != archiveEnabled || registration.IntervalHours != archiveIntervalHours;
+            var mirror = registration.Mirror;
+            if (mirror is not null)
+            {
+                var mirrorChanged = mirror.Enabled != mirrorEnabled || mirror.IntervalMinutes != mirrorIntervalMinutes;
+                mirror = mirror with
+                {
+                    Enabled = mirrorEnabled,
+                    IntervalMinutes = mirrorIntervalMinutes,
+                    NextRunAt = mirrorEnabled ? (mirrorChanged ? now.AddMinutes(mirrorIntervalMinutes) : mirror.NextRunAt) : null
+                };
+            }
+            return registration with
+            {
+                Enabled = archiveEnabled,
+                IntervalHours = archiveIntervalHours,
+                NextRunAt = archiveEnabled ? (archiveChanged ? now.AddHours(archiveIntervalHours) : registration.NextRunAt) : null,
+                Mirror = mirror,
+                ControlRevision = revision
+            };
+        }, cancellationToken);
+
     private async Task MutateAsync(
         string projectId,
         Func<ProjectRegistration, ProjectRegistration> mutate,

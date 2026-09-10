@@ -97,13 +97,19 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         return response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
     }
 
-    public async Task MirrorAsync(Uri mappingRoot, string token, IReadOnlySet<string> localFiles, IReadOnlySet<string> localDirectories, CancellationToken cancellationToken = default)
+    public async Task<int> MirrorAsync(Uri mappingRoot, string token, IReadOnlySet<string> localFiles, IReadOnlySet<string> localDirectories, bool protectMassDeletion = true, CancellationToken cancellationToken = default)
     {
         var remote = await EnumerateAsync(mappingRoot, token, "", cancellationToken);
-        foreach (var entry in remote.Where(value => !value.IsCollection && !localFiles.Contains(value.RelativePath)))
+        var removedFiles = remote.Where(value => !value.IsCollection && !localFiles.Contains(value.RelativePath)).ToArray();
+        var removedDirectories = remote.Where(value => value.IsCollection && !localDirectories.Contains(value.RelativePath)).OrderByDescending(value => value.RelativePath.Count(c => c == '/')).ToArray();
+        var removed = removedFiles.Length + removedDirectories.Length;
+        if (protectMassDeletion && removed > 20 && removed * 4 > Math.Max(1, remote.Count))
+            throw new InvalidOperationException($"Mirror deletion guard stopped removal of {removed} out of {remote.Count} remote entries.");
+        foreach (var entry in removedFiles)
             await DeleteAsync(entry.Uri, token, cancellationToken);
-        foreach (var entry in remote.Where(value => value.IsCollection && !localDirectories.Contains(value.RelativePath)).OrderByDescending(value => value.RelativePath.Count(c => c == '/')))
+        foreach (var entry in removedDirectories)
             await DeleteAsync(entry.Uri, token, cancellationToken);
+        return removed;
     }
 
     public async Task<string?> ReadEtagAsync(Uri target, string token, CancellationToken cancellationToken = default)

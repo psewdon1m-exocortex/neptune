@@ -87,7 +87,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
                         await state.UpsertSyncFileAsync(new SyncFileRecord(mapping.MappingId, relative, info.Length, modifiedAt, hash, previous?.RemoteEtag, "retry-wait", DateTimeOffset.UtcNow, error.Message), cancellationToken);
                     }
                 }
-                try { await client.MirrorAsync(mappingRoot, connection.SaturnToken, localFiles, localDirectories, cancellationToken); }
+                try { await client.MirrorAsync(mappingRoot, connection.SaturnToken, localFiles, localDirectories, protectMassDeletion: false, cancellationToken: cancellationToken); }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
                     failures++;
@@ -102,9 +102,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
     private async Task<PreparedConnection> PrepareAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken)
     {
         var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-lkg.json"));
-        JsonDocument snapshot;
-        try { snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken); }
-        catch when (File.Exists(Path.Combine(profile.StateDirectory, "register-lkg.json"))) { snapshot = register.GetLastKnownGood(); }
+        var snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken);
         using (snapshot)
         {
             var values = snapshot.RootElement.GetProperty("values");

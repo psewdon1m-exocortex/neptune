@@ -1,0 +1,39 @@
+#!/usr/bin/env sh
+set -eu
+
+binary=/usr/local/lib/neptune/neptuned
+socket=/run/neptune/neptuned.sock
+
+case "${1:-doctor}" in
+  version)
+    exec "$binary" version
+  ;;
+  register-project)
+    [ "$#" -eq 3 ] || { echo "Usage: neptunectl register-project <project-id> <env-file>" >&2; exit 2; }
+    if [ "$(id -u)" -eq 0 ]; then
+      "$binary" register-project "$2" "$3"
+      chown neptune:neptune /var/lib/neptune/projects.json
+      chmod 0600 /var/lib/neptune/projects.json
+      exit 0
+    fi
+    exec "$binary" register-project "$2" "$3"
+  ;;
+  doctor)
+    [ -x "$binary" ] || { echo "FAIL binary: $binary is missing" >&2; exit 1; }
+    [ -r /etc/neptune/appsettings.json ] || { echo "FAIL config: /etc/neptune/appsettings.json is unreadable" >&2; exit 1; }
+    [ -r /etc/neptune/kernel.token ] || { echo "FAIL Kernel token: /etc/neptune/kernel.token is unreadable" >&2; exit 1; }
+    systemctl is-active --quiet neptune.service || { echo "FAIL service: neptune.service is not active" >&2; exit 1; }
+    [ -S "$socket" ] || { echo "FAIL socket: $socket is unavailable" >&2; exit 1; }
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsS --unix-socket "$socket" http://neptune.local/v1/health
+      printf '\n'
+    else
+      echo "OK service and socket; install curl for the HTTP health probe"
+    fi
+    if [ -s /var/lib/neptune/projects.json ]; then echo "OK project registry"; else echo "WARN no projects registered"; fi
+  ;;
+  *)
+    echo "Usage: neptunectl [doctor|version|register-project <project-id> <env-file>]" >&2
+    exit 2
+  ;;
+esac

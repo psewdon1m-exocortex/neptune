@@ -26,8 +26,8 @@ jobs:
           version="${GITHUB_REF_NAME#neptune-linux-v}"
           dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r "${{ matrix.runtime }}" --self-contained true -p:PublishSingleFile=true -p:Version="$version" -o "artifacts/${{ matrix.runtime }}"
           mv "artifacts/${{ matrix.runtime }}/Neptune.Linux" "artifacts/${{ matrix.runtime }}/neptuned"
-          cp packaging/linux/install.sh packaging/linux/neptune.service src/Neptune.Linux/appsettings.json "artifacts/${{ matrix.runtime }}/"
-          chmod 0755 "artifacts/${{ matrix.runtime }}/neptuned" "artifacts/${{ matrix.runtime }}/install.sh"
+          cp packaging/linux/install.sh packaging/linux/neptune.service packaging/linux/neptunectl src/Neptune.Linux/appsettings.json "artifacts/${{ matrix.runtime }}/"
+          chmod 0755 "artifacts/${{ matrix.runtime }}/neptuned" "artifacts/${{ matrix.runtime }}/install.sh" "artifacts/${{ matrix.runtime }}/neptunectl"
           tar -C "artifacts/${{ matrix.runtime }}" -czf "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" .
           checksum="$(sha256sum "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" | cut -d' ' -f1)"
           printf '%s  %s\n' "$checksum" "neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" > "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz.sha256"

@@ -83,18 +83,34 @@ progress.
 
 ## 2. Linux topology
 
+Normal operators do not edit the registry or token files. In Saturn
+Synchronization they create a 15-minute one-time setup code. If Neptune is
+already installed on the module host, Settings → Backup → **Initialize Neptune**
+passes that code to the host Updater and waits for terminal enrollment status.
+The service command, for example `sudo chronos-install backup`, installs an
+absent agent and remains the repair/emergency fallback. `neptunectl doctor`
+remains available for diagnostics.
+
 There is exactly one `neptuned` process per Linux host, even when the host runs
-several Exocortex projects:
+several Exocortex projects. Saturn does not connect back to those hosts: every
+agent polls the control plane over outbound HTTPS, so no inbound Neptune port is
+required:
 
 ```text
-Project Settings -> project backend -> authenticated Unix socket -> neptuned
-                                                            |-> Kernel Register
-                                                            `-> Saturn Backup API
+Saturn Synchronization -> desired state + command queue in Saturn
+                                      ^
+                                      | outbound authenticated check-in
+                                      |
+                                  neptuned
+                                      |-> Kernel Register
+                                      |-> Saturn Backup API
+                                      `-> Saturn WebDAV mirror root
 
-neptuned -> private loopback project backup endpoint -> project backup builder
+neptuned archive worker -> private backup endpoint -> shared recovery ZIP builder
+neptuned mirror worker  -> private mirror endpoint -> raw file or bounded ZIP tree
 ```
 
-`neptuned` runs as a dedicated unprivileged user. Its root-owned project
+`neptuned` runs as a dedicated unprivileged user. Its daemon-owned project
 registry maps a stable project ID to:
 
 - the private local backup-export endpoint;
@@ -112,7 +128,7 @@ or runs.
 The installer registers or updates a project without starting a second daemon:
 
 ```text
-neptune register-project <project-id> <project-env-file>
+sudo neptunectl register-project <project-id> <project-env-file>
 ```
 
 The same logical project may run on several servers. Give every deployment its
@@ -124,7 +140,8 @@ start at the same time. Saturn's per-identity `maxConcurrentRuns` still protects
 against accidental overlap and may be raised when an identity is intentionally
 shared during migration.
 
-The registry and durable SQLite journal live under `/var/lib/neptune`; secret
+Archive and mirror workers have independent schedules, run concurrently and use
+separate Saturn credentials. The registry and durable SQLite journal live under `/var/lib/neptune`; secret
 references live under `/etc/neptune` with restrictive ownership. Temporary ZIP
 files use a bounded private spool. Logs go to journald and must redact tokens,
 headers, local sensitive paths and archive content.
@@ -175,28 +192,30 @@ offset after restart and removes the spool only after receiving a complete
 receipt. Disabling a schedule prevents new runs but does not corrupt or silently
 discard an active upload.
 
-### Required project Settings UI
+### Saturn Synchronization UI
 
-The existing **Backup** section remains the operator surface. It contains:
+The existing project **Backup** section keeps:
 
 1. **Manual backup** — the existing `Create and download snapshot` behavior,
    unchanged;
 2. **Manual restore** — the existing inspect, confirm, restore and rollback
    behavior, unchanged;
-3. **Automatic backup to Saturn** — Neptune availability, connected state,
-   enabled toggle, positive integer interval in hours, last attempt, last
-   success, next scheduled run and latest error;
-4. **Neptune version** — installed Linux version, update availability, check
-   action and update action;
-5. optional **Back up to Saturn now** — starts the automatic/Saturn flow and is
-   visually distinct from the manual download action.
+3. **Local Neptune status and initialization/repair** — status is read through
+   the module adapter and a one-time Saturn code is handed only to Updater.
 
-The schedule is authoritative in Neptune's registry and is read/written through
-the project backend. Recommended default is disabled with a 24-hour interval;
-minimum supported interval is one hour. Changing the interval does not interrupt
-an active run. Enabling schedules the next run; it does not silently start one.
+Automatic pipelines are managed in Saturn's top-level **Synchronization** tab.
+It separates recovery ZIP archives, dedicated Volt/Mastermind mirrors and
+Windows folder synchronization; it owns scoped identity creation/revocation,
+the authoritative schedules, explicit runs and per-agent Neptune release checks.
 
-Suggested project-backend facade:
+Saturn's desired state is authoritative. Neptune retains the last applied
+revision locally, so a temporary Saturn outage does not stop an already enabled
+schedule. Recommended default is disabled with a 24-hour interval; minimum
+supported interval is one hour. Changing the interval does not interrupt an
+active run. Enabling schedules the next run; it does not silently start one.
+
+The legacy project-local facade may remain for diagnostics and compatibility,
+but project Settings must not expose a second automatic schedule editor:
 
 ```text
 GET  /api/neptune/status
@@ -206,26 +225,31 @@ POST /api/neptune/update/check
 POST /api/neptune/update/install
 ```
 
-Browser calls retain the project's normal operator authentication and CSRF
-rules. The backend then calls Neptune over the local Unix socket. A browser
-never receives a Neptune control token or Saturn producer token.
+The browser never receives a Neptune control token or Saturn producer token.
+Saturn queues commands, and the target agent receives them at its next check-in.
 
 Neptune must not replace its root-owned executable from an unprivileged daemon.
 The privileged host Updater installs the verified `neptune-linux-*` release
 selected from `repositories.neptune.url`. It verifies the per-architecture
 manifest and archive SHA-256, performs an atomic replacement, restarts the
 daemon, checks its Unix-socket health endpoint and restores the previous binary
-if the new daemon does not become healthy.
+if the new daemon does not become healthy. Remote update commands cross a
+separate local Unix-socket bridge protected by `/etc/neptune/updater-agent.token`;
+that credential authorizes only Neptune Linux replacement and cannot update
+arbitrary services.
 
-## 4. Saturn Settings change
+## 4. Saturn Synchronization
 
-Saturn moves **Backup producer identities** out of the collapsed auxiliary area
-into a standalone, reorderable Settings card named **Backup connections**.
+Saturn exposes a top-level **Synchronization** workspace instead of placing
+Neptune controls in Settings. It separates Linux recovery archives, Linux
+dedicated mirrors and Windows directory synchronization. The workspace lists
+identities, state, usage and last successful runs; creates one-time enrollment
+codes and Windows passwords; revokes/rotates credentials; controls every remote
+Linux schedule; starts explicit runs; and checks/queues verified Neptune updates.
 
-The card lists project name, immutable slug, enabled/revoked state, freshness,
-stored usage, limits and last successful run. It supports create, token rotation
-and revoke, and exposes `requireEncryption` explicitly so current interchangeable
-ZIP profiles can be configured honestly.
+Settings keeps only manual project snapshot download and restore. Current
+interchangeable ZIP profiles remain explicitly configured with
+`requireEncryption=false`.
 
 Making the card directly visible does not weaken authorization. Creating,
 rotating or revoking an identity still requires recent owner proof; list/status
@@ -250,7 +274,8 @@ exit the process.
 The primary window has a tested client size of **800 x 500 logical pixels** and
 uses the common Exocortex visual language: black background, white text,
 square one-pixel borders, Space Grotesk/monospace typography and Saturn's
-canonical accent `#00A8FF`.
+current accent obtained from Saturn. `#00A8FF` is only the offline/default
+fallback before the first successful preference synchronization.
 
 The first release has one main panel:
 
@@ -342,13 +367,13 @@ reconciliation. Neptune never talks directly to SFTP.
 ## 7. Implementation order and acceptance
 
 1. Freeze Kernel Register keys and versioned Neptune/Saturn/project contracts.
-2. Move Saturn producer identities into the standalone Backup connections card.
+2. Add the top-level Saturn Synchronization workspace and scoped identities for all three pipelines.
 3. Add the shared internal backup endpoint and Neptune facade to one pilot
    project without changing its manual backup/restore behavior.
 4. Implement the Linux daemon, multi-project registry, scheduler, SQLite journal
    and resumable Saturn client.
 5. Extend the host Updater for the Neptune Linux release stream and expose
-   version/update state in project Settings.
+   version/update state in Saturn Synchronization.
 6. Prove that a manually downloaded ZIP and an automatically uploaded/downloaded
    ZIP have the same format and both restore into a clean compatible instance.
 7. Roll the integration contract through the remaining projects.

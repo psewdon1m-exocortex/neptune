@@ -9,7 +9,7 @@ public sealed partial class ClientIdentityStore(string stateDirectory)
     public async Task<string> GetOrCreateAsync(CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(stateDirectory);
-
+        await using var gate = await AcquireGateAsync(cancellationToken);
         if (File.Exists(_path))
         {
             var existing = await ReadExistingAsync(cancellationToken);
@@ -30,6 +30,20 @@ public sealed partial class ClientIdentityStore(string stateDirectory)
         {
             File.Delete(temporary);
             return await ReadExistingAsync(cancellationToken);
+        }
+    }
+
+    private async Task<FileStream> AcquireGateAsync(CancellationToken cancellationToken)
+    {
+        var lockPath = _path + ".lock";
+        for (var attempt = 0; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try { return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+            catch (IOException) when (attempt < 1_000)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
+            }
         }
     }
 
