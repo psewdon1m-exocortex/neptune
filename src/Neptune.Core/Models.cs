@@ -148,7 +148,7 @@ public sealed record NeptuneStatus(
 
 public sealed record RemoteCommandResult(string Id, string State, string? Error);
 
-public sealed record RemoteCommand(string Id, string Kind, IReadOnlyDictionary<string, System.Text.Json.JsonElement> Payload);
+public sealed record RemoteCommand(string Id, string Kind, IReadOnlyDictionary<string, System.Text.Json.JsonElement> Payload, DateTimeOffset? ExpiresAt = null);
 
 public sealed record RemoteDesiredState(
     long Revision,

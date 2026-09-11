@@ -35,7 +35,12 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
             if (release.Version! <= CurrentVersion) return null;
             var manifestAsset = release.Release.Assets.SingleOrDefault(value => value.Name == "neptune-windows-release.json")
                 ?? throw new InvalidDataException("Windows release manifest is missing.");
-            var manifest = await _http.GetFromJsonAsync<ReleaseManifest>(manifestAsset.DownloadUrl, cancellationToken)
+            var signatureAsset = release.Release.Assets.SingleOrDefault(value => value.Name == "neptune-windows-release.json.sig.json")
+                ?? throw new InvalidDataException("Windows release signature is missing.");
+            var trustFile = Environment.GetEnvironmentVariable("NEPTUNE_RELEASE_TRUST_FILE")
+                ?? Path.Combine(AppContext.BaseDirectory, "release-trust", "neptune.pem");
+            var verified = await ReleaseSignature.DownloadManifestAsync(_http, manifestAsset.DownloadUrl, signatureAsset.DownloadUrl, trustFile, cancellationToken);
+            var manifest = System.Text.Json.JsonSerializer.Deserialize<ReleaseManifest>(verified)
                 ?? throw new InvalidDataException("Windows release manifest is empty.");
             if (manifest.Schema != "exocortex.neptune.release.v1" || manifest.Product != "neptune-windows" || manifest.Runtime != "win-x64"
                 || manifest.Packaging != "portable-zip" || manifest.Version != release.VersionText || !IsSha256(manifest.Sha256))
@@ -49,6 +54,7 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
 
     public async Task<string> DownloadAsync(WindowsRelease release, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
+        if (release.DownloadUri.Scheme != Uri.UriSchemeHttps) throw new InvalidDataException("Windows release download requires HTTPS.");
         var updateRoot = Path.Combine(profile.StateDirectory, "updates", $"{release.VersionText}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(updateRoot);
         var archivePath = Path.Combine(updateRoot, release.ArtifactName);
@@ -66,6 +72,7 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
                 if (count == 0) break;
                 await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
                 received += count;
+                if (received > 2L * 1024 * 1024 * 1024) throw new InvalidDataException("Windows update exceeds the transfer limit.");
                 if (total is > 0) progress?.Report((int)Math.Min(100, received * 100 / total.Value));
             }
         }
@@ -138,6 +145,8 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
     {
         var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
         using var archive = ZipFile.OpenRead(archivePath);
+        if (archive.Entries.Count > 10000 || archive.Entries.Sum(entry => entry.Length) > 4L * 1024 * 1024 * 1024)
+            throw new InvalidDataException("Windows update exceeds the extraction limit.");
         foreach (var entry in archive.Entries)
         {
             var target = Path.GetFullPath(Path.Combine(destination, entry.FullName));

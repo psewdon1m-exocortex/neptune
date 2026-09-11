@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 {
     private readonly WindowsProfileContext _profile;
     private readonly WindowsConnectionStore _connections;
+    private readonly Func<WindowsSyncService> _syncServiceFactory;
     private readonly WindowsAutostartService _autostart;
     private readonly WindowsUpdateService _updates;
     private readonly WindowsTrayIcon _tray;
@@ -35,9 +36,10 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _reconciliationTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromSeconds(5) };
 
-    public MainWindow(WindowsProfileContext profile)
+    public MainWindow(WindowsProfileContext profile, Func<WindowsSyncService>? syncServiceFactory = null)
     {
         _profile = profile;
+        _syncServiceFactory = syncServiceFactory ?? (() => new WindowsSyncService(profile));
         _connections = new WindowsConnectionStore(profile.StateDirectory);
         _autostart = new WindowsAutostartService(profile);
         _updates = new WindowsUpdateService(profile);
@@ -78,7 +80,7 @@ public partial class MainWindow : Window
         var connection = _connections.Read();
         if (connection is not null)
         {
-            try { ApplyAccent(await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, connection)); }
+            try { ApplyAccent(await _syncServiceFactory().ConnectAsync(_clientInstanceId, connection)); }
             catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
         }
         if (_profile.StartMinimized) HideToTray(showHint: false);
@@ -202,7 +204,7 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() != true || dialog.Connection is null) return null;
         try
         {
-            var accent = await new WindowsSyncService(_profile).ConnectAsync(_clientInstanceId, dialog.Connection);
+            var accent = await _syncServiceFactory().ConnectAsync(_clientInstanceId, dialog.Connection);
             _connections.Write(dialog.Connection);
             ApplyAccent(accent);
             ShowConnectionState();
@@ -268,7 +270,7 @@ public partial class MainWindow : Window
         try
         {
             var progress = new Progress<string>(value => FooterStatus.Text = "Uploading · " + value);
-            var result = await new WindowsSyncService(_profile).SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
+            var result = await _syncServiceFactory().SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
             ApplyAccent(result.AccentColor);
             FooterStatus.Text = $"Up to date · {result.UploadedFiles} file(s) uploaded · {DateTime.Now:t}";
         }

@@ -18,16 +18,24 @@ jobs:
       - name: Test
         run: dotnet test Neptune.slnx -c Release
       - name: Publish portable application
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.Replace('neptune-windows-v', '')
           dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:Version=$version -o artifacts/win-x64
           if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
+          node scripts/sign-release.mjs --export-public-key artifacts/win-x64/release-trust/neptune.pem
+          if ($LASTEXITCODE -ne 0) { throw 'Release trust key could not be exported.' }
           $artifact = "artifacts/neptune-windows-$version-win-x64.zip"
           Compress-Archive -Path artifacts/win-x64/* -DestinationPath $artifact -CompressionLevel Optimal
           $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  neptune-windows-$version-win-x64.zip" | Set-Content "artifacts/neptune-windows-$version-win-x64.zip.sha256"
           @{ schema = 'exocortex.neptune.release.v1'; product = 'neptune-windows'; protocol_version = 1; version = $version; runtime = 'win-x64'; packaging = 'portable-zip'; artifact = "neptune-windows-$version-win-x64.zip"; sha256 = $hash } | ConvertTo-Json -Compress | Set-Content artifacts/neptune-windows-release.json
+      - name: Sign trusted release manifest
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: node scripts/sign-release.mjs artifacts/neptune-windows-release.json
       - uses: softprops/action-gh-release@v2
         with:
           files: |

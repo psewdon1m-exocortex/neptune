@@ -67,3 +67,25 @@ jobs:
           path: artifacts/win-x64
           if-no-files-found: error
           retention-days: 14
+
+  pre-push-gate:
+    needs: [linux, windows]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Validate seven mandatory areas
+        env:
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 scripts/pre-push-gate.py --upstream-result "${{ needs.linux.result == 'success' && needs.windows.result == 'success' && 'success' || 'failure' }}" --report .pre-push-gate-report.json
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: neptune-pre-push-gate-${{ github.sha }}
+          path: .pre-push-gate-report.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

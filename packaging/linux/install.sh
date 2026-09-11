@@ -7,7 +7,9 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if command -v flock >/dev/null 2>&1; then
-  exec 9>/run/lock/neptune-install.lock
+  lock_dir=/run/lock
+  [ "${EXOCORTEX_PREPARED_HOST:-false}" != true ] || lock_dir=/run/exocortex
+  exec 9>"$lock_dir/neptune-install.lock"
   flock -x 9
 fi
 
@@ -23,8 +25,8 @@ fi
 if ! id neptune >/dev/null 2>&1; then
   useradd --system --gid neptune --home /var/lib/neptune --shell /usr/sbin/nologin neptune
 fi
-usermod -a -G neptune,neptune-clients,updater neptune
-install -d -m 0755 /usr/local/lib/neptune /usr/local/sbin
+[ "${EXOCORTEX_PREPARED_HOST:-false}" = true ] || usermod -a -G neptune,neptune-clients,updater neptune
+install -d -m 0755 /usr/local/lib/neptune
 install -m 0755 ./neptuned /usr/local/lib/neptune/neptuned
 install -d -o root -g neptune -m 2750 /etc/neptune
 install -d -o root -g neptune -m 2750 /etc/neptune/clients /etc/neptune/projects
@@ -41,8 +43,13 @@ if [ ! -s /etc/neptune/updater-agent.token ]; then
 fi
 chown root:updater /etc/neptune/updater-agent.token
 chmod 0640 /etc/neptune/updater-agent.token
-install -m 0644 ./neptune.service /etc/systemd/system/neptune.service
-install -m 0755 ./neptunectl /usr/local/sbin/neptunectl
+if [ "${EXOCORTEX_PREPARED_HOST:-false}" = true ]; then
+  install -m 0644 ./neptune.service /etc/exocortex/units/neptune.service
+  install -m 0755 ./neptunectl /usr/local/lib/neptune/neptunectl
+else
+  install -m 0644 ./neptune.service /etc/systemd/system/neptune.service
+  install -m 0755 ./neptunectl /usr/local/sbin/neptunectl
+fi
 
 case "${NEPTUNE_KERNEL_URL:-}" in ""|https://*) ;; *) echo "NEPTUNE_KERNEL_URL must use HTTPS." >&2; exit 2 ;; esac
 {

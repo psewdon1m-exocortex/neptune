@@ -16,7 +16,8 @@ public sealed class BackupCoordinator(
     public async Task<BackupRun> ExportAsync(
         ProjectRegistration registration,
         Func<string, CancellationToken, Task> exportToFile,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? requestedRunId = null)
     {
         registration.Validate();
         var projectLock = _projectLocks.GetOrAdd(registration.ProjectId, static _ => new SemaphoreSlim(1, 1));
@@ -30,7 +31,9 @@ public sealed class BackupCoordinator(
             enteredGlobal = true;
             Directory.CreateDirectory(spoolDirectory);
             var now = DateTimeOffset.UtcNow;
-            var runId = Guid.NewGuid().ToString("N");
+            var runId = requestedRunId ?? Guid.NewGuid().ToString("N");
+            if (runId.Length > 64 || runId.Any(character => !char.IsAsciiLetterOrDigit(character)))
+                throw new InvalidDataException("Invalid backup run identifier.");
             var spoolPath = Path.Combine(spoolDirectory, $"{registration.ProjectId}-{runId}.zip");
             try
             {

@@ -84,11 +84,11 @@ progress.
 ## 2. Linux topology
 
 Normal operators do not edit the registry or token files. In Saturn
-Synchronization they create a 15-minute one-time setup code. If Neptune is
-already installed on the module host, Settings → Backup → **Initialize Neptune**
-passes that code to the host Updater and waits for terminal enrollment status.
-The service command, for example `sudo chronos-install backup`, installs an
-absent agent and remains the repair/emergency fallback. `neptunectl doctor`
+Synchronization they create a 15-minute one-time setup code. Settings → Backup
+→ **Initialize Neptune** passes it to Updater, installs a missing daemon or reuses
+the existing one, and waits for terminal enrollment status. Updater also installs
+required helpers automatically after head registration, Kernel configuration and
+release trust provisioning. The service backup command provides the CLI equivalent. `neptunectl doctor`
 remains available for diagnostics.
 
 There is exactly one `neptuned` process per Linux host, even when the host runs
@@ -388,3 +388,5 @@ pause/cancel, quota failures, token rotation/revocation, Register reference-cach
 and broker-unavailable behavior, exact archive interchangeability, real clean restore, Windows locked
 files and reparse points, long paths/case collisions, installer rollback,
 accessibility at 800 x 500 and secret scans of logs, backups and release assets.
+
+The current six-service deployment, trust, recovery and acceptance contract is documented in [Deployment readiness](DEPLOYMENT_READINESS.md).

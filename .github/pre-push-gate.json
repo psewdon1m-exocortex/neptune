@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "service": "neptune",
+  "exposure_modes": [
+    "private",
+    "concealed"
+  ],
+  "profiles": {
+    "backup_restore": {
+      "applicable": true,
+      "evidence": [
+        "DEPLOYMENT_READINESS.md",
+        "src/Neptune.Linux/BackupWorker.cs",
+        "src/Neptune.Linux/MirrorWorker.cs",
+        "src/Neptune.Windows/WindowsSyncService.cs",
+        "tests/Neptune.Core.Tests/CommandCompletionTests.cs"
+      ]
+    },
+    "service_update": {
+      "applicable": true,
+      "evidence": [
+        "DEPLOYMENT_READINESS.md",
+        "src/Neptune.Core/ReleaseSignature.cs",
+        "tests/Neptune.Core.Tests/ReleaseSignatureTests.cs"
+      ]
+    },
+    "internal_documentation": {
+      "applicable": false,
+      "reason": "This helper has no independent web Documentation view; connected head interfaces provide operator workflows, and the repository ships technical instructions."
+    },
+    "technical_documentation": {
+      "applicable": true,
+      "evidence": [
+        "README.md",
+        "DEPLOYMENT_READINESS.md"
+      ]
+    },
+    "security": {
+      "applicable": true,
+      "evidence": [
+        "src/Neptune.Linux/Program.cs",
+        "tests/Neptune.Core.Tests/RetentionTests.cs"
+      ]
+    },
+    "public_seo_geo": {
+      "applicable": false,
+      "reason": "This service has no deliberately public/indexable content; crawler exclusion is checked in the private/concealed profile."
+    },
+    "private_concealed": {
+      "applicable": true,
+      "evidence": [
+        "DEPLOYMENT_READINESS.md",
+        "src/Neptune.Linux/Program.cs",
+        "tests/Neptune.Core.Tests/RetentionTests.cs"
+      ]
+    }
+  }
+}

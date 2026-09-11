@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Neptune.Core;
 
 namespace Neptune.Linux;
@@ -15,13 +17,36 @@ public sealed class MirrorWorker(
     private const long MaximumArchiveBytes = 8L * 1024 * 1024 * 1024;
     private const long MaximumExtractedBytes = 32L * 1024 * 1024 * 1024;
     private const int MaximumEntries = 100_000;
-    private readonly ConcurrentDictionary<string, Task> _active = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Task<bool>> _active = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, MirrorRunStatus> _status = new(StringComparer.Ordinal);
     private CancellationToken _stoppingToken;
 
     public bool IsActive(string projectId) => _active.ContainsKey(projectId);
-    public MirrorRunStatus Status(string projectId) => _status.GetValueOrDefault(projectId)
-        ?? new MirrorRunStatus("idle", null, null, null, 0, 0);
+    public MirrorRunStatus Status(string projectId) => _status.GetOrAdd(projectId, ReadStatus);
+
+    private string StatusPath(string projectId) => Path.Combine(options.StateDirectory, "mirror-status", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(projectId))) + ".json");
+    private MirrorRunStatus ReadStatus(string projectId)
+    {
+        var filename = StatusPath(projectId);
+        try
+        {
+            if (File.Exists(filename) && new FileInfo(filename).Length <= 8192)
+                return JsonSerializer.Deserialize<MirrorRunStatus>(File.ReadAllText(filename)) ?? new("idle", null, null, null, 0, 0);
+        }
+        catch (IOException) { }
+        catch (JsonException) { }
+        return new("idle", null, null, null, 0, 0);
+    }
+    private async Task PersistStatusAsync(string projectId)
+    {
+        var filename = StatusPath(projectId);
+        Directory.CreateDirectory(Path.GetDirectoryName(filename)!);
+        var current = Status(projectId);
+        if (current.Error?.Length > 1024) current = current with { Error = current.Error[..1024] };
+        await File.WriteAllTextAsync(filename + ".tmp", JsonSerializer.Serialize(current));
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(filename + ".tmp", UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        File.Move(filename + ".tmp", filename, overwrite: true);
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -37,22 +62,32 @@ public sealed class MirrorWorker(
     }
 
     public bool Start(ProjectRegistration project)
+        => TryStart(project) is not null;
+
+    public async Task RunCommandAsync(ProjectRegistration project, CancellationToken cancellationToken)
     {
-        if (project.Mirror is null) return false;
+        var task = TryStart(project) ?? throw new InvalidOperationException("The mirror is unavailable or already active.");
+        if (!await task.WaitAsync(cancellationToken))
+            throw new InvalidOperationException("The mirror pipeline did not complete; see the project mirror status.");
+    }
+
+    private Task<bool>? TryStart(ProjectRegistration project)
+    {
+        if (project.Mirror is null) return null;
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var task = RunAfterGateAsync(project, gate.Task, _stoppingToken);
         if (!_active.TryAdd(project.ProjectId, task))
         {
             gate.SetResult(false);
-            return false;
+            return null;
         }
         gate.SetResult(true);
-        return true;
+        return task;
     }
 
-    private async Task RunAfterGateAsync(ProjectRegistration project, Task<bool> gate, CancellationToken cancellationToken)
+    private async Task<bool> RunAfterGateAsync(ProjectRegistration project, Task<bool> gate, CancellationToken cancellationToken)
     {
-        if (!await gate) return;
+        if (!await gate) return false;
         var started = DateTimeOffset.UtcNow;
         _status[project.ProjectId] = Status(project.ProjectId) with { State = "running", LastAttemptAt = started, Error = null, UploadedFiles = 0, DeletedEntries = 0 };
         try
@@ -60,18 +95,25 @@ public sealed class MirrorWorker(
             var result = await MirrorOnceAsync(project, cancellationToken);
             _status[project.ProjectId] = new MirrorRunStatus("complete", started, DateTimeOffset.UtcNow, null, result.UploadedFiles, result.DeletedEntries);
             await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(project.Mirror!.IntervalMinutes), cancellationToken);
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _status[project.ProjectId] = Status(project.ProjectId) with { State = "stopped", Error = "Neptune is stopping." };
+            throw;
         }
         catch (Exception error)
         {
             logger.LogError(error, "Mirror failed for project {ProjectId}", project.ProjectId);
             _status[project.ProjectId] = Status(project.ProjectId) with { State = "retry-wait", Error = error.Message };
             await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(5), CancellationToken.None);
+            return false;
         }
-        finally { _active.TryRemove(project.ProjectId, out _); }
+        finally
+        {
+            try { await PersistStatusAsync(project.ProjectId); }
+            finally { _active.TryRemove(project.ProjectId, out _); }
+        }
     }
 
     private async Task<(int UploadedFiles, int DeletedEntries)> MirrorOnceAsync(ProjectRegistration project, CancellationToken cancellationToken)

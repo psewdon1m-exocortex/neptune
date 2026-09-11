@@ -7,9 +7,9 @@ namespace Neptune.Windows;
 
 public sealed record WindowsSyncResult(int UploadedFiles, string AccentColor);
 
-public sealed class WindowsSyncService(WindowsProfileContext profile)
+public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient? httpClient = null)
 {
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromHours(2) };
+    private readonly HttpClient _http = httpClient ?? new() { Timeout = TimeSpan.FromHours(2) };
 
     public async Task<string> ConnectAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken = default)
     {
@@ -132,16 +132,12 @@ public sealed class WindowsSyncService(WindowsProfileContext profile)
         while (pending.Count > 0)
         {
             var directory = pending.Pop();
-            IEnumerable<string> entries;
-            try { entries = Directory.EnumerateFileSystemEntries(directory).ToArray(); }
-            catch (UnauthorizedAccessException) { continue; }
-            catch (DirectoryNotFoundException) { continue; }
+            // An incomplete local scan must never be interpreted as remote deletions.
+            // Let the scheduler retry a missing, inaccessible or concurrently changed tree.
+            var entries = Directory.EnumerateFileSystemEntries(directory).ToArray();
             foreach (var entry in entries)
             {
-                FileAttributes attributes;
-                try { attributes = File.GetAttributes(entry); }
-                catch (IOException) { continue; }
-                catch (UnauthorizedAccessException) { continue; }
+                var attributes = File.GetAttributes(entry);
                 if ((attributes & FileAttributes.ReparsePoint) != 0) continue;
                 var relative = Path.GetRelativePath(root, entry).Replace('\\', '/');
                 if ((attributes & FileAttributes.Directory) != 0)

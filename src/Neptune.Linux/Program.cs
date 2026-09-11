@@ -91,6 +91,12 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Mirror
 builder.Services.AddHostedService<RemoteControlWorker>();
 
 var app = builder.Build();
+app.Use(async (context, next) => {
+    context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex";
+    context.Response.Headers["Cache-Control"] = "no-store";
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    await next(context);
+});
 if (OperatingSystem.IsLinux())
 {
     app.Lifetime.ApplicationStarted.Register(() =>

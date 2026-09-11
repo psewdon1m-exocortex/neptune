@@ -32,6 +32,10 @@ jobs:
           checksum="$(sha256sum "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" | cut -d' ' -f1)"
           printf '%s  %s\n' "$checksum" "neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" > "artifacts/neptune-linux-${version}-${{ matrix.runtime }}.tar.gz.sha256"
           printf '{"schema":"exocortex.neptune.release.v1","product":"neptune-linux","protocol_version":1,"version":"%s","runtime":"%s","artifact":"%s","sha256":"%s"}\n' "$version" "${{ matrix.runtime }}" "neptune-linux-${version}-${{ matrix.runtime }}.tar.gz" "$checksum" > "artifacts/neptune-linux-release-${{ matrix.runtime }}.json"
+      - name: Sign trusted release manifest
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: node scripts/sign-release.mjs artifacts/neptune-linux-release-${{ matrix.runtime }}.json
       - uses: softprops/action-gh-release@v2
         with:
           files: |

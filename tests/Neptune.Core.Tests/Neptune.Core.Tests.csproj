@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Neptune.Core/Neptune.Core.csproj" />
+    <ProjectReference Include="../../src/Neptune.Linux/Neptune.Linux.csproj" />
   </ItemGroup>
+  <ItemGroup><None Update="TestData/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>
-

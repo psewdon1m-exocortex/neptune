@@ -12,7 +12,7 @@ public sealed class BackupWorker(
     IHttpClientFactory clients,
     ILogger<BackupWorker> logger) : BackgroundService
 {
-    private readonly ConcurrentDictionary<string, Task> _active = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, Task<bool>> _active = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _parallel = new(Math.Max(1, options.MaxParallelProjects));
     private string? _clientInstanceId;
     private CancellationToken _stoppingToken;
@@ -26,6 +26,7 @@ public sealed class BackupWorker(
         _stoppingToken = stoppingToken;
         _clientInstanceId = await new ClientIdentityStore(options.StateDirectory).GetOrCreateAsync(stoppingToken);
         await state.InitializeAsync(stoppingToken);
+        await state.PruneSpoolAsync(Path.Combine(options.StateDirectory, "spool"), stoppingToken);
         var registrations = (await registry.ReadAsync(stoppingToken)).ToDictionary(item => item.ProjectId, StringComparer.Ordinal);
         foreach (var run in await state.ListRecoverableRunsAsync(ClientInstanceId, stoppingToken))
         {
@@ -45,36 +46,65 @@ public sealed class BackupWorker(
     }
 
     public bool Start(ProjectRegistration project, BackupRun? existingRun = null)
+        => TryStart(project, existingRun, null) is not null;
+
+    public async Task RunCommandAsync(ProjectRegistration project, string commandId, CancellationToken cancellationToken)
+    {
+        var runId = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(project.ProjectId + "\n" + commandId)));
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            // Startup recovery may already be uploading this exact durable run.
+            // Wait for it, then re-read its receipt before deciding to start work.
+            if (_active.TryGetValue(project.ProjectId, out var active))
+            {
+                await active.WaitAsync(cancellationToken);
+                continue;
+            }
+            var existing = await state.GetRunAsync(ClientInstanceId, runId, cancellationToken);
+            if (existing?.State == "complete") return;
+            var task = TryStart(project, existing, runId);
+            if (task is null) continue;
+            if (!await task.WaitAsync(cancellationToken))
+                throw new InvalidOperationException("The archive pipeline did not complete; see the project run status.");
+            return;
+        }
+    }
+
+    private Task<bool>? TryStart(ProjectRegistration project, BackupRun? existingRun, string? requestedRunId)
     {
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var task = RunAfterGateAsync(project, existingRun, gate.Task, _stoppingToken);
+        var task = RunAfterGateAsync(project, existingRun, requestedRunId, gate.Task, _stoppingToken);
         if (!_active.TryAdd(project.ProjectId, task))
         {
             gate.SetResult(false);
-            return false;
+            return null;
         }
         gate.SetResult(true);
-        return true;
+        return task;
     }
 
-    private async Task RunAfterGateAsync(ProjectRegistration project, BackupRun? existingRun, Task<bool> gate, CancellationToken cancellationToken)
+    private async Task<bool> RunAfterGateAsync(ProjectRegistration project, BackupRun? existingRun, string? requestedRunId, Task<bool> gate, CancellationToken cancellationToken)
     {
-        if (!await gate) return;
-        await RunGuardedAsync(project, existingRun, cancellationToken);
+        if (!await gate) return false;
+        return await RunGuardedAsync(project, existingRun, requestedRunId, cancellationToken);
     }
 
-    private async Task RunGuardedAsync(ProjectRegistration project, BackupRun? existingRun, CancellationToken cancellationToken)
+    private async Task<bool> RunGuardedAsync(ProjectRegistration project, BackupRun? existingRun, string? requestedRunId, CancellationToken cancellationToken)
     {
         var enteredParallel = false;
         try
         {
             await _parallel.WaitAsync(cancellationToken);
             enteredParallel = true;
-            await RunOnceAsync(project, existingRun, cancellationToken);
+            await RunOnceAsync(project, existingRun, requestedRunId, cancellationToken);
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             logger.LogInformation("Backup stopped for project {ProjectId}; a completed spool remains recoverable", project.ProjectId);
+            throw;
         }
         catch (Exception error)
         {
@@ -83,6 +113,7 @@ public sealed class BackupWorker(
             if (run is not null)
                 await state.UpdateRunAsync(run with { State = "retry-wait", UpdatedAt = DateTimeOffset.UtcNow, Error = error.Message }, CancellationToken.None);
             await registry.UpdateNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(15), CancellationToken.None);
+            return false;
         }
         finally
         {
@@ -91,18 +122,18 @@ public sealed class BackupWorker(
         }
     }
 
-    private async Task RunOnceAsync(ProjectRegistration project, BackupRun? existingRun, CancellationToken cancellationToken)
+    private async Task RunOnceAsync(ProjectRegistration project, BackupRun? existingRun, string? requestedRunId, CancellationToken cancellationToken)
     {
         var http = clients.CreateClient("neptune");
         var coordinator = new BackupCoordinator(state, ClientInstanceId, Path.Combine(options.StateDirectory, "spool"), options.MaxParallelProjects);
         var exporter = new ProjectBackupExporter(http);
         var run = existingRun;
-        if (run is null)
+        if (run is null && requestedRunId is null)
             run = (await state.ListRecoverableRunsAsync(ClientInstanceId, cancellationToken)).FirstOrDefault(item => item.ProjectId == project.ProjectId && item.SpoolPath is not null && File.Exists(item.SpoolPath));
         if (run is null)
         {
             var exportToken = await ReadSecretAsync(project.ExportTokenFile, cancellationToken);
-            run = await coordinator.ExportAsync(project, (path, token) => exporter.ExportAsync(project.ExportUri, exportToken, path, token), cancellationToken);
+            run = await coordinator.ExportAsync(project, (path, token) => exporter.ExportAsync(project.ExportUri, exportToken, path, token), cancellationToken, requestedRunId);
         }
         run = run with { State = "uploading", Attempt = run.Attempt + 1, UpdatedAt = DateTimeOffset.UtcNow, Error = null };
         await state.UpdateRunAsync(run, cancellationToken);
@@ -119,8 +150,8 @@ public sealed class BackupWorker(
 
         if (!string.Equals(receipt.Sha256, run.Sha256, StringComparison.OrdinalIgnoreCase) || receipt.SizeBytes != run.Size)
             throw new InvalidDataException("Saturn receipt does not match the exact exported archive.");
-        File.Delete(run.SpoolPath!);
         await state.UpdateRunAsync(run with { State = "complete", SpoolPath = null, UploadedBytes = run.Size.Value, UpdatedAt = DateTimeOffset.UtcNow }, cancellationToken);
+        File.Delete(run.SpoolPath!);
         await registry.UpdateNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddHours(project.IntervalHours), cancellationToken);
         logger.LogInformation("Backup {RunId} for {ProjectId} committed to {LogicalPath}", run.RunId, project.ProjectId, receipt.LogicalPath);
     }

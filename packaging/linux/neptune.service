@@ -12,6 +12,9 @@ RuntimeDirectory=neptune
 RuntimeDirectoryMode=0750
 StateDirectory=neptune
 StateDirectoryMode=0700
+CacheDirectory=neptune
+CacheDirectoryMode=0700
+Environment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/neptune
 WorkingDirectory=/etc/neptune
 EnvironmentFile=-/etc/neptune/neptune.env
 ExecStart=/usr/local/lib/neptune/neptuned --contentRoot /etc/neptune

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using Neptune.Core;
 
 namespace Neptune.Linux;
@@ -17,6 +18,7 @@ public sealed class RemoteControlWorker(
     ILogger<RemoteControlWorker> logger) : BackgroundService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly ConcurrentDictionary<string, Task> _commands = new(StringComparer.Ordinal);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -92,13 +94,33 @@ public sealed class RemoteControlWorker(
             control.Desired.MirrorIntervalMinutes, cancellationToken);
         var current = await registry.FindAsync(project.ProjectId, cancellationToken) ?? project;
         foreach (var command in control.Commands)
-            await ExecuteCommandAsync(current, command, cancellationToken);
+        {
+            if (_commands.ContainsKey(command.Id)) continue;
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var task = ExecuteTrackedAsync(current, command, gate.Task, cancellationToken);
+            if (!_commands.TryAdd(command.Id, task)) continue;
+            gate.SetResult();
+        }
+    }
+
+    private async Task ExecuteTrackedAsync(ProjectRegistration project, RemoteCommand command, Task gate, CancellationToken cancellationToken)
+    {
+        await gate;
+        try { await ExecuteCommandAsync(project, command, cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception error) { logger.LogWarning(error, "Remote command {CommandId} remains retryable", command.Id); }
+        finally { _commands.TryRemove(command.Id, out _); }
     }
 
     private async Task ExecuteCommandAsync(ProjectRegistration project, RemoteCommand command, CancellationToken cancellationToken)
     {
         var existing = await state.GetRemoteCommandAsync(command.Id, cancellationToken);
         if (existing?.State is "succeeded" or "failed") return;
+        if (command.ExpiresAt is null || command.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, "{}", "failed", "Remote command expired or has no expiry; request a new command from Saturn.", cancellationToken);
+            return;
+        }
         var rawPayload = JsonSerializer.Serialize(command.Payload, JsonOptions);
         if (command.Kind == "agent.update" && UpdateAlreadyApplied(command))
         {
@@ -111,11 +133,11 @@ public sealed class RemoteControlWorker(
             switch (command.Kind)
             {
                 case "archive.run":
-                    if (!backups.Start(project)) throw new InvalidOperationException("An archive run is already active.");
+                    await backups.RunCommandAsync(project, command.Id, cancellationToken);
                     break;
                 case "mirror.run":
                     if (project.Mirror is null) throw new InvalidOperationException("This project has no mirror pipeline.");
-                    if (!mirrors.Start(project)) throw new InvalidOperationException("A mirror run is already active.");
+                    await mirrors.RunCommandAsync(project, cancellationToken);
                     break;
                 case "agent.update":
                     await UpdateAgentAsync(project, command, cancellationToken);
@@ -125,6 +147,7 @@ public sealed class RemoteControlWorker(
             }
             await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, rawPayload, "succeeded", null, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception error)
         {
             await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, rawPayload, "failed", error.Message, CancellationToken.None);

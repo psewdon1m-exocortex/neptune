@@ -9,6 +9,7 @@ public sealed class NeptuneStateStore(string databasePath)
         DataSource = databasePath,
         Mode = SqliteOpenMode.ReadWriteCreate,
         Cache = SqliteCacheMode.Shared,
+        ForeignKeys = true,
         DefaultTimeout = 30
     }.ToString();
 
@@ -68,8 +69,45 @@ public sealed class NeptuneStateStore(string databasePath)
                 error TEXT,
                 updated_at TEXT NOT NULL
             );
+            CREATE TRIGGER IF NOT EXISTS remote_commands_capacity BEFORE INSERT ON remote_commands
+            WHEN NOT EXISTS (SELECT 1 FROM remote_commands WHERE command_id=NEW.command_id)
+            BEGIN
+                DELETE FROM remote_commands WHERE state IN ('succeeded','failed') AND updated_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days');
+                SELECT CASE WHEN (SELECT COUNT(*) FROM remote_commands) >= 10000 THEN RAISE(ABORT,'remote command capacity reached; retry later') END;
+            END;
+            CREATE TRIGGER IF NOT EXISTS backup_runs_capacity BEFORE INSERT ON backup_runs
+            BEGIN
+                DELETE FROM backup_runs WHERE state='complete'
+                  AND run_id NOT IN (SELECT run_id FROM backup_runs WHERE state='complete' ORDER BY updated_at DESC LIMIT 1000)
+                  AND run_id NOT IN (SELECT run_id FROM backup_runs WHERE state='complete' GROUP BY client_instance_id,project_id HAVING updated_at=MAX(updated_at))
+                  AND (length(run_id) < 64 OR updated_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days'));
+                SELECT CASE WHEN (SELECT COUNT(*) FROM backup_runs) >= 12000 THEN RAISE(ABORT,'backup history capacity reached; retry later') END;
+            END;
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task PruneSpoolAsync(string directory, CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(directory)) return;
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT spool_path, state FROM backup_runs WHERE spool_path IS NOT NULL";
+        var active = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var complete = new HashSet<string>(active.Comparer);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var filename = Path.GetFullPath(reader.GetString(0));
+            (reader.GetString(1) == "complete" ? complete : active).Add(filename);
+        }
+        foreach (var filename in Directory.EnumerateFiles(directory, "*", new EnumerationOptions { AttributesToSkip = FileAttributes.ReparsePoint, RecurseSubdirectories = false }))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var resolved = Path.GetFullPath(filename);
+            if (!active.Contains(resolved) && (complete.Contains(resolved) || File.GetLastWriteTimeUtc(resolved) < DateTime.UtcNow.AddDays(-1))) File.Delete(resolved);
+        }
     }
 
     public async Task<RemoteCommandResult?> GetRemoteCommandAsync(string commandId, CancellationToken cancellationToken = default)
@@ -87,13 +125,17 @@ public sealed class NeptuneStateStore(string databasePath)
 
     public async Task SaveRemoteCommandAsync(string commandId, string projectId, string kind, string payload, string state, string? error, CancellationToken cancellationToken = default)
     {
+        if (commandId.Length > 128 || projectId.Length > 128 || kind.Length > 64 || payload.Length > 65536)
+            throw new InvalidDataException("Remote command exceeds the journal size limit.");
+        if (error?.Length > 1024) error = error[..1024];
+        if (state is "succeeded" or "failed") payload = "{}";
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO remote_commands(command_id, project_id, kind, payload, state, error, updated_at)
             VALUES($id,$projectId,$kind,$payload,$state,$error,$updatedAt)
-            ON CONFLICT(command_id) DO UPDATE SET state=excluded.state,error=excluded.error,updated_at=excluded.updated_at;
+            ON CONFLICT(command_id) DO UPDATE SET state=excluded.state,payload=excluded.payload,error=excluded.error,updated_at=excluded.updated_at;
             """;
         command.Parameters.AddWithValue("$id", commandId);
         command.Parameters.AddWithValue("$projectId", projectId);
@@ -126,6 +168,9 @@ public sealed class NeptuneStateStore(string databasePath)
 
     public async Task AddRunAsync(BackupRun run, CancellationToken cancellationToken = default)
     {
+        if (run.RunId.Length > 128 || run.ProjectId.Length > 128 || run.ClientInstanceId.Length > 128 || run.SpoolPath?.Length > 4096)
+            throw new InvalidDataException("Backup run exceeds journal field limits.");
+        if (run.Error?.Length > 1024) run = run with { Error = run.Error[..1024] };
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
@@ -152,8 +197,26 @@ public sealed class NeptuneStateStore(string databasePath)
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<BackupRun?> GetRunAsync(string clientInstanceId, string runId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT run_id,project_id,client_instance_id,state,spool_path,size,sha256,saturn_run_id,uploaded_bytes,attempt,created_at,updated_at,error FROM backup_runs WHERE client_instance_id=$clientId AND run_id=$runId";
+        command.Parameters.AddWithValue("$clientId", clientInstanceId);
+        command.Parameters.AddWithValue("$runId", runId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken)) return null;
+        return new BackupRun(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
+            reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetInt64(5),
+            reader.IsDBNull(6) ? null : reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7),
+            reader.GetInt64(8), reader.GetInt32(9), DateTimeOffset.Parse(reader.GetString(10)),
+            DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12));
+    }
+
     public async Task UpdateRunAsync(BackupRun run, CancellationToken cancellationToken = default)
     {
+        if (run.Error?.Length > 1024) run = run with { Error = run.Error[..1024] };
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
