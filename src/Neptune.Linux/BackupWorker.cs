@@ -167,5 +167,5 @@ public sealed class BackupWorker(
         (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.0-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.1-dev";
 }

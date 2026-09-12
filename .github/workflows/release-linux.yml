@@ -35,10 +35,17 @@ jobs:
       - name: Sign trusted release manifest
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-        run: node scripts/sign-release.mjs artifacts/neptune-linux-release-${{ matrix.runtime }}.json
+        shell: bash
+        run: |
+          if [[ "${{ matrix.runtime }}" == "linux-x64" ]]; then
+            node scripts/sign-release.mjs --export-public-key artifacts/neptune.pem artifacts/neptune-linux-release-${{ matrix.runtime }}.json
+          else
+            node scripts/sign-release.mjs artifacts/neptune-linux-release-${{ matrix.runtime }}.json
+          fi
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/*.tar.gz
             artifacts/*.sha256
             artifacts/*.json
+            artifacts/*.pem

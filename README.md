@@ -87,8 +87,10 @@ Normal operators do not edit the registry or token files. In Saturn
 Synchronization they create a 15-minute one-time setup code. Settings → Backup
 → **Initialize Neptune** passes it to Updater, installs a missing daemon or reuses
 the existing one, and waits for terminal enrollment status. Updater also installs
-required helpers automatically after head registration, Kernel configuration and
-release trust provisioning. The service backup command provides the CLI equivalent. `neptunectl doctor`
+required helpers automatically after head registration and Kernel configuration.
+On first use it obtains `neptune.pem` from the selected HTTPS release, verifies
+the signed manifest and pins the key locally. The service backup command provides
+the CLI equivalent. `neptunectl doctor`
 remains available for diagnostics.
 
 There is exactly one `neptuned` process per Linux host, even when the host runs
