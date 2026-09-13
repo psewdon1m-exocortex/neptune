@@ -55,7 +55,12 @@ The repository publishes two separate GitHub release streams:
 Linux and Windows product versions may advance independently. Both manifests
 declare the Neptune protocol version, artifact SHA-256, size, architecture,
 minimum supported OS and immutable release URL. Release signing and verification
-must follow the same trust model as the existing Exocortex Updater releases.
+follow the common Exocortex trust model. Each product stream has an independent
+private signing key held only in its repository's GitHub Secrets and exposed
+only to the protected release-signing job. CI signs the manifest and publishes
+the public counterpart; for Linux, the pinned public key is carried by the
+already verified Updater installer, while the Windows installer carries its
+own trust. Private key bytes never enter artifacts, caches or logs.
 
 Kernel Register contains `volt://` references for the shared coordinates:
 
@@ -88,8 +93,13 @@ Synchronization they create a 15-minute one-time setup code. Settings → Backup
 → **Initialize Neptune** passes it to Updater, installs a missing daemon or reuses
 the existing one, and waits for terminal enrollment status. Updater also installs
 required helpers automatically after head registration and Kernel configuration.
-On first use it obtains `neptune.pem` from the selected HTTPS release, verifies
-the signed manifest and pins the key locally. The service backup command provides
+On first host preparation, the exact-version Updater bootstrap verifies its
+signed installer and obtains Neptune's pinned public key from inside that
+installer. It writes `/etc/exocortex/release-trust/neptune.pem` and fails on an
+existing mismatching trust key. Later typed installation verifies Neptune's
+signed manifest before downloading the daemon. It never uses `scp`, a manual
+release-key fingerprint or a public key downloaded beside the helper manifest.
+The service backup command provides
 the CLI equivalent. `neptunectl doctor`
 remains available for diagnostics.
 
@@ -233,7 +243,8 @@ Saturn queues commands, and the target agent receives them at its next check-in.
 Neptune must not replace its root-owned executable from an unprivileged daemon.
 The privileged host Updater installs the verified `neptune-linux-*` release
 selected from `repositories.neptune.url`. It verifies the per-architecture
-manifest and archive SHA-256, performs an atomic replacement, restarts the
+manifest signature against the already provisioned Neptune trust key and then
+checks the archive SHA-256, performs an atomic replacement, restarts the
 daemon, checks its Unix-socket health endpoint and restores the previous binary
 if the new daemon does not become healthy. Remote update commands cross a
 separate local Unix-socket bridge protected by `/etc/neptune/updater-agent.token`;
