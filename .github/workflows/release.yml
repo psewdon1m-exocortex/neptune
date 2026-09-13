@@ -1,0 +1,209 @@
+name: Release Neptune
+
+on:
+  push:
+    tags: ["neptune-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  quality-gate:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  linux:
+    name: Linux ${{ matrix.runtime }}
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [linux-x64, linux-arm64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Resolve version
+        id: release
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#neptune-v}"
+          [[ "$GITHUB_REF_NAME" == "neptune-v${version}" ]]
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
+          test "$version" = "$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Build Linux release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.release.outputs.version }}"
+          runtime="${{ matrix.runtime }}"
+          output="artifacts/${runtime}"
+          dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r "$runtime" \
+            --self-contained true -p:PublishSingleFile=true -p:Version="$version" -o "$output"
+          mv "$output/Neptune.Linux" "$output/neptuned"
+          cp packaging/linux/install.sh packaging/linux/neptune.service packaging/linux/neptunectl \
+            src/Neptune.Linux/appsettings.json "$output/"
+          chmod 0755 "$output/neptuned" "$output/install.sh" "$output/neptunectl"
+          artifact="neptune-linux-${version}-${runtime}.tar.gz"
+          tar -C "$output" -czf "artifacts/$artifact" .
+          checksum="$(sha256sum "artifacts/$artifact" | cut -d' ' -f1)"
+          size="$(stat -c%s "artifacts/$artifact")"
+          printf '%s  %s\n' "$checksum" "$artifact" > "artifacts/${artifact}.sha256"
+          printf '{"schema":"exocortex.neptune.release.v1","product":"neptune-linux","protocol_version":1,"version":"%s","runtime":"%s","artifact":"%s","sha256":"%s","size":%s,"minimum_os":"Linux","url":"https://github.com/%s/releases/download/%s/%s"}\n' \
+            "$version" "$runtime" "$artifact" "$checksum" "$size" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$artifact" \
+            > "artifacts/neptune-linux-release-${runtime}.json"
+      - name: Sign trusted Linux manifest
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.runtime }}" == "linux-x64" ]]; then
+            node scripts/sign-release.mjs --export-public-key artifacts/neptune.pem \
+              artifacts/neptune-linux-release-${{ matrix.runtime }}.json
+          else
+            node scripts/sign-release.mjs artifacts/neptune-linux-release-${{ matrix.runtime }}.json
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neptune-release-${{ matrix.runtime }}
+          path: |
+            artifacts/*.tar.gz
+            artifacts/*.sha256
+            artifacts/*.json
+            artifacts/*.pem
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Windows win-x64
+    needs: quality-gate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Resolve version
+        id: release
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.Replace('neptune-v', '')
+          if ($env:GITHUB_REF_NAME -ne "neptune-v$version" -or $version -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') {
+            throw 'Invalid Neptune release tag.'
+          }
+          [xml]$props = Get-Content Directory.Build.props
+          if ($props.Project.PropertyGroup.VersionPrefix -ne $version) { throw 'Tag version does not match VersionPrefix.' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Build Windows release
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        shell: pwsh
+        run: |
+          $version = '${{ steps.release.outputs.version }}'
+          dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:Version=$version -o artifacts/win-x64
+          if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
+          node scripts/sign-release.mjs --export-public-key artifacts/win-x64/release-trust/neptune.pem
+          if ($LASTEXITCODE -ne 0) { throw 'Release trust key could not be exported.' }
+          $artifactName = "neptune-windows-$version-win-x64.zip"
+          $artifact = "artifacts/$artifactName"
+          Compress-Archive -Path artifacts/win-x64/* -DestinationPath $artifact -CompressionLevel Optimal
+          $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
+          $size = (Get-Item $artifact).Length
+          "$hash  $artifactName" | Set-Content "${artifact}.sha256"
+          $manifest = @{
+            schema = 'exocortex.neptune.release.v1'
+            product = 'neptune-windows'
+            protocol_version = 1
+            version = $version
+            runtime = 'win-x64'
+            packaging = 'portable-zip'
+            artifact = $artifactName
+            sha256 = $hash
+            size = $size
+            minimum_os = 'Windows 10'
+            url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME/$artifactName"
+          } | ConvertTo-Json -Compress
+          $manifest | Set-Content artifacts/neptune-windows-release.json
+          node scripts/sign-release.mjs artifacts/neptune-windows-release.json
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release manifest could not be signed.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neptune-release-win-x64
+          path: |
+            artifacts/*.zip
+            artifacts/*.sha256
+            artifacts/*.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish immutable unified release
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: neptune-release-*
+          path: release
+          merge-multiple: true
+      - name: Verify unified release set
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#neptune-v}"
+          expected=(
+            "neptune-linux-${version}-linux-x64.tar.gz"
+            "neptune-linux-${version}-linux-arm64.tar.gz"
+            "neptune-windows-${version}-win-x64.zip"
+            "neptune-linux-release-linux-x64.json"
+            "neptune-linux-release-linux-arm64.json"
+            "neptune-windows-release.json"
+            "neptune.pem"
+          )
+          for file in "${expected[@]}"; do test -s "release/$file"; done
+          (cd release && sha256sum --check --strict *.sha256)
+          for manifest in \
+            release/neptune-linux-release-linux-x64.json \
+            release/neptune-linux-release-linux-arm64.json \
+            release/neptune-windows-release.json; do
+            python3 scripts/verify-release-manifest.py "$manifest" "${manifest}.sig.json" release/neptune.pem
+          done
+          unzip -p "release/neptune-windows-${version}-win-x64.zip" release-trust/neptune.pem | cmp - release/neptune.pem
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const version = process.env.GITHUB_REF_NAME.replace(/^neptune-v/, "");
+          const contracts = [
+            ["neptune-linux-release-linux-x64.json", "neptune-linux", "linux-x64"],
+            ["neptune-linux-release-linux-arm64.json", "neptune-linux", "linux-arm64"],
+            ["neptune-windows-release.json", "neptune-windows", "win-x64"],
+          ];
+          for (const [name, product, runtime] of contracts) {
+            const manifest = JSON.parse(fs.readFileSync(`release/${name}`, "utf8"));
+            if (manifest.schema !== "exocortex.neptune.release.v1" || manifest.product !== product
+              || manifest.runtime !== runtime || manifest.version !== version
+              || !/^[a-f0-9]{64}$/.test(manifest.sha256) || !Number.isSafeInteger(manifest.size)
+              || !String(manifest.url).startsWith("https://github.com/")) {
+              throw new Error(`Invalid Neptune manifest contract: ${name}`);
+            }
+          }
+          NODE
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists and will not be replaced." >&2
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --latest=false \
+            --title "$GITHUB_REF_NAME" --generate-notes

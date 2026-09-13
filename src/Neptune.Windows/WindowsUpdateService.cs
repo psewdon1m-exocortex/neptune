@@ -14,6 +14,7 @@ public sealed record WindowsRelease(Version Version, string VersionText, Uri Dow
 
 public sealed class WindowsUpdateService(WindowsProfileContext profile)
 {
+    private const string ReleaseTagPrefix = "neptune-v";
     private readonly HttpClient _http = CreateHttpClient();
 
     public Version CurrentVersion => Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0, 0, 0);
@@ -27,8 +28,8 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
         var releases = await _http.GetFromJsonAsync<GitHubRelease[]>(
             $"https://api.github.com/repos/{Uri.EscapeDataString(owner)}/{Uri.EscapeDataString(name)}/releases?per_page=30", cancellationToken) ?? [];
 
-        foreach (var release in releases.Where(value => !value.Draft && !value.Prerelease && value.TagName.StartsWith("neptune-windows-v", StringComparison.Ordinal))
-                     .Select(value => (Release: value, VersionText: value.TagName["neptune-windows-v".Length..], Version: ParseVersion(value.TagName["neptune-windows-v".Length..])))
+        foreach (var release in releases.Where(value => !value.Draft && !value.Prerelease && value.TagName.StartsWith(ReleaseTagPrefix, StringComparison.Ordinal))
+                     .Select(value => (Release: value, VersionText: value.TagName[ReleaseTagPrefix.Length..], Version: ParseVersion(value.TagName[ReleaseTagPrefix.Length..])))
                      .Where(value => value.Version is not null)
                      .OrderByDescending(value => value.Version))
         {

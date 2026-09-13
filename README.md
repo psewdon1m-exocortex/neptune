@@ -67,12 +67,10 @@ the platform-specific manifests and artifacts below. The version sequence
 starts at `0.0.1`. A plain `v0.0.1`-style tag runs verification-only CI and
 cannot publish or mutate a release.
 
-> Current implementation gap (2026-09-13): the repository still has separate
-> `neptune-linux-v*` and `neptune-windows-v*` release triggers, while `ci.yml`
-> does not listen to plain `v*` tags. Those triggers are superseded by the
-> single namespace above. A separate CI change must converge both platform
-> builds on `neptune-v*` and add plain-tag verification before the next
-> release; existing platform tags remain immutable historical records.
+The CI workflow accepts plain `v*` tags for verification-only evidence. Only
+the exact `neptune-v*` namespace invokes the unified Linux and Windows release
+workflow. Existing `neptune-linux-v*` and `neptune-windows-v*` tags remain
+immutable historical records and no longer trigger publication.
 
 | Product | Tag | Manifest | Primary artifact |
 | --- | --- | --- | --- |
