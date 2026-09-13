@@ -1,5 +1,7 @@
 # Подключение проекта к Neptune Linux
 
+This document specializes [Part 09 — service agents deployment and lifecycle](../../.docs/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md); that central contract remains authoritative.
+
 Neptune запускается один раз на Linux-хосте и обслуживает несколько проектов.
 Каждый deployment получает собственные control/export/Saturn tokens. Общие
 координаты Saturn и репозитория читаются из Kernel Register; секреты в Register

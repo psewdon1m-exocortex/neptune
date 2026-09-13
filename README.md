@@ -1,9 +1,25 @@
 # Neptune implementation contract
 
+> Documentation authority: the workspace-wide [Part 00](../.docs/PART_00_SYSTEM_UNIFICATION_SPECIFICATION.md)
+> and its applicable Parts are normative. This repository documents
+> Neptune-specific details only; a conflict is corrected here and a material
+> implementation difference follows the Part 00 divergence protocol.
+
+## Required pre-push gate
+
+After native checks and before every push, complete the checks required by
+[Part 06 — Unified acceptance checklist](../.docs/PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md) and run the versioned policy in
+`.github/pre-push-gate.json` through `scripts/pre-push-gate.py`. CI repeats the
+gate on `main`. Security is always reviewed; backup/restore, updater, embedded
+Documentation and affected technical docs are reviewed when relevant. Apply
+SEO/GEO checks to intentionally public/indexable surfaces and concealment,
+crawler and probe-resistance checks to private or authenticated surfaces.
+Every area requires `PASS` evidence or a reasoned `N/A`.
+
 Status: executable cross-project implementation completed; production deployment
 and end-to-end qualification against a real Saturn instance remain.
 
-Neptune is a separate Exocortex repository with two independently versioned
+Neptune is one independently versioned Exocortex service with two platform
 products:
 
 - **Neptune Linux** — one host-wide agent that creates automatic backups for
@@ -26,7 +42,8 @@ credentials and never exposes a web interface.
   checksummed portable updater;
 - `packaging/linux` contains the hardened systemd unit and installer;
 - `packaging/windows` contains the future MSIX manifest and complete planet icon family;
-- `.github/workflows` publishes two independent checksummed release streams.
+- `.github/workflows` publishes platform-specific artifacts from one
+  service-qualified release stream.
 
 Build and test with the pinned .NET SDK:
 
@@ -45,22 +62,34 @@ Neptune.Windows.exe --profile personal
 
 ## 1. Repository and release contract
 
-The repository publishes two separate GitHub release streams:
+The repository publishes one `neptune-vMAJOR.MINOR.PATCH` release containing
+the platform-specific manifests and artifacts below. The version sequence
+starts at `0.0.1`. A plain `v0.0.1`-style tag runs verification-only CI and
+cannot publish or mutate a release.
+
+> Current implementation gap (2026-09-13): the repository still has separate
+> `neptune-linux-v*` and `neptune-windows-v*` release triggers, while `ci.yml`
+> does not listen to plain `v*` tags. Those triggers are superseded by the
+> single namespace above. A separate CI change must converge both platform
+> builds on `neptune-v*` and add plain-tag verification before the next
+> release; existing platform tags remain immutable historical records.
 
 | Product | Tag | Manifest | Primary artifact |
 | --- | --- | --- | --- |
-| Linux | `neptune-linux-vMAJOR.MINOR.PATCH` | `neptune-linux-release-linux-x64.json` / `neptune-linux-release-linux-arm64.json` | architecture-specific `.tar.gz` |
-| Windows | `neptune-windows-vMAJOR.MINOR.PATCH` | `neptune-windows-release.json` | self-contained portable `.zip` |
+| Linux | `neptune-vMAJOR.MINOR.PATCH` | `neptune-linux-release-linux-x64.json` / `neptune-linux-release-linux-arm64.json` | architecture-specific `.tar.gz` |
+| Windows | `neptune-vMAJOR.MINOR.PATCH` | `neptune-windows-release.json` | self-contained portable `.zip` |
 
-Linux and Windows product versions may advance independently. Both manifests
+Linux and Windows artifacts share the version in the qualified Neptune tag.
+Both manifests
 declare the Neptune protocol version, artifact SHA-256, size, architecture,
 minimum supported OS and immutable release URL. Release signing and verification
-follow the common Exocortex trust model. Each product stream has an independent
-private signing key held only in its repository's GitHub Secrets and exposed
-only to the protected release-signing job. CI signs the manifest and publishes
-the public counterpart; for Linux, the pinned public key is carried by the
-already verified Updater installer, while the Windows installer carries its
-own trust. Private key bytes never enter artifacts, caches or logs.
+follow the common Exocortex trust model. One Neptune private signing key is
+held only in this repository's GitHub Secrets and exposed only to the protected
+release-signing jobs. CI signs every platform manifest and publishes the same
+public counterpart; for Linux, the pinned public key is carried by the
+already verified Updater installer, while the Windows installer carries the
+same Neptune public trust. Private key bytes never enter artifacts, caches or
+logs.
 
 Kernel Register contains `volt://` references for the shared coordinates:
 
@@ -347,7 +376,7 @@ device-authenticated Saturn preference from the path published in Kernel Registe
 at connection time and during reconciliation, then updates WPF dynamic resources.
 
 The Windows application reads `repositories.neptune.url` and follows only the
-`neptune-windows-v*` release stream. Current portable releases are immutable
+`neptune-v*` release stream. Current portable releases are immutable
 GitHub assets verified by the SHA-256 declared in the release manifest; automatic
 portable updates can be started from the **Check updates** button or tray menu.
 Neptune downloads the Windows release selected from the repository URL in Kernel

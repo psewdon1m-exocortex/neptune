@@ -1,5 +1,7 @@
 # Windows packaging
 
+This document specializes [Part 05 — CI, releases and local updates](../../../.docs/PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md); that central contract remains authoritative.
+
 The current release workflow publishes a self-contained Windows x64 portable
 ZIP plus a SHA-256 file and machine-readable manifest. It requires no signing
 certificate: extract the archive and run `Neptune.Windows.exe`. The checked-in
