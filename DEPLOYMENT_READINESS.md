@@ -1,10 +1,10 @@
 # neptune deployment and recovery contract
 
 This service-local record is subordinate to the coordinated
-[Part 11 deployment profile](../.docs/PART_11_INITIAL_MULTI_SERVICE_DEPLOYMENT.md)
+[Part 11 deployment profile](https://github.com/psewdon1m-exocortex/general/blob/main/PART_11_INITIAL_MULTI_SERVICE_DEPLOYMENT.md)
 and the shared-agent contracts in
-[Part 09](../.docs/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
-[Part 10](../.docs/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
+[Part 09](https://github.com/psewdon1m-exocortex/general/blob/main/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
+[Part 10](https://github.com/psewdon1m-exocortex/general/blob/main/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
 Linux archive export, independent Volt single-file mirror and Windows folder synchronization are separate pipelines. Linux consumes schedules and remote commands from Saturn. A command succeeds only after the matching pipeline and receipt complete. Run IDs are deterministic for remote archive commands; interrupted upload resumes the same spool and nonzero Saturn offset. Concurrent recovery and command replay wait for the same result. Windows stores credentials with per-user DPAPI, isolates profiles, preserves Unicode names and mirrors renames/deletions; an incomplete or inaccessible local tree aborts before remote cleanup. Only Register references are cached. A new Windows identity must re-enroll protected credentials.
 
