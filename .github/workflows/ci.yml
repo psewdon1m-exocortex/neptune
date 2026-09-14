@@ -25,7 +25,9 @@ jobs:
         with:
           global-json-file: global.json
       - name: Validate packaging scripts
-        run: sh -n packaging/linux/install.sh
+        run: |
+          sh -n packaging/linux/install.sh
+          grep -Fx 'RuntimeDirectoryPreserve=yes' packaging/linux/neptune.service
       - name: Build and test
         run: |
           dotnet build src/Neptune.Linux/Neptune.Linux.csproj -c Release

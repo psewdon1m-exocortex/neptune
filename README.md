@@ -281,9 +281,11 @@ Neptune must not replace its root-owned executable from an unprivileged daemon.
 The privileged host Updater installs the verified `neptune-linux-*` release
 selected from `repositories.neptune.url`. It verifies the per-architecture
 manifest signature against the already provisioned Neptune trust key and then
-checks the archive SHA-256, performs an atomic replacement, restarts the
-daemon, checks its Unix-socket health endpoint and restores the previous binary
-if the new daemon does not become healthy. Remote update commands cross a
+checks the archive SHA-256, replaces the executable and systemd unit as one
+rollback boundary, restarts the daemon, checks its Unix-socket health endpoint
+and restores both previous files if the new daemon does not become healthy.
+The unit preserves `/run/neptune` across restarts so existing container bind
+mounts continue to observe the current socket. Remote update commands cross a
 separate local Unix-socket bridge protected by `/etc/neptune/updater-agent.token`;
 that credential authorizes only Neptune Linux replacement and cannot update
 arbitrary services.

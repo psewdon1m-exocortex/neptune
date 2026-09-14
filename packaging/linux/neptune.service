@@ -10,6 +10,7 @@ Group=neptune-clients
 SupplementaryGroups=neptune updater
 RuntimeDirectory=neptune
 RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 StateDirectory=neptune
 StateDirectoryMode=0700
 CacheDirectory=neptune
