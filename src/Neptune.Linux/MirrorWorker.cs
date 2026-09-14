@@ -241,6 +241,6 @@ public sealed class MirrorWorker(
     {
         var token = (await File.ReadAllTextAsync(options.KernelTokenFile, cancellationToken)).Trim();
         return await new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"))
-            .GetSnapshotAsync(options.KernelOrigin, token, cancellationToken);
+            .GetSnapshotAsync(options.KernelOrigin, token, cancellationToken, ["services.saturn.sni", "services.saturn.port"]);
     }
 }

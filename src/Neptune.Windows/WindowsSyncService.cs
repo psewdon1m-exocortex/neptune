@@ -102,7 +102,8 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
     private async Task<PreparedConnection> PrepareAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken)
     {
         var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-lkg.json"));
-        var snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken);
+        var snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken,
+            ["services.saturn.sni", "services.saturn.port", "services.saturn.paths.sync", "services.saturn.paths.sync_preferences"]);
         using (snapshot)
         {
             var values = snapshot.RootElement.GetProperty("values");

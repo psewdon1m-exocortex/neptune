@@ -26,13 +26,19 @@ public sealed class RemoteControlWorker(
         {
             try
             {
-                if (backups.ClientInstanceId != "initializing")
-                    foreach (var project in await registry.ReadAsync(stoppingToken))
+                var projects = await registry.ReadAsync(stoppingToken);
+                if (backups.ClientInstanceId != "initializing" && projects.Count > 0)
+                {
+                    var http = clients.CreateClient("neptune");
+                    using var snapshot = await ReadRegisterAsync(http, stoppingToken);
+                    var saturnOrigin = RegisterValues.HttpsOrigin(snapshot.RootElement.GetProperty("values"), "saturn");
+                    foreach (var project in projects)
                     {
-                        try { await CheckInAsync(project, stoppingToken); }
+                        try { await CheckInAsync(project, saturnOrigin, stoppingToken); }
                         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
                         catch (Exception error) { logger.LogWarning(error, "Saturn remote control check-in failed for project {ProjectId}; other projects will continue", project.ProjectId); }
                     }
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
             catch (Exception error)
@@ -43,12 +49,9 @@ public sealed class RemoteControlWorker(
         }
     }
 
-    private async Task CheckInAsync(ProjectRegistration project, CancellationToken cancellationToken)
+    private async Task CheckInAsync(ProjectRegistration project, Uri saturnOrigin, CancellationToken cancellationToken)
     {
         var http = clients.CreateClient("neptune");
-        using var snapshot = await ReadRegisterAsync(http, cancellationToken);
-        var values = snapshot.RootElement.GetProperty("values");
-        var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
         var summary = await state.GetProjectRunSummaryAsync(backups.ClientInstanceId, project.ProjectId, cancellationToken);
         var mirrorStatus = mirrors.Status(project.ProjectId);
         var results = await state.ListRemoteCommandResultsAsync(project.ProjectId, cancellationToken);
@@ -202,12 +205,12 @@ public sealed class RemoteControlWorker(
     {
         var token = await ReadSecretAsync(options.KernelTokenFile, cancellationToken);
         return await new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"))
-            .GetSnapshotAsync(options.KernelOrigin, token, cancellationToken);
+            .GetSnapshotAsync(options.KernelOrigin, token, cancellationToken, ["services.saturn.sni", "services.saturn.port"]);
     }
 
     private static async Task<string> ReadSecretAsync(string path, CancellationToken cancellationToken) =>
         (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.5-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.6-dev";
 }

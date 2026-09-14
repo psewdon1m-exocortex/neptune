@@ -138,7 +138,7 @@ public sealed class BackupWorker(
         run = run with { State = "uploading", Attempt = run.Attempt + 1, UpdatedAt = DateTimeOffset.UtcNow, Error = null };
         await state.UpdateRunAsync(run, cancellationToken);
 
-        using var snapshot = await ReadRegisterAsync(http, cancellationToken);
+        using var snapshot = await ReadRegisterAsync(http, project, cancellationToken);
         var values = snapshot.RootElement.GetProperty("values");
         var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
         var backupPath = RegisterValues.RequiredString(values, "services.saturn.paths.backup_ingest");
@@ -156,16 +156,18 @@ public sealed class BackupWorker(
         logger.LogInformation("Backup {RunId} for {ProjectId} committed to {LogicalPath}", run.RunId, project.ProjectId, receipt.LogicalPath);
     }
 
-    private async Task<JsonDocument> ReadRegisterAsync(HttpClient http, CancellationToken cancellationToken)
+    private async Task<JsonDocument> ReadRegisterAsync(HttpClient http, ProjectRegistration project, CancellationToken cancellationToken)
     {
         var token = await ReadSecretAsync(options.KernelTokenFile, cancellationToken);
         var client = new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"));
-        return await client.GetSnapshotAsync(options.KernelOrigin, token, cancellationToken);
+        var keys = new List<string> { "services.saturn.sni", "services.saturn.port", "services.saturn.paths.backup_ingest" };
+        if (project.SaturnSlug is null) keys.Add(project.SaturnSlugRegisterKey);
+        return await client.GetSnapshotAsync(options.KernelOrigin, token, cancellationToken, keys);
     }
 
     private static async Task<string> ReadSecretAsync(string path, CancellationToken cancellationToken) =>
         (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.5-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.6-dev";
 }

@@ -12,7 +12,7 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
         "^volt://[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[1-5]$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    public async Task<JsonDocument> GetSnapshotAsync(Uri kernelOrigin, string token, CancellationToken cancellationToken = default)
+    public async Task<JsonDocument> GetSnapshotAsync(Uri kernelOrigin, string token, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? requestedKeys = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(kernelOrigin, "/api/v1/register/snapshot"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -26,16 +26,19 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
         var temporary = $"{cachePath}.{Guid.NewGuid():N}.tmp";
         await File.WriteAllTextAsync(temporary, downloaded.RootElement.GetRawText(), cancellationToken);
         File.Move(temporary, cachePath, overwrite: true);
-        return await ResolveAsync(kernelOrigin, token, downloaded.RootElement.GetRawText(), cancellationToken);
+        return await ResolveAsync(kernelOrigin, token, downloaded.RootElement.GetRawText(), requestedKeys, cancellationToken);
     }
 
-    private async Task<JsonDocument> ResolveAsync(Uri kernelOrigin, string token, string rawSnapshot, CancellationToken cancellationToken)
+    private async Task<JsonDocument> ResolveAsync(Uri kernelOrigin, string token, string rawSnapshot, IReadOnlyCollection<string>? requestedKeys, CancellationToken cancellationToken)
     {
         var root = JsonNode.Parse(rawSnapshot)?.AsObject() ?? throw new InvalidDataException("Invalid Kernel Register snapshot.");
         var values = root["values"]?.AsObject() ?? throw new InvalidDataException("Kernel Register values are missing.");
         var references = new Dictionary<string, string>(StringComparer.Ordinal);
         CollectReferences(values, "", references);
-        var keys = references.Keys.OrderBy(key => key, StringComparer.Ordinal).ToArray();
+        // Optional keys can be absent in older Registers; consumers validate their required values.
+        var keys = references.Keys.Where(key => requestedKeys is null || requestedKeys.Contains(key))
+            .OrderBy(key => key, StringComparer.Ordinal).ToArray();
+        var selectedValues = new JsonObject();
         for (var offset = 0; offset < keys.Length; offset += 20)
         {
             var batch = keys.Skip(offset).Take(20).ToArray();
@@ -52,9 +55,10 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
             {
                 var value = resolved.RootElement.GetProperty("values").GetProperty(key).GetProperty("value").GetString()
                     ?? throw new InvalidDataException($"Kernel omitted Register key {key}.");
-                SetDotted(values, key, value);
+                SetDotted(selectedValues, key, value);
             }
         }
+        root["values"] = selectedValues;
         return JsonDocument.Parse(root.ToJsonString());
     }
 
@@ -73,7 +77,11 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
     {
         var parts = key.Split('.');
         var current = values;
-        foreach (var part in parts[..^1]) current = current[part]?.AsObject() ?? throw new InvalidDataException($"Kernel Register key {key} is invalid.");
+        foreach (var part in parts[..^1])
+        {
+            current[part] ??= new JsonObject();
+            current = current[part]!.AsObject();
+        }
         current[parts[^1]] = value;
     }
 

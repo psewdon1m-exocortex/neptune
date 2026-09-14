@@ -22,7 +22,7 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
     public async Task<WindowsRelease?> CheckAsync(WindowsConnection connection, CancellationToken cancellationToken = default)
     {
         var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-update-lkg.json"));
-        using var snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken);
+        using var snapshot = await register.GetSnapshotAsync(connection.KernelOrigin, connection.KernelToken, cancellationToken, ["repositories.neptune.url"]);
         var repository = RegisterValues.RequiredString(snapshot.RootElement.GetProperty("values"), "repositories.neptune.url");
         var (owner, name) = ParseRepository(repository);
         var releases = await _http.GetFromJsonAsync<GitHubRelease[]>(
