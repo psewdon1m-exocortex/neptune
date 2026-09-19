@@ -187,7 +187,7 @@ public sealed class BackupWorker(
         (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.7-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.8-dev";
 
     private sealed record BackupTarget(Uri SaturnOrigin, string BackupPath, string Slug);
 }

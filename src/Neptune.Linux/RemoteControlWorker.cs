@@ -231,5 +231,5 @@ public sealed class RemoteControlWorker(
         (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.7-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev";
 }
