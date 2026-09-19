@@ -19,6 +19,7 @@ public sealed class MirrorWorker(
     private const int MaximumEntries = 100_000;
     private readonly ConcurrentDictionary<string, Task<bool>> _active = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, MirrorRunStatus> _status = new(StringComparer.Ordinal);
+    private Uri? _lastSaturnOrigin;
     private CancellationToken _stoppingToken;
 
     public bool IsActive(string projectId) => _active.ContainsKey(projectId);
@@ -136,9 +137,7 @@ public sealed class MirrorWorker(
             }
 
             var http = clients.CreateClient("neptune");
-            using var snapshot = await ReadRegisterAsync(http, cancellationToken);
-            var values = snapshot.RootElement.GetProperty("values");
-            var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
+            var saturnOrigin = await ResolveSaturnOriginAsync(http, cancellationToken);
             var token = (await File.ReadAllTextAsync(mirror.SaturnTokenFile, cancellationToken)).Trim();
             var targetRoot = new Uri(new Uri(saturnOrigin, "/dav/"), Uri.EscapeDataString(mirror.SaturnRoot) + "/");
             return await UploadTreeAsync(new WebDavSyncClient(http), targetRoot, token, contentRoot, cancellationToken);
@@ -147,6 +146,23 @@ public sealed class MirrorWorker(
         {
             try { Directory.Delete(runDirectory, true); }
             catch (Exception error) { logger.LogWarning(error, "Could not remove mirror spool {Directory}", runDirectory); }
+        }
+    }
+
+    private async Task<Uri> ResolveSaturnOriginAsync(HttpClient http, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var snapshot = await ReadRegisterAsync(http, cancellationToken);
+            var resolved = RegisterValues.HttpsOrigin(snapshot.RootElement.GetProperty("values"), "saturn");
+            _lastSaturnOrigin = resolved;
+            return resolved;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error) when (_lastSaturnOrigin is not null)
+        {
+            logger.LogWarning(error, "Kernel Register refresh failed; mirror upload is using the last resolved Saturn origin held in memory");
+            return _lastSaturnOrigin;
         }
     }
 

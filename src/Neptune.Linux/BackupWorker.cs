@@ -13,6 +13,7 @@ public sealed class BackupWorker(
     ILogger<BackupWorker> logger) : BackgroundService
 {
     private readonly ConcurrentDictionary<string, Task<bool>> _active = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, BackupTarget> _lastTargets = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _parallel = new(Math.Max(1, options.MaxParallelProjects));
     private string? _clientInstanceId;
     private CancellationToken _stoppingToken;
@@ -138,14 +139,10 @@ public sealed class BackupWorker(
         run = run with { State = "uploading", Attempt = run.Attempt + 1, UpdatedAt = DateTimeOffset.UtcNow, Error = null };
         await state.UpdateRunAsync(run, cancellationToken);
 
-        using var snapshot = await ReadRegisterAsync(http, project, cancellationToken);
-        var values = snapshot.RootElement.GetProperty("values");
-        var saturnOrigin = RegisterValues.HttpsOrigin(values, "saturn");
-        var backupPath = RegisterValues.RequiredString(values, "services.saturn.paths.backup_ingest");
-        var slug = project.SaturnSlug ?? RegisterValues.RequiredString(values, project.SaturnSlugRegisterKey);
+        var target = await ResolveTargetAsync(http, project, cancellationToken);
         var token = await ReadSecretAsync(project.SaturnTokenFile, cancellationToken);
         var receipt = await new SaturnBackupClient(http).UploadAsync(
-            new Uri(saturnOrigin, backupPath.TrimEnd('/') + "/"), slug, token, run,
+            new Uri(target.SaturnOrigin, target.BackupPath.TrimEnd('/') + "/"), target.Slug, token, run,
             coordinator.CreateIdempotencyKey(run), ProductVersion(), cancellationToken);
 
         if (!string.Equals(receipt.Sha256, run.Sha256, StringComparison.OrdinalIgnoreCase) || receipt.SizeBytes != run.Size)
@@ -154,6 +151,27 @@ public sealed class BackupWorker(
         File.Delete(run.SpoolPath!);
         await registry.UpdateNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddHours(project.IntervalHours), cancellationToken);
         logger.LogInformation("Backup {RunId} for {ProjectId} committed to {LogicalPath}", run.RunId, project.ProjectId, receipt.LogicalPath);
+    }
+
+    private async Task<BackupTarget> ResolveTargetAsync(HttpClient http, ProjectRegistration project, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var snapshot = await ReadRegisterAsync(http, project, cancellationToken);
+            var values = snapshot.RootElement.GetProperty("values");
+            var resolved = new BackupTarget(
+                RegisterValues.HttpsOrigin(values, "saturn"),
+                RegisterValues.RequiredString(values, "services.saturn.paths.backup_ingest"),
+                project.SaturnSlug ?? RegisterValues.RequiredString(values, project.SaturnSlugRegisterKey));
+            _lastTargets[project.ProjectId] = resolved;
+            return resolved;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error) when (_lastTargets.TryGetValue(project.ProjectId, out var previous))
+        {
+            logger.LogWarning(error, "Kernel Register refresh failed for {ProjectId}; archive upload is using the last resolved target held in memory", project.ProjectId);
+            return previous;
+        }
     }
 
     private async Task<JsonDocument> ReadRegisterAsync(HttpClient http, ProjectRegistration project, CancellationToken cancellationToken)
@@ -170,4 +188,6 @@ public sealed class BackupWorker(
 
     private static string ProductVersion() =>
         Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.7-dev";
+
+    private sealed record BackupTarget(Uri SaturnOrigin, string BackupPath, string Slug);
 }

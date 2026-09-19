@@ -19,6 +19,7 @@ public sealed class RemoteControlWorker(
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly ConcurrentDictionary<string, Task> _commands = new(StringComparer.Ordinal);
+    private Uri? _lastSaturnOrigin;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,8 +31,7 @@ public sealed class RemoteControlWorker(
                 if (backups.ClientInstanceId != "initializing" && projects.Count > 0)
                 {
                     var http = clients.CreateClient("neptune");
-                    using var snapshot = await ReadRegisterAsync(http, stoppingToken);
-                    var saturnOrigin = RegisterValues.HttpsOrigin(snapshot.RootElement.GetProperty("values"), "saturn");
+                    var saturnOrigin = await ResolveSaturnOriginAsync(http, stoppingToken);
                     foreach (var project in projects)
                     {
                         try { await CheckInAsync(project, saturnOrigin, stoppingToken); }
@@ -46,6 +46,23 @@ public sealed class RemoteControlWorker(
                 logger.LogWarning(error, "Saturn remote control loop failed; last applied schedules remain active");
             }
             await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(options.RemoteControlPollSeconds, 5, 300)), stoppingToken);
+        }
+    }
+
+    private async Task<Uri> ResolveSaturnOriginAsync(HttpClient http, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var snapshot = await ReadRegisterAsync(http, cancellationToken);
+            var resolved = RegisterValues.HttpsOrigin(snapshot.RootElement.GetProperty("values"), "saturn");
+            _lastSaturnOrigin = resolved;
+            return resolved;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error) when (_lastSaturnOrigin is not null)
+        {
+            logger.LogWarning(error, "Kernel Register refresh failed; remote check-in is using the last resolved Saturn origin held in memory");
+            return _lastSaturnOrigin;
         }
     }
 
@@ -67,6 +84,7 @@ public sealed class RemoteControlWorker(
                 state = summary.Latest?.State ?? "idle",
                 lastAttemptAt = summary.Latest?.CreatedAt,
                 lastSuccessAt = summary.LastSuccessAt,
+                nextRunAt = project.NextRunAt,
                 error = summary.Latest?.Error
             },
             mirror = project.Mirror is null ? null : new
@@ -75,6 +93,7 @@ public sealed class RemoteControlWorker(
                 state = mirrorStatus.State,
                 lastAttemptAt = mirrorStatus.LastAttemptAt,
                 lastSuccessAt = mirrorStatus.LastSuccessAt,
+                nextRunAt = project.Mirror.NextRunAt,
                 error = mirrorStatus.Error,
                 uploadedFiles = mirrorStatus.UploadedFiles,
                 deletedEntries = mirrorStatus.DeletedEntries
