@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using System.Text.Json;
+using System.Xml;
 using System.Text;
 using System.Xml.Linq;
 
@@ -21,7 +22,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         request.Headers.TryAddWithoutValidation(currentEtag is null ? "If-None-Match" : "If-Match", currentEtag ?? "*");
         request.Content = new StreamContent(new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan));
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
         return response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
     }
@@ -46,7 +47,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         using (var create = new HttpRequestMessage(new HttpMethod("MKCOL"), target))
         {
             create.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-            using var response = await httpClient.SendAsync(create, cancellationToken);
+            using var response = await httpClient.SendAsync(create, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (response.StatusCode != HttpStatusCode.Created)
                 throw new InvalidOperationException($"Saturn sync folder '{folderName}' was claimed by another client.");
         }
@@ -55,7 +56,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
             marker.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
             marker.Headers.TryAddWithoutValidation("If-None-Match", "*");
             marker.Content = new StringContent(clientInstanceId, Encoding.UTF8, "text/plain");
-            using var response = await httpClient.SendAsync(marker, cancellationToken);
+            using var response = await httpClient.SendAsync(marker, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
         }
         return target;
@@ -65,9 +66,10 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, preferencesUri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
-        var value = await response.Content.ReadFromJsonAsync<SaturnPreferences>(cancellationToken)
+        using var document = await BoundedJson.ReadAsync(response.Content, 4096, cancellationToken);
+        var value = document.RootElement.Deserialize<SaturnPreferences>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidDataException("Saturn preferences response is empty.");
         if (value.AccentColor is not { Length: 7 } accent || accent[0] != '#' || !accent[1..].All(Uri.IsHexDigit))
             throw new InvalidDataException("Saturn returned an invalid accent color.");
@@ -92,7 +94,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         request.Headers.TryAddWithoutValidation(currentEtag is null ? "If-None-Match" : "If-Match", currentEtag ?? "*");
         request.Content = new StreamContent(new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan));
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
         return response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
     }
@@ -116,7 +118,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
     {
         using var request = new HttpRequestMessage(HttpMethod.Head, target);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         return response.Headers.ETag?.Tag;
@@ -130,7 +132,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
             current = new Uri(current, segment + "/");
             using var request = new HttpRequestMessage(new HttpMethod("MKCOL"), current);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-            using var response = await httpClient.SendAsync(request, cancellationToken);
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (response.StatusCode is not (HttpStatusCode.Created or HttpStatusCode.MethodNotAllowed or HttpStatusCode.Conflict))
                 response.EnsureSuccessStatusCode();
         }
@@ -141,7 +143,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), target);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
         request.Headers.TryAddWithoutValidation("Depth", "0");
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound) return false;
         if ((int)response.StatusCode == 207) return true;
         response.EnsureSuccessStatusCode();
@@ -152,33 +154,82 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, target);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(cancellationToken);
+        return await ReadBoundedTextAsync(response.Content, 4096, cancellationToken);
+    }
+
+    private static async Task<string> ReadBoundedTextAsync(HttpContent content, int maximum, CancellationToken cancellationToken)
+    {
+        if (content.Headers.ContentLength > maximum || content.Headers.ContentEncoding.Count != 0)
+            throw new InvalidDataException("WebDAV metadata exceeds its bound.");
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        await using var input = await content.ReadAsStreamAsync(deadline.Token);
+        using var output = new MemoryStream();
+        var buffer = new byte[16 * 1024];
+        while (true)
+        {
+            var count = await input.ReadAsync(buffer, deadline.Token);
+            if (count == 0) break;
+            if (output.Length + count > maximum) throw new InvalidDataException("WebDAV metadata exceeds its bound.");
+            output.Write(buffer, 0, count);
+        }
+        return new UTF8Encoding(false, true).GetString(output.GetBuffer(), 0, checked((int)output.Length));
     }
 
     private async Task<IReadOnlyList<RemoteEntry>> EnumerateAsync(Uri directory, string token, string prefix, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), directory);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        request.Headers.TryAddWithoutValidation("Depth", "1");
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var xml = XDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        XNamespace dav = "DAV:";
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromMinutes(15));
+        var pending = new Queue<(Uri Directory, string Prefix, int Depth)>();
+        pending.Enqueue((EnsureSlash(directory), prefix, 0));
         var result = new List<RemoteEntry>();
-        foreach (var item in xml.Descendants(dav + "response").Skip(1))
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var metadataBytes = 0L;
+        XNamespace dav = "DAV:";
+        while (pending.Count > 0)
         {
-            var href = item.Element(dav + "href")?.Value ?? throw new InvalidDataException("WebDAV response has no href.");
-            var name = item.Descendants(dav + "displayname").FirstOrDefault()?.Value ?? throw new InvalidDataException("WebDAV response has no displayname.");
-            var child = new Uri(directory, href);
-            if (!child.AbsolutePath.StartsWith(directory.AbsolutePath, StringComparison.Ordinal))
-                throw new InvalidDataException("WebDAV returned an entry outside the synchronized folder.");
-            var relative = string.IsNullOrEmpty(prefix) ? name : $"{prefix}/{name}";
-            var collection = item.Descendants(dav + "collection").Any();
-            result.Add(new RemoteEntry(child, relative, collection));
-            if (collection) result.AddRange(await EnumerateAsync(EnsureSlash(child), token, relative, cancellationToken));
+            var next = pending.Dequeue();
+            if (next.Depth >= 64) throw new InvalidDataException("WebDAV tree exceeds its depth limit.");
+            using var requestDeadline = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
+            requestDeadline.CancelAfter(TimeSpan.FromSeconds(15));
+            using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), next.Directory);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+            request.Headers.TryAddWithoutValidation("Depth", "1");
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, requestDeadline.Token);
+            response.EnsureSuccessStatusCode();
+            using var text = new StringReader(await ReadBoundedTextAsync(response.Content, 8 * 1024 * 1024, requestDeadline.Token));
+            using var reader = XmlReader.Create(text, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 8 * 1024 * 1024 });
+            var xml = XDocument.Load(reader);
+            foreach (var item in xml.Descendants(dav + "response"))
+            {
+                var href = item.Element(dav + "href")?.Value ?? throw new InvalidDataException("WebDAV response has no href.");
+                if (href.Length > 4096 || href.Any(char.IsControl) || !Uri.TryCreate(next.Directory, href, out var child)
+                    || child.GetLeftPart(UriPartial.Authority) != directory.GetLeftPart(UriPartial.Authority)
+                    || child.UserInfo.Length != 0 || child.Query.Length != 0 || child.Fragment.Length != 0)
+                    throw new InvalidDataException("WebDAV returned an entry outside the synchronized origin.");
+                if (SamePath(child, next.Directory)) continue;
+                var properties = item.Elements(dav + "propstat").Where(value =>
+                    value.Element(dav + "status")?.Value is "HTTP/1.1 200 OK" or "HTTP/1.0 200 OK")
+                    .Select(value => value.Element(dav + "prop")).Where(value => value is not null).ToArray();
+                var name = properties.SelectMany(value => value!.Elements(dav + "displayname")).SingleOrDefault()?.Value
+                    ?? throw new InvalidDataException("WebDAV response has no successful displayname.");
+                if (name is "" or "." or ".." || name.IndexOfAny(['/', '\\', ':']) >= 0 || name.Any(char.IsControl))
+                    throw new InvalidDataException("WebDAV returned an unsafe child name.");
+                var collection = properties.SelectMany(value => value!.Elements(dav + "resourcetype")).Elements(dav + "collection").Any();
+                var expected = new Uri(next.Directory, Uri.EscapeDataString(name) + (collection ? "/" : ""));
+                if (!SamePath(child, expected))
+                    throw new InvalidDataException("WebDAV child path does not match its declared name.");
+                child = expected;
+                var relative = next.Prefix.Length == 0 ? name : next.Prefix + "/" + name;
+                metadataBytes += Encoding.UTF8.GetByteCount(relative) + Encoding.UTF8.GetByteCount(child.AbsoluteUri);
+                if (result.Count >= 100_000 || metadataBytes > 32L * 1024 * 1024 || !names.Add(UnicodeNames.Key(relative)))
+                    throw new InvalidDataException("WebDAV tree exceeds its metadata limit or contains duplicate names.");
+                result.Add(new RemoteEntry(child, relative, collection));
+                if (collection) pending.Enqueue((EnsureSlash(child), relative, next.Depth + 1));
+            }
         }
         return result;
     }
@@ -187,8 +238,25 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, target);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (response.StatusCode != HttpStatusCode.NotFound) response.EnsureSuccessStatusCode();
+    }
+
+    private static bool SamePath(Uri left, Uri right)
+    {
+        // Servers may spell parentheses and other permitted characters literally
+        // or percent-encoded. Compare once-decoded segments, never whole paths:
+        // encoded separators must not acquire directory semantics.
+        var a = left.AbsolutePath.TrimEnd('/').Split('/');
+        var b = right.AbsolutePath.TrimEnd('/').Split('/');
+        if (a.Length != b.Length) return false;
+        for (var index = 0; index < a.Length; index++)
+        {
+            var decoded = Uri.UnescapeDataString(a[index]);
+            if (decoded.IndexOfAny(['/', '\\']) >= 0 || decoded.Any(char.IsControl)
+                || decoded != Uri.UnescapeDataString(b[index])) return false;
+        }
+        return true;
     }
 
     private static Uri EnsureSlash(Uri uri) => uri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)

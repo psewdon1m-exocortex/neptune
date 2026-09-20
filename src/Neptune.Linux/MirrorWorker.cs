@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,7 +14,6 @@ public sealed class MirrorWorker(
     ILogger<MirrorWorker> logger) : BackgroundService
 {
     private const long MaximumArchiveBytes = 8L * 1024 * 1024 * 1024;
-    private const long MaximumExtractedBytes = 32L * 1024 * 1024 * 1024;
     private const int MaximumEntries = 100_000;
     private readonly ConcurrentDictionary<string, Task<bool>> _active = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, MirrorRunStatus> _status = new(StringComparer.Ordinal);
@@ -56,27 +54,41 @@ public sealed class MirrorWorker(
         {
             var now = DateTimeOffset.UtcNow;
             foreach (var project in await registry.ReadAsync(stoppingToken))
-                if (project.Mirror is { Enabled: true } mirror && (mirror.NextRunAt is null || mirror.NextRunAt <= now))
+            {
+                var previous = Status(project.ProjectId);
+                if (previous.State == "retry-wait" && previous.LastAttemptAt?.AddMinutes(5) <= now)
+                    _ = TryStart(project, previous.Manual, previous.CommandId);
+                if (!project.PolicyPaused && project.Mirror is { Enabled: true } mirror && (mirror.NextRunAt is null || mirror.NextRunAt <= now))
                     _ = Start(project);
+            }
             await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
         }
     }
 
     public bool Start(ProjectRegistration project)
-        => TryStart(project) is not null;
+        => TryStart(project, false) is not null;
 
-    public async Task RunCommandAsync(ProjectRegistration project, CancellationToken cancellationToken)
+    public async Task RunCommandAsync(ProjectRegistration project, CancellationToken cancellationToken, string? commandId = null)
     {
-        var task = TryStart(project) ?? throw new InvalidOperationException("The mirror is unavailable or already active.");
-        if (!await task.WaitAsync(cancellationToken))
-            throw new InvalidOperationException("The mirror pipeline did not complete; see the project mirror status.");
+        if (project.Mirror is null) throw new InvalidOperationException("This project has no mirror pipeline");
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var previous = Status(project.ProjectId);
+            if (commandId is not null && previous.CommandId == commandId && previous.State == "complete") return;
+            if (_active.TryGetValue(project.ProjectId, out var active)) { await active.WaitAsync(cancellationToken); continue; }
+            var task = TryStart(project, true, commandId);
+            if (task is null) continue;
+            if (await task.WaitAsync(cancellationToken)) return;
+            await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+        }
     }
 
-    private Task<bool>? TryStart(ProjectRegistration project)
+    private Task<bool>? TryStart(ProjectRegistration project, bool manual, string? commandId = null)
     {
         if (project.Mirror is null) return null;
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var task = RunAfterGateAsync(project, gate.Task, _stoppingToken);
+        var task = RunAfterGateAsync(project, gate.Task, _stoppingToken, manual, commandId);
         if (!_active.TryAdd(project.ProjectId, task))
         {
             gate.SetResult(false);
@@ -86,16 +98,17 @@ public sealed class MirrorWorker(
         return task;
     }
 
-    private async Task<bool> RunAfterGateAsync(ProjectRegistration project, Task<bool> gate, CancellationToken cancellationToken)
+    private async Task<bool> RunAfterGateAsync(ProjectRegistration project, Task<bool> gate, CancellationToken cancellationToken, bool manual, string? commandId)
     {
         if (!await gate) return false;
         var started = DateTimeOffset.UtcNow;
-        _status[project.ProjectId] = Status(project.ProjectId) with { State = "running", LastAttemptAt = started, Error = null, UploadedFiles = 0, DeletedEntries = 0 };
+        _status[project.ProjectId] = Status(project.ProjectId) with { State = "running", LastAttemptAt = started, Error = null, UploadedFiles = 0, DeletedEntries = 0, Manual = manual, CommandId = commandId };
         try
         {
             var result = await MirrorOnceAsync(project, cancellationToken);
-            _status[project.ProjectId] = new MirrorRunStatus("complete", started, DateTimeOffset.UtcNow, null, result.UploadedFiles, result.DeletedEntries);
-            await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(project.Mirror!.IntervalMinutes), cancellationToken);
+            _status[project.ProjectId] = new MirrorRunStatus("complete", started, DateTimeOffset.UtcNow, null, result.UploadedFiles, result.DeletedEntries, manual, commandId);
+            if (!manual)
+                await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(project.Mirror!.IntervalMinutes), cancellationToken, project.ControlRevision);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -107,7 +120,8 @@ public sealed class MirrorWorker(
         {
             logger.LogError(error, "Mirror failed for project {ProjectId}", project.ProjectId);
             _status[project.ProjectId] = Status(project.ProjectId) with { State = "retry-wait", Error = error.Message };
-            await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(5), CancellationToken.None);
+            if (!manual)
+                await registry.UpdateMirrorNextRunAsync(project.ProjectId, DateTimeOffset.UtcNow.AddMinutes(5), CancellationToken.None, project.ControlRevision);
             return false;
         }
         finally
@@ -124,23 +138,31 @@ public sealed class MirrorWorker(
         Directory.CreateDirectory(runDirectory);
         try
         {
-            var exportToken = (await File.ReadAllTextAsync(project.ExportTokenFile, cancellationToken)).Trim();
+            var exportToken = await CredentialFile.ReadAsync(project.ExportTokenFile, cancellationToken);
             var source = Path.Combine(runDirectory, mirror.Mode == "single-file" ? mirror.TargetFilename! : "dataset.zip");
-            await DownloadExportAsync(mirror.ExportUri, exportToken, source, cancellationToken);
+            var exporter = new ProjectBackupExporter(clients.CreateClient("neptune"));
+            ExportArtifactReceipt? exported = null;
+            if (project.ProjectId == "mastermind")
+                exported = await exporter.ExportAsync(mirror.ExportUri, exportToken, source, cancellationToken, "mirror");
+            else
+                await DownloadExportAsync(mirror.ExportUri, exportToken, source, cancellationToken);
             var contentRoot = runDirectory;
             if (mirror.Mode == "zip-tree")
             {
                 contentRoot = Path.Combine(runDirectory, "tree");
                 Directory.CreateDirectory(contentRoot);
-                ExtractArchive(source, contentRoot);
+                MirrorArchive.Extract(source, contentRoot, cancellationToken);
                 File.Delete(source);
             }
 
             var http = clients.CreateClient("neptune");
             var saturnOrigin = await ResolveSaturnOriginAsync(http, cancellationToken);
-            var token = (await File.ReadAllTextAsync(mirror.SaturnTokenFile, cancellationToken)).Trim();
+            var token = await CredentialFile.ReadAsync(mirror.SaturnTokenFile, cancellationToken);
             var targetRoot = new Uri(new Uri(saturnOrigin, "/dav/"), Uri.EscapeDataString(mirror.SaturnRoot) + "/");
-            return await UploadTreeAsync(new WebDavSyncClient(http), targetRoot, token, contentRoot, cancellationToken);
+            var result = await UploadTreeAsync(new WebDavSyncClient(http), targetRoot, token, contentRoot, cancellationToken);
+            if (exported is not null)
+                await exporter.AcknowledgeAsync(mirror.ExportUri, exportToken, "mirror", exported, cancellationToken);
+            return result;
         }
         finally
         {
@@ -189,24 +211,6 @@ public sealed class MirrorWorker(
         await output.FlushAsync(cancellationToken);
     }
 
-    private static void ExtractArchive(string archivePath, string destination)
-    {
-        using var archive = ZipFile.OpenRead(archivePath);
-        if (archive.Entries.Count > MaximumEntries) throw new InvalidDataException("Mirror archive contains too many entries.");
-        long total = 0;
-        var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
-        foreach (var entry in archive.Entries)
-        {
-            total += entry.Length;
-            if (total > MaximumExtractedBytes) throw new InvalidDataException("Mirror archive expands beyond the allowed size.");
-            var target = Path.GetFullPath(Path.Combine(destination, entry.FullName.Replace('/', Path.DirectorySeparatorChar)));
-            if (!target.StartsWith(root, StringComparison.Ordinal)) throw new InvalidDataException("Mirror archive contains an unsafe path.");
-            if (string.IsNullOrEmpty(entry.Name)) { Directory.CreateDirectory(target); continue; }
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            entry.ExtractToFile(target, false);
-        }
-    }
-
     private static async Task<(int UploadedFiles, int DeletedEntries)> UploadTreeAsync(WebDavSyncClient client, Uri target, string token, string root, CancellationToken cancellationToken)
     {
         var (directories, files) = EnumerateTree(root);
@@ -220,6 +224,8 @@ public sealed class MirrorWorker(
             var destination = WebDavSyncClient.RelativeTargetUri(target, file.Relative);
             if (string.Equals(await client.ReadEtagAsync(destination, token, cancellationToken), $"\"sha256-{hash}\"", StringComparison.OrdinalIgnoreCase)) continue;
             await client.UploadAsync(target, token, file.Relative, file.Path, cancellationToken);
+            if (!string.Equals(await client.ReadEtagAsync(destination, token, cancellationToken), $"\"sha256-{hash}\"", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Mirror upload did not retain the exact file SHA-256.");
             uploaded++;
         }
         var deleted = await client.MirrorAsync(target, token, files.Select(value => value.Relative).ToHashSet(StringComparer.Ordinal), directories, true, cancellationToken);
@@ -255,7 +261,7 @@ public sealed class MirrorWorker(
 
     private async Task<System.Text.Json.JsonDocument> ReadRegisterAsync(HttpClient http, CancellationToken cancellationToken)
     {
-        var token = (await File.ReadAllTextAsync(options.KernelTokenFile, cancellationToken)).Trim();
+        var token = await CredentialFile.ReadAsync(options.KernelTokenFile, cancellationToken);
         return await new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"))
             .GetSnapshotAsync(options.KernelOrigin, token, cancellationToken, ["services.saturn.sni", "services.saturn.port"]);
     }

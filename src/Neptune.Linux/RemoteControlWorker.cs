@@ -113,10 +113,11 @@ public sealed class RemoteControlWorker(
         await registry.ApplyRemoteDesiredAsync(project.ProjectId, control.Desired.Revision,
             control.Desired.ArchiveEnabled, control.Desired.ArchiveIntervalHours,
             project.Mirror is not null && control.Desired.MirrorEnabled,
-            control.Desired.MirrorIntervalMinutes, cancellationToken);
+            control.Desired.MirrorIntervalMinutes, cancellationToken, control.Desired.Paused);
         var current = await registry.FindAsync(project.ProjectId, cancellationToken) ?? project;
         foreach (var command in control.Commands)
         {
+            if (current.PolicyPaused && command.Kind is "archive.run" or "mirror.run") continue;
             if (_commands.ContainsKey(command.Id)) continue;
             var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var task = ExecuteTrackedAsync(current, command, gate.Task, cancellationToken);
@@ -128,7 +129,13 @@ public sealed class RemoteControlWorker(
     private async Task ExecuteTrackedAsync(ProjectRegistration project, RemoteCommand command, Task gate, CancellationToken cancellationToken)
     {
         await gate;
-        try { await ExecuteCommandAsync(project, command, cancellationToken); }
+        try {
+            while (true) {
+                await ExecuteCommandAsync(project, command, cancellationToken);
+                if ((await state.GetRemoteCommandAsync(command.Id, cancellationToken))?.State != "retry-wait") break;
+                await Task.Delay(TimeSpan.FromMinutes(15), cancellationToken);
+            }
+        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception error) { logger.LogWarning(error, "Remote command {CommandId} remains retryable", command.Id); }
         finally { _commands.TryRemove(command.Id, out _); }
@@ -159,7 +166,7 @@ public sealed class RemoteControlWorker(
                     break;
                 case "mirror.run":
                     if (project.Mirror is null) throw new InvalidOperationException("This project has no mirror pipeline.");
-                    await mirrors.RunCommandAsync(project, cancellationToken);
+                    await mirrors.RunCommandAsync(project, cancellationToken, command.Id);
                     break;
                 case "agent.update":
                     await UpdateAgentAsync(project, command, cancellationToken);
@@ -172,7 +179,8 @@ public sealed class RemoteControlWorker(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception error)
         {
-            await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, rawPayload, "failed", error.Message, CancellationToken.None);
+            await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, rawPayload,
+                command.Kind == "archive.run" ? "retry-wait" : "failed", error.Message, CancellationToken.None);
         }
     }
 
@@ -228,7 +236,7 @@ public sealed class RemoteControlWorker(
     }
 
     private static async Task<string> ReadSecretAsync(string path, CancellationToken cancellationToken) =>
-        (await File.ReadAllTextAsync(path, cancellationToken)).Trim();
+        await CredentialFile.ReadAsync(path, cancellationToken);
 
     private static string ProductVersion() =>
         Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev";

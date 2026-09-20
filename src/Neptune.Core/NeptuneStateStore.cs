@@ -85,6 +85,21 @@ public sealed class NeptuneStateStore(string databasePath)
             END;
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+        // Additive migration keeps pre-contract backups and client identities intact.
+        // Both workers may initialize this database concurrently. Acquire the
+        // write reservation before inspecting the schema, across processes too.
+        using var transaction = connection.BeginTransaction(deferred: false);
+        await using var columns = connection.CreateCommand();
+        columns.Transaction = transaction;
+        columns.CommandText = "SELECT COUNT(*) FROM pragma_table_info('backup_runs') WHERE name='export_generation'";
+        if (Convert.ToInt32(await columns.ExecuteScalarAsync(cancellationToken)) == 0)
+        {
+            await using var migration = connection.CreateCommand();
+            migration.Transaction = transaction;
+            migration.CommandText = "ALTER TABLE backup_runs ADD COLUMN export_generation INTEGER";
+            await migration.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task PruneSpoolAsync(string directory, CancellationToken cancellationToken = default)
@@ -177,9 +192,9 @@ public sealed class NeptuneStateStore(string databasePath)
         command.CommandText = """
             INSERT INTO backup_runs(
                 run_id, project_id, client_instance_id, state, spool_path, size, sha256,
-                saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error)
+                saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error, export_generation)
             VALUES ($runId, $projectId, $clientId, $state, $spoolPath, $size, $sha256,
-                $saturnRunId, $uploadedBytes, $attempt, $createdAt, $updatedAt, $error);
+                $saturnRunId, $uploadedBytes, $attempt, $createdAt, $updatedAt, $error, $exportGeneration);
             """;
         command.Parameters.AddWithValue("$runId", run.RunId);
         command.Parameters.AddWithValue("$projectId", run.ProjectId);
@@ -194,6 +209,7 @@ public sealed class NeptuneStateStore(string databasePath)
         command.Parameters.AddWithValue("$createdAt", run.CreatedAt.ToString("O"));
         command.Parameters.AddWithValue("$updatedAt", run.UpdatedAt.ToString("O"));
         command.Parameters.AddWithValue("$error", (object?)run.Error ?? DBNull.Value);
+        command.Parameters.AddWithValue("$exportGeneration", (object?)run.ExportGeneration ?? DBNull.Value);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
@@ -202,7 +218,7 @@ public sealed class NeptuneStateStore(string databasePath)
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT run_id,project_id,client_instance_id,state,spool_path,size,sha256,saturn_run_id,uploaded_bytes,attempt,created_at,updated_at,error FROM backup_runs WHERE client_instance_id=$clientId AND run_id=$runId";
+        command.CommandText = "SELECT run_id,project_id,client_instance_id,state,spool_path,size,sha256,saturn_run_id,uploaded_bytes,attempt,created_at,updated_at,error,export_generation FROM backup_runs WHERE client_instance_id=$clientId AND run_id=$runId";
         command.Parameters.AddWithValue("$clientId", clientInstanceId);
         command.Parameters.AddWithValue("$runId", runId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -211,7 +227,7 @@ public sealed class NeptuneStateStore(string databasePath)
             reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetInt64(5),
             reader.IsDBNull(6) ? null : reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7),
             reader.GetInt64(8), reader.GetInt32(9), DateTimeOffset.Parse(reader.GetString(10)),
-            DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12));
+            DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetInt64(13));
     }
 
     public async Task UpdateRunAsync(BackupRun run, CancellationToken cancellationToken = default)
@@ -223,7 +239,7 @@ public sealed class NeptuneStateStore(string databasePath)
         command.CommandText = """
             UPDATE backup_runs SET state=$state, spool_path=$spoolPath, size=$size, sha256=$sha256,
                 saturn_run_id=$saturnRunId, uploaded_bytes=$uploadedBytes, attempt=$attempt,
-                updated_at=$updatedAt, error=$error
+                updated_at=$updatedAt, error=$error, export_generation=$exportGeneration
             WHERE run_id=$runId AND client_instance_id=$clientId;
             """;
         command.Parameters.AddWithValue("$runId", run.RunId);
@@ -237,6 +253,7 @@ public sealed class NeptuneStateStore(string databasePath)
         command.Parameters.AddWithValue("$attempt", run.Attempt);
         command.Parameters.AddWithValue("$updatedAt", run.UpdatedAt.ToString("O"));
         command.Parameters.AddWithValue("$error", (object?)run.Error ?? DBNull.Value);
+        command.Parameters.AddWithValue("$exportGeneration", (object?)run.ExportGeneration ?? DBNull.Value);
         if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
             throw new InvalidOperationException($"Backup run '{run.RunId}' is missing or belongs to another client.");
     }
@@ -249,7 +266,7 @@ public sealed class NeptuneStateStore(string databasePath)
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT run_id, project_id, client_instance_id, state, spool_path, size, sha256,
-                saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error
+                saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error, export_generation
             FROM backup_runs
             WHERE client_instance_id=$clientId AND state IN ('spooled','uploading','retry-wait')
             ORDER BY created_at;
@@ -262,7 +279,7 @@ public sealed class NeptuneStateStore(string databasePath)
                 reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetInt64(5),
                 reader.IsDBNull(6) ? null : reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7),
                 reader.GetInt64(8), reader.GetInt32(9), DateTimeOffset.Parse(reader.GetString(10)),
-                DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12)));
+                DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetInt64(13)));
         return result;
     }
 
@@ -275,7 +292,7 @@ public sealed class NeptuneStateStore(string databasePath)
         {
             command.CommandText = """
                 SELECT run_id, project_id, client_instance_id, state, spool_path, size, sha256,
-                    saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error
+                    saturn_run_id, uploaded_bytes, attempt, created_at, updated_at, error, export_generation
                 FROM backup_runs WHERE client_instance_id=$clientId AND project_id=$projectId
                 ORDER BY created_at DESC LIMIT 1;
                 """;
@@ -288,7 +305,7 @@ public sealed class NeptuneStateStore(string databasePath)
                     reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetInt64(5),
                     reader.IsDBNull(6) ? null : reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7),
                     reader.GetInt64(8), reader.GetInt32(9), DateTimeOffset.Parse(reader.GetString(10)),
-                    DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12));
+                    DateTimeOffset.Parse(reader.GetString(11)), reader.IsDBNull(12) ? null : reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetInt64(13));
         }
         await using var success = connection.CreateCommand();
         success.CommandText = "SELECT updated_at FROM backup_runs WHERE client_instance_id=$clientId AND project_id=$projectId AND state='complete' ORDER BY updated_at DESC LIMIT 1";

@@ -161,8 +161,10 @@ public sealed class CoreTests
         Assert.DoesNotContain("/dav/sync/User%20PC/Project/keep.txt", handler.Deleted);
     }
 
-    [Fact]
-    public async Task SaturnUploadUsesCapabilitiesAndPreservesExactBytes()
+    [Theory]
+    [InlineData("kernel", false)]
+    [InlineData("mastermind", true)]
+    public async Task SaturnUploadUsesCapabilitiesAndPreservesExactBytes(string project, bool encrypted)
     {
         var directory = Path.Combine(Path.GetTempPath(), "neptune-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -171,10 +173,10 @@ public sealed class CoreTests
         await File.WriteAllBytesAsync(spool, payload, TestContext.Current.CancellationToken);
         try
         {
-            var handler = new BackupProtocolHandler(payload);
+            var handler = new BackupProtocolHandler(payload, encrypted);
             var now = DateTimeOffset.UtcNow;
-            var run = new BackupRun("run", "kernel", "client-a", "spooled", spool, payload.Length,
-                Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload)), null, 0, 0, now, now, null);
+            var run = new BackupRun("run", project, "client-a", "spooled", spool, payload.Length,
+                Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload)), null, 0, 0, now, now, null, encrypted ? 42 : null);
             var receipt = await new SaturnBackupClient(new HttpClient(handler), chunkSizeBytes: 1024).UploadAsync(
                 new Uri("https://saturn.example/api/v1/backups/"), "kernel", "token", run, "neptune-idempotency", "0.1.0", TestContext.Current.CancellationToken);
             Assert.Equal(payload, handler.Uploaded.ToArray());
@@ -187,7 +189,7 @@ public sealed class CoreTests
         }
     }
 
-    private sealed class BackupProtocolHandler(byte[] expected) : HttpMessageHandler
+    private sealed class BackupProtocolHandler(byte[] expected, bool encrypted) : HttpMessageHandler
     {
         public MemoryStream Uploaded { get; } = new();
         public int PatchCount { get; private set; }
@@ -198,7 +200,11 @@ public sealed class CoreTests
             if (request.Method == HttpMethod.Get && path.EndsWith("/capabilities"))
                 return Json(new { schema = "saturn.backup-ingest.capabilities.v1", protocolVersion = 1, resumable = true, checksum = "sha256", maxChunkBytes = 5, archiveEncryptionDeclaredPerRun = true });
             if (request.Method == HttpMethod.Post && path.EndsWith("/runs"))
+            {
+                using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                Assert.Equal(encrypted, body.RootElement.GetProperty("encrypted").GetBoolean());
                 return Json(new { id = "saturn-run", state = "pending", receivedSize = 0 });
+            }
             if (request.Method == HttpMethod.Head)
             {
                 var response = new HttpResponseMessage(HttpStatusCode.NoContent);
@@ -254,14 +260,14 @@ public sealed class CoreTests
                 var children = path.EndsWith("/old/", StringComparison.Ordinal)
                     ? ""
                     : """
-                      <d:response><d:href>/dav/sync/User%20PC/Project/keep.txt</d:href><d:propstat><d:prop><d:displayname>keep.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop></d:propstat></d:response>
-                      <d:response><d:href>/dav/sync/User%20PC/Project/stale.txt</d:href><d:propstat><d:prop><d:displayname>stale.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop></d:propstat></d:response>
-                      <d:response><d:href>/dav/sync/User%20PC/Project/old/</d:href><d:propstat><d:prop><d:displayname>old</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/keep.txt</d:href><d:propstat><d:prop><d:displayname>keep.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/stale.txt</d:href><d:propstat><d:prop><d:displayname>stale.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/old/</d:href><d:propstat><d:prop><d:displayname>old</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
                       """;
                 var xml = $"""
                     <?xml version="1.0" encoding="utf-8"?>
                     <d:multistatus xmlns:d="DAV:">
-                      <d:response><d:href>{path}</d:href><d:propstat><d:prop><d:displayname>Project</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop></d:propstat></d:response>
+                      <d:response><d:href>{path}</d:href><d:propstat><d:prop><d:displayname>Project</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
                       {children}
                     </d:multistatus>
                     """;

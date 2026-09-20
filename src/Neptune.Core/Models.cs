@@ -26,7 +26,9 @@ public sealed record ProjectRegistration(
     DateTimeOffset? NextRunAt = null,
     string? SaturnSlug = null,
     MirrorRegistration? Mirror = null,
-    long ControlRevision = 0)
+    long ControlRevision = 0,
+    bool PolicyPaused = false,
+    ReaderRegistration? Reader = null)
 {
     public ProjectRegistration Validate()
     {
@@ -41,6 +43,7 @@ public sealed record ProjectRegistration(
         if (!string.IsNullOrWhiteSpace(SaturnSlug) && SaturnSlug.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '-')))
             throw new ArgumentException("SaturnSlug must contain only ASCII letters, digits or '-'.", nameof(SaturnSlug));
         Mirror?.Validate();
+        Reader?.Validate();
         return this;
     }
 }
@@ -81,7 +84,9 @@ public sealed record MirrorRunStatus(
     DateTimeOffset? LastSuccessAt,
     string? Error,
     int UploadedFiles,
-    int DeletedEntries);
+    int DeletedEntries,
+    bool Manual = false,
+    string? CommandId = null);
 
 public sealed record SaturnRunCreated(string Id, string State, long ReceivedSize);
 
@@ -118,7 +123,8 @@ public sealed record BackupRun(
     int Attempt,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    string? Error);
+    string? Error,
+    long? ExportGeneration = null);
 
 public sealed record SyncMapping(
     string MappingId,
@@ -156,7 +162,8 @@ public sealed record RemoteDesiredState(
     int ArchiveIntervalHours,
     bool MirrorEnabled,
     int MirrorIntervalMinutes,
-    string? Version);
+    string? Version,
+    bool Paused = false);
 
 public sealed record RemoteControlResponse(
     string Schema,

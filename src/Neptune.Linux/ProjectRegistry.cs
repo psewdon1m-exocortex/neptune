@@ -24,12 +24,13 @@ public sealed class ProjectRegistry(string path)
     public async Task<ProjectRegistration?> FindAsync(string projectId, CancellationToken cancellationToken = default) =>
         (await ReadAsync(cancellationToken)).SingleOrDefault(item => item.ProjectId == projectId);
 
-    public async Task UpsertAsync(ProjectRegistration registration, CancellationToken cancellationToken = default)
+    public async Task UpsertAsync(ProjectRegistration registration, CancellationToken cancellationToken = default, bool preservePolicy = false)
     {
         registration.Validate();
         await _mutex.WaitAsync(cancellationToken);
         try
         {
+            using var writer = await AcquireWriterAsync(cancellationToken);
             List<ProjectRegistration> projects;
             if (File.Exists(path))
             {
@@ -38,13 +39,24 @@ public sealed class ProjectRegistry(string path)
             }
             else projects = [];
 
+            var previous = projects.SingleOrDefault(item => item.ProjectId == registration.ProjectId);
+            if (preservePolicy && previous is not null)
+                registration = registration with {
+                    Enabled = previous.Enabled, IntervalHours = previous.IntervalHours, NextRunAt = previous.NextRunAt,
+                    ControlRevision = previous.ControlRevision, PolicyPaused = previous.PolicyPaused,
+                    Mirror = registration.Mirror is not null && previous.Mirror is not null
+                        ? registration.Mirror with { Enabled = previous.Mirror.Enabled, IntervalMinutes = previous.Mirror.IntervalMinutes,
+                            NextRunAt = previous.Mirror.NextRunAt } : registration.Mirror
+                };
             projects.RemoveAll(item => item.ProjectId == registration.ProjectId);
             projects.Add(registration);
             projects.Sort((a, b) => StringComparer.Ordinal.Compare(a.ProjectId, b.ProjectId));
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var temporary = path + ".tmp";
-            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None)) {
                 await JsonSerializer.SerializeAsync(output, projects, JsonOptions, cancellationToken);
+                output.Flush(flushToDisk: true);
+            }
             File.Move(temporary, path, overwrite: true);
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
@@ -63,8 +75,9 @@ public sealed class ProjectRegistry(string path)
         }, cancellationToken);
     }
 
-    public Task UpdateNextRunAsync(string projectId, DateTimeOffset nextRunAt, CancellationToken cancellationToken = default) =>
-        MutateAsync(projectId, registration => registration with
+    public Task UpdateNextRunAsync(string projectId, DateTimeOffset nextRunAt, CancellationToken cancellationToken = default, long? expectedRevision = null) =>
+        MutateAsync(projectId, registration => expectedRevision is not null && registration.ControlRevision != expectedRevision
+            ? registration : registration with
         {
             NextRunAt = registration.Enabled ? nextRunAt : null
         }, cancellationToken);
@@ -85,8 +98,8 @@ public sealed class ProjectRegistry(string path)
             }, cancellationToken);
     }
 
-    public Task UpdateMirrorNextRunAsync(string projectId, DateTimeOffset nextRunAt, CancellationToken cancellationToken = default) =>
-        MutateAsync(projectId, registration => registration.Mirror is null
+    public Task UpdateMirrorNextRunAsync(string projectId, DateTimeOffset nextRunAt, CancellationToken cancellationToken = default, long? expectedRevision = null) =>
+        MutateAsync(projectId, registration => registration.Mirror is null || expectedRevision is not null && registration.ControlRevision != expectedRevision
             ? registration
             : registration with { Mirror = registration.Mirror with { NextRunAt = registration.Mirror.Enabled ? nextRunAt : null } }, cancellationToken);
 
@@ -97,16 +110,23 @@ public sealed class ProjectRegistry(string path)
         int archiveIntervalHours,
         bool mirrorEnabled,
         int mirrorIntervalMinutes,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        bool paused = false) =>
         MutateAsync(projectId, registration =>
         {
-            if (revision <= registration.ControlRevision) return registration;
+            if (revision < registration.ControlRevision) return registration;
             var now = DateTimeOffset.UtcNow;
-            var archiveChanged = registration.Enabled != archiveEnabled || registration.IntervalHours != archiveIntervalHours;
+            // Keep old readers safe too: paused intent lives in Saturn, while
+            // the compatible local enabled flags govern actual execution.
+            archiveEnabled = archiveEnabled && !paused;
+            mirrorEnabled = mirrorEnabled && !paused;
+            var archiveChanged = registration.Enabled != archiveEnabled || registration.IntervalHours != archiveIntervalHours
+                || registration.PolicyPaused && !paused;
             var mirror = registration.Mirror;
             if (mirror is not null)
             {
-                var mirrorChanged = mirror.Enabled != mirrorEnabled || mirror.IntervalMinutes != mirrorIntervalMinutes;
+                var mirrorChanged = mirror.Enabled != mirrorEnabled || mirror.IntervalMinutes != mirrorIntervalMinutes
+                    || registration.PolicyPaused && !paused;
                 mirror = mirror with
                 {
                     Enabled = mirrorEnabled,
@@ -120,7 +140,8 @@ public sealed class ProjectRegistry(string path)
                 IntervalHours = archiveIntervalHours,
                 NextRunAt = archiveEnabled ? (archiveChanged ? now.AddHours(archiveIntervalHours) : registration.NextRunAt) : null,
                 Mirror = mirror,
-                ControlRevision = revision
+                ControlRevision = revision,
+                PolicyPaused = paused
             };
         }, cancellationToken);
 
@@ -132,6 +153,7 @@ public sealed class ProjectRegistry(string path)
         await _mutex.WaitAsync(cancellationToken);
         try
         {
+            using var writer = await AcquireWriterAsync(cancellationToken);
             if (!File.Exists(path))
                 throw new KeyNotFoundException($"Project '{projectId}' is not registered.");
 
@@ -145,12 +167,25 @@ public sealed class ProjectRegistry(string path)
             projects[index] = mutate(projects[index]).Validate();
 
             var temporary = path + ".tmp";
-            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None)) {
                 await JsonSerializer.SerializeAsync(output, projects, JsonOptions, cancellationToken);
+                output.Flush(flushToDisk: true);
+            }
             File.Move(temporary, path, overwrite: true);
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
         }
         finally { _mutex.Release(); }
+    }
+
+    private async Task<FileStream> AcquireWriterAsync(CancellationToken token)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        for (var attempt = 0; ; attempt++)
+        {
+            token.ThrowIfCancellationRequested();
+            try { return new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+            catch (IOException) when (attempt < 100) { await Task.Delay(50, token); }
+        }
     }
 }

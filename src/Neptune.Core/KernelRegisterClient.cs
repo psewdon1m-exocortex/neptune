@@ -14,12 +14,14 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
 
     public async Task<JsonDocument> GetSnapshotAsync(Uri kernelOrigin, string token, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? requestedKeys = null)
     {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        cancellationToken = deadline.Token;
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(kernelOrigin, "/api/v1/register/snapshot"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
-        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var downloaded = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+        using var downloaded = await BoundedJson.ReadAsync(response.Content, 1024 * 1024, cancellationToken);
         Validate(downloaded.RootElement);
 
         Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
@@ -47,8 +49,7 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
             request.Content = JsonContent.Create(new { keys = batch });
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
-            await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var resolved = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+            using var resolved = await BoundedJson.ReadAsync(response.Content, 1024 * 1024, cancellationToken);
             if (resolved.RootElement.GetProperty("schema").GetString() != "exocortex.register.resolution.v1")
                 throw new InvalidDataException("Unsupported Kernel resolution schema.");
             foreach (var key in batch)

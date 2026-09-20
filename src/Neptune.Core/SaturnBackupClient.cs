@@ -15,15 +15,25 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
         string sourceVersion,
         CancellationToken cancellationToken = default)
     {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromHours(1));
+        cancellationToken = deadline.Token;
         if (run.SpoolPath is null || run.Size is null || run.Sha256 is null)
             throw new InvalidOperationException("Backup run is not spooled.");
 
         var normalizedBaseUri = EnsureTrailingSlash(backupBaseUri);
-        var capabilities = await httpClient.GetFromJsonAsync<SaturnBackupCapabilities>(new Uri(normalizedBaseUri, "capabilities"), cancellationToken)
+        using var capabilityRequest = new HttpRequestMessage(HttpMethod.Get, new Uri(normalizedBaseUri, "capabilities"));
+        using var capabilityResponse = await SendAsync(capabilityRequest, cancellationToken);
+        capabilityResponse.EnsureSuccessStatusCode();
+        using var capabilityJson = await BoundedJson.ReadAsync(capabilityResponse.Content, 65536, cancellationToken);
+        var capabilities = capabilityJson.RootElement.Deserialize<SaturnBackupCapabilities>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidDataException("Saturn returned empty backup capabilities.");
         if (capabilities.Schema != "saturn.backup-ingest.capabilities.v1" || capabilities.ProtocolVersion != 1 || !capabilities.Resumable || capabilities.Checksum != "sha256" || capabilities.MaxChunkBytes < 1)
             throw new InvalidDataException("Saturn backup capabilities are incompatible with Neptune.");
-        var actualChunkSize = Math.Min(chunkSizeBytes, capabilities.MaxChunkBytes);
+        var actualChunkSize = Math.Clamp(Math.Min(chunkSizeBytes, capabilities.MaxChunkBytes), 1, 1024 * 1024);
+        var encrypted = run.ProjectId == "mastermind" && run.ExportGeneration is not null;
+        if (run.ProjectId == "mastermind" && (!encrypted || !capabilities.ArchiveEncryptionDeclaredPerRun))
+            throw new InvalidDataException("Mastermind requires verified encrypted export and per-run encryption support.");
         var serviceUri = new Uri(normalizedBaseUri, Uri.EscapeDataString(serviceSlug) + "/");
         using var create = new HttpRequestMessage(HttpMethod.Post, new Uri(serviceUri, "runs"));
         Authorize(create, token);
@@ -36,11 +46,12 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
             expectedSize = run.Size.Value,
             sha256 = run.Sha256,
             sourceVersion,
-            encrypted = false
+            encrypted
         });
-        using var createResponse = await httpClient.SendAsync(create, cancellationToken);
+        using var createResponse = await SendAsync(create, cancellationToken);
         createResponse.EnsureSuccessStatusCode();
-        var created = await createResponse.Content.ReadFromJsonAsync<SaturnRunCreated>(cancellationToken: cancellationToken)
+        using var createdJson = await BoundedJson.ReadAsync(createResponse.Content, 65536, cancellationToken);
+        var created = createdJson.RootElement.Deserialize<SaturnRunCreated>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidDataException("Saturn returned an empty backup run response.");
 
         var uploadUri = new Uri(serviceUri, $"runs/{Uri.EscapeDataString(created.Id)}/upload");
@@ -60,7 +71,7 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
             patch.Headers.TryAddWithoutValidation("Upload-Offset", offset.ToString(System.Globalization.CultureInfo.InvariantCulture));
             patch.Content = new ByteArrayContent(buffer, 0, count);
             patch.Content.Headers.ContentType = new MediaTypeHeaderValue("application/offset+octet-stream");
-            using var patchResponse = await httpClient.SendAsync(patch, cancellationToken);
+            using var patchResponse = await SendAsync(patch, cancellationToken);
             patchResponse.EnsureSuccessStatusCode();
             var expectedOffset = offset + count;
             offset = ParseOffset(patchResponse.Headers, expectedOffset);
@@ -70,9 +81,13 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
         using var complete = new HttpRequestMessage(HttpMethod.Post, new Uri(serviceUri, $"runs/{Uri.EscapeDataString(created.Id)}/complete"));
         Authorize(complete, token);
         complete.Content = new ByteArrayContent([]);
-        using var completeResponse = await httpClient.SendAsync(complete, cancellationToken);
+        // Completion verifies all remote bytes before issuing a receipt. Its
+        // bounded server-side hash can outlive an individual chunk transfer.
+        using var completionDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        completionDeadline.CancelAfter(TimeSpan.FromMinutes(15));
+        using var completeResponse = await httpClient.SendAsync(complete, HttpCompletionOption.ResponseHeadersRead, completionDeadline.Token);
         completeResponse.EnsureSuccessStatusCode();
-        using var json = await JsonDocument.ParseAsync(await completeResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+        using var json = await BoundedJson.ReadAsync(completeResponse.Content, 65536, completionDeadline.Token);
         var receipt = json.RootElement.GetProperty("receipt");
         return JsonSerializer.Deserialize<BackupReceipt>(receipt, new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidDataException("Saturn completion response has no receipt.");
@@ -82,7 +97,7 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
     {
         using var head = new HttpRequestMessage(HttpMethod.Head, uploadUri);
         Authorize(head, token);
-        using var response = await httpClient.SendAsync(head, cancellationToken);
+        using var response = await SendAsync(head, cancellationToken);
         response.EnsureSuccessStatusCode();
         return ParseOffset(response.Headers, 0);
     }
@@ -94,6 +109,13 @@ public sealed class SaturnBackupClient(HttpClient httpClient, int chunkSizeBytes
 
     private static void Authorize(HttpRequestMessage request, string token) =>
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        using var progress = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        progress.CancelAfter(TimeSpan.FromSeconds(60));
+        return await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, progress.Token);
+    }
 
     private static Uri EnsureTrailingSlash(Uri uri) => uri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)
         ? uri

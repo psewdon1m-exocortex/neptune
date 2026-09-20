@@ -39,7 +39,7 @@ if (args is ["register-project", var projectId, var envFile])
             mirrorMode,
             mirrorMode == "single-file" ? environment.GetValueOrDefault("NEPTUNE_MIRROR_TARGET_FILENAME", "personal.volt") : null,
             bool.TryParse(environment.GetValueOrDefault("NEPTUNE_MIRROR_ENABLED"), out var mirrorEnabled) && mirrorEnabled,
-            int.TryParse(environment.GetValueOrDefault("NEPTUNE_MIRROR_INTERVAL_MINUTES"), out var mirrorMinutes) ? mirrorMinutes : 5);
+            int.TryParse(environment.GetValueOrDefault("NEPTUNE_MIRROR_INTERVAL_MINUTES"), out var mirrorMinutes) ? mirrorMinutes : 1440);
     }
     var registration = new ProjectRegistration(
         projectId,
@@ -51,8 +51,10 @@ if (args is ["register-project", var projectId, var envFile])
         bool.TryParse(environment.GetValueOrDefault("NEPTUNE_BACKUP_ENABLED"), out var enabled) && enabled,
         int.TryParse(environment.GetValueOrDefault("NEPTUNE_BACKUP_INTERVAL_HOURS"), out var hours) ? hours : 24,
         SaturnSlug: saturnSlug.Length == 0 ? null : saturnSlug,
-        Mirror: mirror);
-    await new ProjectRegistry(registryPath).UpsertAsync(registration);
+        Mirror: mirror,
+        Reader: environment.TryGetValue("NEPTUNE_READER_TOKEN_FILE", out var readerToken)
+            ? new ReaderRegistration(readerToken, environment.GetValueOrDefault("NEPTUNE_READER_ROOT", "root")) : null);
+    await new ProjectRegistry(registryPath).UpsertAsync(registration, preservePolicy: true);
     Console.WriteLine($"Registered Neptune project '{projectId}'.");
     return;
 }
@@ -83,19 +85,40 @@ builder.WebHost.ConfigureKestrel(server =>
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(new ProjectRegistry(options.RegistryPath));
 builder.Services.AddSingleton(new NeptuneStateStore(Path.Combine(options.StateDirectory, "neptune.db")));
-builder.Services.AddHttpClient("neptune", client => client.Timeout = TimeSpan.FromHours(2));
+builder.Services.AddHttpClient("neptune", client => client.Timeout = TimeSpan.FromHours(2))
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false,
+        MaxConnectionsPerServer = 16, ConnectTimeout = TimeSpan.FromSeconds(5) });
+builder.Services.AddHttpClient("resource-reader", client => client.Timeout = Timeout.InfiniteTimeSpan)
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false,
+        MaxConnectionsPerServer = 8, ConnectTimeout = TimeSpan.FromSeconds(5) });
+builder.Services.AddSingleton<ResourceReader>();
 builder.Services.AddSingleton<BackupWorker>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<BackupWorker>());
 builder.Services.AddSingleton<MirrorWorker>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<MirrorWorker>());
 builder.Services.AddHostedService<RemoteControlWorker>();
+builder.Services.AddSingleton<ServicePolicyClient>();
 
 var app = builder.Build();
 app.Use(async (context, next) => {
     context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex";
     context.Response.Headers["Cache-Control"] = "no-store";
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-    await next(context);
+    try { await next(context); }
+    catch (PolicyProtocolException error) {
+        context.Response.StatusCode = error.StatusCode;
+        await context.Response.WriteAsJsonAsync(new { error = error.Message });
+    }
+    catch (JsonException) when (context.Request.Path.Value?.Contains("/policy", StringComparison.Ordinal) == true) {
+        context.Response.StatusCode = 400;
+        await context.Response.WriteAsJsonAsync(new { error = "Invalid backup policy JSON" });
+    }
+    catch (Exception error) when (context.Request.Path.Value?.Contains("/policy", StringComparison.Ordinal) == true &&
+        error is HttpRequestException or IOException or InvalidDataException or OperationCanceledException) {
+        if (context.RequestAborted.IsCancellationRequested) return;
+        context.Response.StatusCode = 503;
+        await context.Response.WriteAsJsonAsync(new { error = "Backup policy backend is unavailable or incompatible; no local policy was overwritten" });
+    }
 });
 if (OperatingSystem.IsLinux())
 {
@@ -121,7 +144,7 @@ async Task<ProjectRegistration> AuthorizedProjectAsync(HttpContext context, stri
     var project = await context.RequestServices.GetRequiredService<ProjectRegistry>().FindAsync(projectId, context.RequestAborted)
         ?? throw new BadHttpRequestException("Unknown project.", 404);
     var supplied = context.Request.Headers["X-Neptune-Token"].ToString();
-    var expected = (await File.ReadAllTextAsync(project.ControlTokenFile, context.RequestAborted)).Trim();
+    var expected = await CredentialFile.ReadAsync(project.ControlTokenFile, context.RequestAborted);
     var equal = supplied.Length == expected.Length && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(supplied), Encoding.UTF8.GetBytes(expected));
     if (!equal) throw new BadHttpRequestException("Invalid project control token.", 401);
     return project;
@@ -141,7 +164,15 @@ app.MapGet("/v1/projects/{projectId}/status", async (HttpContext context, string
             project.ProjectId,
             project.Enabled,
             interval_hours = project.IntervalHours,
+            policy_paused = project.PolicyPaused,
+            applied_revision = project.ControlRevision,
             next_run_at = project.NextRunAt,
+            reader = project.Reader is null ? null : new
+            {
+                root = project.Reader.Root,
+                capability = ResourceReaderContract.Capability,
+                credential_ready = File.Exists(project.Reader.SaturnTokenFile)
+            },
             mirror = project.Mirror is null ? null : new
             {
                 root = project.Mirror.SaturnRoot,
@@ -166,41 +197,43 @@ app.MapGet("/v1/health", (BackupWorker worker) => Results.Ok(new
     status = "ok",
     product = "neptune-linux",
     version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev",
-    client_instance_id = worker.ClientInstanceId
+    client_instance_id = worker.ClientInstanceId,
+    policy_protocol = 1
 }));
 
-app.MapPut("/v1/projects/{projectId}/schedule", async (HttpContext context, string projectId, ProjectRegistry registry) =>
-{
-    await AuthorizedProjectAsync(context, projectId);
-    var body = await JsonSerializer.DeserializeAsync<ScheduleRequest>(context.Request.Body, cancellationToken: context.RequestAborted)
-        ?? throw new BadHttpRequestException("Schedule body is required.");
-    await registry.UpdateScheduleAsync(projectId, body.Enabled, body.IntervalHours, context.RequestAborted);
-    return Results.NoContent();
-});
-
-app.MapPost("/v1/projects/{projectId}/runs", async (HttpContext context, string projectId, BackupWorker worker) =>
+app.MapMethods("/v1/projects/{projectId}/policy", ["GET", "PUT"], async (HttpContext context, string projectId, ServicePolicyClient policies) =>
 {
     var project = await AuthorizedProjectAsync(context, projectId);
-    var accepted = worker.Start(project);
-    return accepted ? Results.Accepted() : Results.Conflict(new { error = "project_backup_already_active" });
+    var method = context.Request.Method == "GET" ? HttpMethod.Get : HttpMethod.Put;
+    var body = method == HttpMethod.Put ? await ServicePolicyClient.ReadBodyAsync(context.Request.Body, context.RequestAborted) : null;
+    return Results.Json(await policies.RequestAsync(project, method, body: body, cancellationToken: context.RequestAborted));
 });
 
-app.MapPut("/v1/projects/{projectId}/mirror/schedule", async (HttpContext context, string projectId, ProjectRegistry registry) =>
-{
-    await AuthorizedProjectAsync(context, projectId);
-    var body = await JsonSerializer.DeserializeAsync<MirrorScheduleRequest>(context.Request.Body, cancellationToken: context.RequestAborted)
-        ?? throw new BadHttpRequestException("Mirror schedule body is required.");
-    await registry.UpdateMirrorScheduleAsync(projectId, body.Enabled, body.IntervalMinutes, context.RequestAborted);
-    return Results.NoContent();
-});
-
-app.MapPost("/v1/projects/{projectId}/mirror/runs", async (HttpContext context, string projectId, MirrorWorker worker) =>
+app.MapMethods("/v1/projects/{projectId}/policy/runs", ["GET", "POST"], async (HttpContext context, string projectId, ServicePolicyClient policies) =>
 {
     var project = await AuthorizedProjectAsync(context, projectId);
-    if (project.Mirror is null) return Results.NotFound(new { error = "project_mirror_not_configured" });
-    var accepted = worker.Start(project);
-    return accepted ? Results.Accepted() : Results.Conflict(new { error = "project_mirror_already_active" });
+    var method = context.Request.Method == "GET" ? HttpMethod.Get : HttpMethod.Post;
+    var body = method == HttpMethod.Post ? await ServicePolicyClient.ReadBodyAsync(context.Request.Body, context.RequestAborted) : null;
+    return Results.Json(await policies.RequestAsync(project, method, "/runs", body, context.RequestAborted));
 });
+
+foreach (var obsolete in new[] { "schedule", "runs", "mirror/schedule", "mirror/runs" })
+{
+    app.MapMethods("/v1/projects/{projectId}/" + obsolete, ["POST", "PUT"], async (HttpContext context, string projectId) =>
+    {
+        await AuthorizedProjectAsync(context, projectId);
+        return Results.Json(new { error = "Use service-owned /policy with an expected revision and request ID", code = "policy_protocol_required" }, statusCode: 426);
+    });
+}
+
+foreach (var (route, operation) in new[] { ("resources", "list"), ("resource-metadata", "metadata"), ("resource-content", "content") })
+{
+    app.MapGet("/api/v1/projects/{projectId}/" + route, async (HttpContext context, string projectId, ResourceReader reader) =>
+    {
+        var project = await AuthorizedProjectAsync(context, projectId);
+        await reader.TransferAsync(context, project, operation);
+    });
+}
 
 app.Run();
 
