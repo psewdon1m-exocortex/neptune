@@ -9,7 +9,7 @@ using BadHttpRequestException = Microsoft.AspNetCore.Http.BadHttpRequestExceptio
 
 if (args is ["version"])
 {
-    Console.WriteLine(typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev");
+    Console.WriteLine(typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.9-dev");
     return;
 }
 
@@ -157,7 +157,7 @@ app.MapGet("/v1/projects/{projectId}/status", async (HttpContext context, string
     return Results.Ok(new
     {
         product = "neptune-linux",
-        version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev",
+        version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.9-dev",
         client_instance_id = worker.ClientInstanceId,
         project = new
         {
@@ -196,7 +196,7 @@ app.MapGet("/v1/health", (BackupWorker worker) => Results.Ok(new
 {
     status = "ok",
     product = "neptune-linux",
-    version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.8-dev",
+    version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.9-dev",
     client_instance_id = worker.ClientInstanceId,
     policy_protocol = 1
 }));

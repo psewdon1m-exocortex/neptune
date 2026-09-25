@@ -252,10 +252,10 @@ The existing project **Backup** section keeps:
 3. **Local Neptune status and initialization/repair** — status is read through
    the module adapter and a one-time Saturn code is handed only to Updater.
 
-Automatic pipelines are managed in Saturn's top-level **Synchronization** tab.
-It separates recovery ZIP archives, dedicated Volt/Mastermind mirrors and
-Windows folder synchronization; it owns scoped identity creation/revocation,
-the authoritative schedules, explicit runs and per-agent Neptune release checks.
+Saturn's top-level **Synchronization** tab manages identities, enrollment,
+observation and Neptune release checks. After enrollment, the application
+Settings page edits its own archive and mirror policy and starts explicit runs
+through Neptune's local Unix socket. See [service-owned policy](docs/service-owned-policy.md).
 
 Saturn's desired state is authoritative. Neptune retains the last applied
 revision locally, so a temporary Saturn outage does not stop an already enabled
@@ -263,8 +263,9 @@ schedule. Recommended default is disabled with a 24-hour interval; minimum
 supported interval is one hour. Changing the interval does not interrupt an
 active run. Enabling schedules the next run; it does not silently start one.
 
-The legacy project-local facade may remain for diagnostics and compatibility,
-but project Settings must not expose a second automatic schedule editor:
+The legacy project-local facade remains for diagnostics and compatibility;
+new policy clients use `/v1/projects/{deployment}/policy` and its `/runs`
+subresource. Legacy unversioned schedule/run writers return 426:
 
 ```text
 GET  /api/neptune/status
@@ -296,10 +297,11 @@ Saturn exposes a top-level **Synchronization** workspace instead of placing
 Neptune controls in Settings. It separates Linux recovery archives, Linux
 dedicated mirrors and Windows directory synchronization. The workspace lists
 identities, state, usage and last successful runs; creates one-time enrollment
-codes and Windows passwords; revokes/rotates credentials; controls every remote
-Linux schedule; starts explicit runs; and checks/queues verified Neptune updates.
+codes and Windows passwords; revokes/rotates credentials; and checks/queues
+verified Neptune updates. Application-owned policy controls are in each
+service's Settings page.
 
-Settings keeps only manual project snapshot download and restore. Current
+Settings also keeps manual project snapshot download and restore. Current
 interchangeable ZIP profiles remain explicitly configured with
 `requireEncryption=false`.
 

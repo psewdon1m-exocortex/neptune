@@ -12,7 +12,7 @@ Writes carry a stable `requestId` and `expectedRevision`. Neptune resolves Satur
 
 Archive intervals are hours; existing mirror minute intervals are retained exactly. The Settings field reports an inherited fractional-hour value and allows a new whole-hour value only after explicit editing. Unchanged five-minute mirrors are never rounded to an hour or replaced with a default.
 
-Legacy unversioned schedule/run writers return 426. Upgrade Neptune before switching Saturn and applications to the new policy interface. Existing remote desired-state synchronization continues to carry authoritative revisions. The registry retains the existing schedule/next-run metadata and applies updates under its file lock with a durable atomic write. Active accepted transfers keep their execution identity.
+Legacy unversioned schedule/run writers return 426. Upgrade Saturn before Neptune so the new agent can relay policy requests to an implemented upstream endpoint. Upgrade applications with protocol-aware policy UI before exposing the editor. Existing remote desired-state synchronization continues to carry authoritative revisions. The registry retains the existing schedule/next-run metadata and applies updates under its file lock with a durable atomic write. Active accepted transfers keep their execution identity.
 
 Restored policy intent is paused. Resume verifies the enrolled archive source and, for a mirror, its source and destination before applying the new authoritative revision. An authenticated source HEAD must return `X-Neptune-Ready: 1`; HEAD verifies readiness without creating an archive. A failed or uncertain resume leaves the local restore journal intact. Newer restore intent cannot be cleared by an older in-flight request.
 
