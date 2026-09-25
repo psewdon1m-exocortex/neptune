@@ -23,8 +23,9 @@ Before a service-qualified release is finalized, evaluate every active ID in
 `known-problems-report.json` bound to the service revision, qualified tag,
 immutable central-documentation revision and catalog digest. Missing, stale,
 failed, unknown or unsupported `N/A` evidence blocks publication. This is a
-normative release requirement; until the repository workflow generates and
-enforces that report, the release pipeline remains an implementation gap.
+normative release requirement. The release workflow records current-revision
+unit and platform-package receipts before signing, verifies the unified signed
+assets before publication, and includes the final report with the release.
 
 Status: executable cross-project implementation completed; production deployment
 and end-to-end qualification against a real Saturn instance remain.

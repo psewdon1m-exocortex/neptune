@@ -1,5 +1,10 @@
 artifacts/
-.release/
+.release/*
+!.release/known-problems-policy.json
+.release-evidence/
+known-problems-report.json
+.pre-push-gate-report.json
+__pycache__/
 bin/
 obj/
 .vs/

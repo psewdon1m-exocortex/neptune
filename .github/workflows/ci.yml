@@ -32,6 +32,11 @@ jobs:
         run: |
           dotnet build src/Neptune.Linux/Neptune.Linux.csproj -c Release
           dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
+      - name: Validate pinned Part 12 catalog and fail-closed gate
+        run: |
+          python3 scripts/test-known-problems-gate.py
+          python3 scripts/test-verify-unified-release.py
+          python3 scripts/known-problems-gate.py --phase structure
       - name: Check vulnerable runtime dependencies
         run: dotnet list src/Neptune.Linux/Neptune.Linux.csproj package --vulnerable --include-transitive
       - name: Publish smoke test

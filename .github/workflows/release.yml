@@ -13,9 +13,36 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
+  qualification:
+    name: Qualify Part 12 before signing
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: Record exact candidate checks
+        run: |
+          python3 scripts/known-problems-gate.py --record unit --command dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
+          python3 scripts/known-problems-gate.py --record linux-package --command bash scripts/verify-linux-package.sh
+          python3 scripts/known-problems-gate.py --record windows-package --command dotnet build Neptune.slnx -c Release -p:EnableWindowsTargeting=true
+          python3 scripts/known-problems-gate.py --phase pre-signing
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neptune-policy-${{ github.sha }}
+          path: |
+            .release-evidence/
+            known-problems-report.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
   linux:
     name: Linux ${{ matrix.runtime }}
-    needs: quality-gate
+    needs: qualification
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -80,7 +107,7 @@ jobs:
 
   windows:
     name: Windows win-x64
-    needs: quality-gate
+    needs: qualification
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -152,50 +179,17 @@ jobs:
           node-version: "24"
       - uses: actions/download-artifact@v4
         with:
+          name: neptune-policy-${{ github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
           pattern: neptune-release-*
           path: release
           merge-multiple: true
       - name: Verify unified release set
-        shell: bash
         run: |
-          set -euo pipefail
-          version="${GITHUB_REF_NAME#neptune-v}"
-          expected=(
-            "neptune-linux-${version}-linux-x64.tar.gz"
-            "neptune-linux-${version}-linux-arm64.tar.gz"
-            "neptune-windows-${version}-win-x64.zip"
-            "neptune-linux-release-linux-x64.json"
-            "neptune-linux-release-linux-arm64.json"
-            "neptune-windows-release.json"
-            "neptune.pem"
-          )
-          for file in "${expected[@]}"; do test -s "release/$file"; done
-          (cd release && sha256sum --check --strict *.sha256)
-          for manifest in \
-            release/neptune-linux-release-linux-x64.json \
-            release/neptune-linux-release-linux-arm64.json \
-            release/neptune-windows-release.json; do
-            python3 scripts/verify-release-manifest.py "$manifest" "${manifest}.sig.json" release/neptune.pem
-          done
-          unzip -p "release/neptune-windows-${version}-win-x64.zip" release-trust/neptune.pem | cmp - release/neptune.pem
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          const version = process.env.GITHUB_REF_NAME.replace(/^neptune-v/, "");
-          const contracts = [
-            ["neptune-linux-release-linux-x64.json", "neptune-linux", "linux-x64"],
-            ["neptune-linux-release-linux-arm64.json", "neptune-linux", "linux-arm64"],
-            ["neptune-windows-release.json", "neptune-windows", "win-x64"],
-          ];
-          for (const [name, product, runtime] of contracts) {
-            const manifest = JSON.parse(fs.readFileSync(`release/${name}`, "utf8"));
-            if (manifest.schema !== "exocortex.neptune.release.v1" || manifest.product !== product
-              || manifest.runtime !== runtime || manifest.version !== version
-              || !/^[a-f0-9]{64}$/.test(manifest.sha256) || !Number.isSafeInteger(manifest.size)
-              || !String(manifest.url).startsWith("https://github.com/")) {
-              throw new Error(`Invalid Neptune manifest contract: ${name}`);
-            }
-          }
-          NODE
+          python3 scripts/known-problems-gate.py --record published-assets --command python3 scripts/verify-unified-release.py release
+          python3 scripts/known-problems-gate.py --phase final
+          cp known-problems-report.json release/known-problems-report.json
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
