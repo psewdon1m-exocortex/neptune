@@ -126,15 +126,21 @@ progress.
 
 ## 2. Linux topology
 
-Normal operators do not edit the registry or token files. In Saturn
-Synchronization they create a 15-minute one-time setup code. Settings → Backup
-→ **Initialize Neptune** passes it to Updater, installs a missing daemon or reuses
-the existing one, and waits for terminal enrollment status. Updater also installs
-required helpers automatically after head registration and Kernel configuration.
+Normal operators do not edit the registry or token files. Neptune Linux can be
+installed without a registered service using its signed release `bootstrap.sh`
+or `sudo updater tui` → Neptune → Install Neptune. Its bootstrap installs or
+reuses the one host Updater. A service installer also ensures one healthy
+Neptune before completing its own installation. The local daemon can run with
+zero projects. In Saturn Synchronization, the operator later creates a
+15-minute one-time setup code. Settings → Backup → **Initialize Neptune**
+enrolls that service's project without installing a second daemon.
 On first host preparation, the exact-version Updater bootstrap verifies its
 signed installer and obtains Neptune's pinned public key from inside that
 installer. It writes `/etc/exocortex/release-trust/neptune.pem` and fails on an
-existing mismatching trust key. Later typed installation verifies Neptune's
+existing mismatching trust key. Host checks and updates read
+`repositories.neptune.url` through Updater's own scoped Kernel connection, or
+use the Neptune URL saved in root TUI when the connection is unavailable.
+Later typed installation verifies Neptune's
 signed manifest before downloading the daemon. It never uses `scp`, a manual
 release-key fingerprint or a public key downloaded beside the helper manifest.
 The service backup command provides

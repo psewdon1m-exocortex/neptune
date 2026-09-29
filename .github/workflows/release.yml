@@ -185,6 +185,19 @@ jobs:
           pattern: neptune-release-*
           path: release
           merge-multiple: true
+      - name: Require a pinned Updater with host dependency support
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          updater_version="$(cat .release/updater.version)"
+          mkdir -p updater-input
+          gh release download "updater-v${updater_version}" --repo psewdon1m-exocortex/updater --dir updater-input --pattern "updater-${updater_version}-install.tar.gz"
+          printf '%s  %s\n' "$(cat .release/updater.sha256)" "updater-input/updater-${updater_version}-install.tar.gz" | sha256sum -c -
+          tar -xzf "updater-input/updater-${updater_version}-install.tar.gz" -C updater-input
+          updater-input/updater/updater-linux-amd64 host capabilities | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("schema")=="exocortex.updater.host-dependencies.v1" and d.get("api_version")==1'
+          python3 scripts/build-host-bootstrap.py neptune "${GITHUB_REF_NAME#neptune-v}" release/neptune.pem release/bootstrap.sh
+          sh -n release/bootstrap.sh
       - name: Verify unified release set
         run: |
           python3 scripts/known-problems-gate.py --record published-assets --command python3 scripts/verify-unified-release.py release
