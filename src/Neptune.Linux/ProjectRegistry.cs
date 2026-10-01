@@ -103,6 +103,42 @@ public sealed class ProjectRegistry(string path)
             ? registration
             : registration with { Mirror = registration.Mirror with { NextRunAt = registration.Mirror.Enabled ? nextRunAt : null } }, cancellationToken);
 
+    public Task PrepareUnlinkAsync(string projectId, CancellationToken cancellationToken = default) =>
+        MutateAsync(projectId, registration => registration with
+        {
+            Unlinking = true,
+            Enabled = false,
+            NextRunAt = null,
+            Mirror = registration.Mirror is null ? null : registration.Mirror with { Enabled = false, NextRunAt = null }
+        }, cancellationToken);
+
+    public Task MarkRemoteDisconnectedAsync(string projectId, CancellationToken cancellationToken = default) =>
+        MutateAsync(projectId, registration => registration with { RemoteDisconnected = true }, cancellationToken);
+
+    public async Task RemoveAsync(string projectId, CancellationToken cancellationToken = default)
+    {
+        await _mutex.WaitAsync(cancellationToken);
+        try
+        {
+            using var writer = await AcquireWriterAsync(cancellationToken);
+            if (!File.Exists(path)) return;
+            List<ProjectRegistration> projects;
+            await using (var input = File.OpenRead(path))
+                projects = await JsonSerializer.DeserializeAsync<List<ProjectRegistration>>(input, JsonOptions, cancellationToken) ?? [];
+            projects.RemoveAll(item => item.ProjectId == projectId);
+            var temporary = path + ".tmp";
+            await using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(output, projects, JsonOptions, cancellationToken);
+                output.Flush(flushToDisk: true);
+            }
+            File.Move(temporary, path, overwrite: true);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+        }
+        finally { _mutex.Release(); }
+    }
+
     public Task ApplyRemoteDesiredAsync(
         string projectId,
         long revision,
@@ -114,6 +150,7 @@ public sealed class ProjectRegistry(string path)
         bool paused = false) =>
         MutateAsync(projectId, registration =>
         {
+            if (registration.Unlinking) return registration;
             if (revision < registration.ControlRevision) return registration;
             var now = DateTimeOffset.UtcNow;
             // Keep old readers safe too: paused intent lives in Saturn, while

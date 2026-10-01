@@ -91,6 +91,40 @@ public sealed class CoreTests
     }
 
     [Fact]
+    public async Task UnlinkAbandonsOnlyTargetProjectsRecoverableSpool()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var cancellation = TestContext.Current.CancellationToken;
+            var spool = Path.Combine(directory, "spool");
+            Directory.CreateDirectory(spool);
+            var target = Path.Combine(spool, "volt.zip");
+            var other = Path.Combine(spool, "chronos.zip");
+            await File.WriteAllTextAsync(target, "old vault", cancellation);
+            await File.WriteAllTextAsync(other, "another service", cancellation);
+            var state = new NeptuneStateStore(Path.Combine(directory, "state.db"));
+            await state.InitializeAsync(cancellation);
+            var now = DateTimeOffset.UtcNow;
+            await state.AddRunAsync(new BackupRun("volt-run", "volt", "client", "retry-wait", target,
+                9, "a", null, 0, 1, now, now, null), cancellation);
+            await state.AddRunAsync(new BackupRun("chronos-run", "chronos", "client", "spooled", other,
+                15, "b", null, 0, 0, now, now, null), cancellation);
+            await state.AbandonProjectRunsAsync("client", "volt", spool, cancellation);
+            Assert.False(File.Exists(target));
+            Assert.True(File.Exists(other));
+            Assert.Equal("abandoned", (await state.GetRunAsync("client", "volt-run", cancellation))?.State);
+            Assert.Null((await state.GetRunAsync("client", "volt-run", cancellation))?.SpoolPath);
+            Assert.Equal("chronos-run", Assert.Single(await state.ListRecoverableRunsAsync("client", cancellation)).RunId);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RemoteCommandLedgerSurvivesRestartAndReportsTerminalResults()
     {
         var directory = Path.Combine(Path.GetTempPath(), "neptune-tests", Guid.NewGuid().ToString("N"));

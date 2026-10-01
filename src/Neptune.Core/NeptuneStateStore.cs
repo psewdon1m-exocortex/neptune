@@ -283,6 +283,26 @@ public sealed class NeptuneStateStore(string databasePath)
         return result;
     }
 
+    public async Task AbandonProjectRunsAsync(string clientInstanceId, string projectId, string spoolDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        var root = Path.GetFullPath(spoolDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        foreach (var run in (await ListRecoverableRunsAsync(clientInstanceId, cancellationToken))
+                     .Where(item => item.ProjectId == projectId))
+        {
+            if (run.SpoolPath is not null)
+            {
+                var path = Path.GetFullPath(run.SpoolPath);
+                if (!path.StartsWith(root, comparison))
+                    throw new InvalidDataException("Recoverable spool is outside Neptune's spool directory.");
+                File.Delete(path);
+            }
+            await UpdateRunAsync(run with { State = "abandoned", SpoolPath = null,
+                Error = "Project unlinked", UpdatedAt = DateTimeOffset.UtcNow }, cancellationToken);
+        }
+    }
+
     public async Task<ProjectRunSummary> GetProjectRunSummaryAsync(string clientInstanceId, string projectId, CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(ConnectionString);

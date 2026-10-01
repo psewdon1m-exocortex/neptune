@@ -42,11 +42,11 @@ public sealed class BackupWorker(
                 {
                     var registered = await registry.FindAsync(retry.ProjectId, stoppingToken);
                     // An accepted transfer continues even when future scheduled work is disabled.
-                    if (registered is not null) _ = Start(registered, retry);
+                    if (registered is not null && !registered.Unlinking) _ = Start(registered, retry);
                 }
             foreach (var project in await registry.ReadAsync(stoppingToken))
             {
-                if (!project.PolicyPaused && project.Enabled && (project.NextRunAt is null || project.NextRunAt <= now))
+                if (!project.Unlinking && !project.PolicyPaused && project.Enabled && (project.NextRunAt is null || project.NextRunAt <= now))
                     _ = Start(project);
             }
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
@@ -106,6 +106,8 @@ public sealed class BackupWorker(
         {
             await _parallel.WaitAsync(cancellationToken);
             enteredParallel = true;
+            if ((await registry.FindAsync(project.ProjectId, cancellationToken))?.Unlinking != false)
+                return false;
             await RunOnceAsync(project, existingRun, requestedRunId, cancellationToken);
             return true;
         }
@@ -206,7 +208,7 @@ public sealed class BackupWorker(
         await CredentialFile.ReadAsync(path, cancellationToken);
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.10-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.11-dev";
 
     private sealed record BackupTarget(Uri SaturnOrigin, string BackupPath, string Slug);
 }

@@ -17,6 +17,24 @@ public sealed class PolicyProtocolException(int statusCode, string message) : Ex
 public sealed class ServicePolicyClient(
     LinuxOptions options, ProjectRegistry registry, IHttpClientFactory clients)
 {
+    public async Task DisconnectAsync(ProjectRegistration project, CancellationToken cancellationToken = default)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+        var token = timeout.Token;
+        var http = clients.CreateClient("neptune");
+        var kernelToken = (await File.ReadAllTextAsync(options.KernelTokenFile, token)).Trim();
+        using var snapshot = await new KernelRegisterClient(http, Path.Combine(options.StateDirectory, "register-lkg.json"))
+            .GetSnapshotAsync(options.KernelOrigin, kernelToken, token, ["services.saturn.sni", "services.saturn.port"]);
+        var origin = RegisterValues.HttpsOrigin(snapshot.RootElement.GetProperty("values"), "saturn");
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, "/api/v1/neptune/agent/disconnect"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer",
+            (await File.ReadAllTextAsync(project.SaturnTokenFile, token)).Trim());
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        if (!response.IsSuccessStatusCode)
+            throw new PolicyProtocolException((int)response.StatusCode, "Saturn did not confirm credential revocation; Neptune remains paused for retry");
+    }
+
     public async Task<JsonNode> RequestAsync(ProjectRegistration project, HttpMethod method,
         string suffix = "", JsonNode? body = null, CancellationToken cancellationToken = default)
     {

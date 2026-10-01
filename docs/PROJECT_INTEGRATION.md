@@ -39,16 +39,25 @@ Exporter не должен включать symlink/reparse point, traversal pat
 не принадлежащие выделенному набору. Полный Volt recovery ZIP по-прежнему
 содержит настройки и секреты, а mirror содержит только `personal.volt`.
 
-## Управление из Saturn
+## Разделение управления
 
-Ручные Download/Restore, локальный статус и Initialize/Repair остаются в
-Settings. Автоматические ZIP archives, выделенные mirrors, Windows sync clients,
-интервалы, явный запуск и fleet update Neptune находятся в верхнеуровневой
-вкладке Saturn `Synchronization`.
+В Settings подключённого сервиса находятся ручные Download/Restore, локальный
+статус, Initialize/Repair, **Unlink Neptune agent** и управление автоматическим
+расписанием. Для Kernel, Chronos, Saturn и Laboratory это одна политика ZIP
+archive. Для Volt и Mastermind один переключатель и часовой интервал атомарно
+обновляют политики archive и mirror через `schedule-all`; сами workers, их
+состояния, повторы и полномочия остаются раздельными. Новый профиль выключен
+и имеет интервал 24 часа. Ручного запуска удалённого backup из GUI нет.
+
+Saturn `Synchronization` управляет identities, setup codes, quotas, Windows
+sync clients и наблюдением за состоянием и результатами. Редактор расписаний
+сервисов и fleet update Neptune там отсутствуют. Проверка и установка релиза
+общего Neptune выполняются на каждом хосте через `sudo updater tui`.
 
 Каждый daemon сам обращается к Saturn по исходящему HTTPS и получает desired
-state с монотонной revision и очередь команд. Поэтому из Saturn можно управлять
-Neptune на других серверах без входящего порта, VPN или SSH:
+state с монотонной revision и допустимые команды. Из Saturn можно наблюдать за
+Neptune на других серверах и передавать подтверждённую политику без входящего
+порта, VPN или SSH:
 
 ```text
 neptuned -> POST /api/v1/neptune/agent/check-in
@@ -58,8 +67,8 @@ neptuned -> POST /api/v1/neptune/agent/check-in
 Saturn   -> desired archive/mirror schedules + pending commands
 ```
 
-Локальный Unix socket остаётся диагностическим/совместимым интерфейсом, но не
-является control plane и не требует совместного размещения Saturn и Neptune.
+Локальный Unix socket обслуживает scoped-операции Updater и диагностику.
+Совместное размещение Saturn и Neptune не требуется.
 
 ## Рекомендуемая регистрация deployment
 
@@ -74,10 +83,10 @@ Saturn   -> desired archive/mirror schedules + pending commands
 sudo <project>-install backup
 ```
 
-Готовые команды: `chronos-install backup`, `volt-install backup`,
-`kernel-install backup` и `saturn-install backup`. Для Volt один setup code и
-одна команда одновременно подключают recovery ZIP и mirror `personal.volt`;
-частоты этих процессов после регистрации всё равно задаются независимо.
+Готовые команды включают `chronos-install backup`, `volt-install backup`,
+`kernel-install backup` и `saturn-install backup`. Для Volt и Mastermind один
+setup code подключает recovery ZIP и выделенное зеркало. Их расписания
+согласованно задаются одним контролом в Settings владельца.
 
 Installer делегирует Updater проверенную установку единственного host-wide
 daemon, обменивает code на producer token, генерирует локальные control/export
@@ -116,19 +125,31 @@ NEPTUNE_MIRROR_TOKEN_FILE=/etc/neptune/clients/<deployment>.mirror.token
 NEPTUNE_MIRROR_MODE=single-file|zip-tree
 NEPTUNE_MIRROR_TARGET_FILENAME=personal.volt
 NEPTUNE_MIRROR_ENABLED=false
-NEPTUNE_MIRROR_INTERVAL_MINUTES=5
+NEPTUNE_MIRROR_INTERVAL_MINUTES=1440
 ```
 
-`NEPTUNE_MIRROR_TARGET_FILENAME` задаётся только для `single-file`. Затем:
+`NEPTUNE_MIRROR_TARGET_FILENAME` задаётся только для `single-file`. Эти env
+значения — аварийный bootstrap профиля; после подключения расписанием управляет
+только версия политики из Settings владельца, сохранённая в Saturn. Затем:
 
 ```text
 sudo neptunectl register-project <deployment-id> <env-file>
 ```
 
-## Текущие адаптеры
+## Отключение и повторная привязка
 
-Volt уже реализует raw mirror exporter. Репозитория Mastermind в workspace пока
-нет: при его добавлении нужен описанный bounded ZIP-tree endpoint; универсальный
-worker, безопасная распаковка и точное WebDAV-зеркалирование уже реализованы в
-Neptune. Backup builder каждого проекта остаётся единственным владельцем
-формата recovery archive.
+**Unlink Neptune agent** запускает через локальный Updater долговечное задание
+только для данного проекта. Neptune приостанавливает его политики и дожидается
+безопасной границы активных передач; Saturn отзывает его producer и mirror
+credentials и незадействованные setup codes, сохраняя уже загруженные архивы.
+При неудаче удалённого отзыва проект остаётся в `unlinking` и допускает повтор.
+После подтверждения Neptune удаляет только этот профиль, а Updater удаляет его
+локальные credentials. Другие проекты и общий daemon продолжают работу. Для
+нового подключения нужен новый setup code.
+
+## Текущие экспортёры
+
+Volt реализует raw mirror exporter `personal.volt`, а Mastermind — bounded
+ZIP-tree exporter своего Vault. Универсальный worker Neptune безопасно
+распаковывает дерево и зеркалирует его в выделенный root. Backup builder
+каждого проекта остаётся владельцем формата recovery archive.

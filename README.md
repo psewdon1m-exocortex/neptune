@@ -259,10 +259,12 @@ The existing project **Backup** section keeps:
 3. **Local Neptune status and initialization/repair** — status is read through
    the module adapter and a one-time Saturn code is handed only to Updater.
 
-Saturn's top-level **Synchronization** tab manages identities, enrollment,
-observation and Neptune release checks. After enrollment, the application
-Settings page edits its own archive and mirror policy and starts explicit runs
-through Neptune's local Unix socket. See [service-owned policy](docs/service-owned-policy.md).
+Saturn's top-level **Synchronization** tab manages identities, enrollment and
+observation. After enrollment, the application Settings page edits its own
+archive and mirror policy. Automatic runs follow that policy; the service GUI
+does not expose a manual remote-run action. Neptune release checks and updates
+are available in `sudo updater tui` on the host. See
+[service-owned policy](docs/service-owned-policy.md).
 
 Saturn's desired state is authoritative. Neptune retains the last applied
 revision locally, so a temporary Saturn outage does not stop an already enabled
@@ -271,19 +273,23 @@ supported interval is one hour. Changing the interval does not interrupt an
 active run. Enabling schedules the next run; it does not silently start one.
 
 The legacy project-local facade remains for diagnostics and compatibility;
-new policy clients use `/v1/projects/{deployment}/policy` and its `/runs`
-subresource. Legacy unversioned schedule/run writers return 426:
+new policy clients use `/v1/projects/{deployment}/policy` for schedules and
+`GET /v1/projects/{deployment}/policy/runs` for history. The daemon's versioned
+`POST /policy/runs` remains for already integrated producers; current service
+GUIs do not expose it. Legacy unversioned schedule/run writers return 426; service-facing
+manual policy-run and Neptune update routes reject new requests:
 
 ```text
 GET  /api/neptune/status
-PUT  /api/neptune/schedule       { enabled, interval_hours }
-POST /api/neptune/runs           optional explicit automatic run
-POST /api/neptune/update/check
-POST /api/neptune/update/install
+PUT  /api/neptune/schedule       legacy writer; rejected (426)
+POST /api/neptune/runs           legacy writer; rejected
+POST /api/neptune/update/check  rejected; use sudo updater tui
+POST /api/neptune/update/install rejected; use sudo updater tui
 ```
 
 The browser never receives a Neptune control token or Saturn producer token.
-Saturn queues commands, and the target agent receives them at its next check-in.
+Saturn stores the versioned desired policy; the target agent receives it at
+its next check-in and executes due automatic work locally.
 
 Neptune must not replace its root-owned executable from an unprivileged daemon.
 The privileged host Updater installs the verified `neptune-linux-*` release
@@ -304,8 +310,8 @@ Saturn exposes a top-level **Synchronization** workspace instead of placing
 Neptune controls in Settings. It separates Linux recovery archives, Linux
 dedicated mirrors and Windows directory synchronization. The workspace lists
 identities, state, usage and last successful runs; creates one-time enrollment
-codes and Windows passwords; revokes/rotates credentials; and checks/queues
-verified Neptune updates. Application-owned policy controls are in each
+codes and Windows passwords; and revokes/rotates credentials. Neptune updates
+are installed through `sudo updater tui` on the host. Application-owned policy controls are in each
 service's Settings page.
 
 Settings also keeps manual project snapshot download and restore. Current
@@ -433,8 +439,9 @@ reconciliation. Neptune never talks directly to SFTP.
    project without changing its manual backup/restore behavior.
 4. Implement the Linux daemon, multi-project registry, scheduler, SQLite journal
    and resumable Saturn client.
-5. Extend the host Updater for the Neptune Linux release stream and expose
-   version/update state in Saturn Synchronization.
+5. Extend the host Updater for the Neptune Linux release stream; expose
+   install/check/update in the root TUI and read-only fleet observation in
+   Saturn Synchronization.
 6. Prove that a manually downloaded ZIP and an automatically uploaded/downloaded
    ZIP have the same format and both restore into a clean compatible instance.
 7. Roll the integration contract through the remaining projects.

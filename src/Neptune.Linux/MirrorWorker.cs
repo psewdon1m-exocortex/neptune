@@ -55,6 +55,7 @@ public sealed class MirrorWorker(
             var now = DateTimeOffset.UtcNow;
             foreach (var project in await registry.ReadAsync(stoppingToken))
             {
+                if (project.Unlinking) continue;
                 var previous = Status(project.ProjectId);
                 if (previous.State == "retry-wait" && previous.LastAttemptAt?.AddMinutes(5) <= now)
                     _ = TryStart(project, previous.Manual, previous.CommandId);
@@ -101,6 +102,11 @@ public sealed class MirrorWorker(
     private async Task<bool> RunAfterGateAsync(ProjectRegistration project, Task<bool> gate, CancellationToken cancellationToken, bool manual, string? commandId)
     {
         if (!await gate) return false;
+        if ((await registry.FindAsync(project.ProjectId, cancellationToken))?.Unlinking != false)
+        {
+            _active.TryRemove(project.ProjectId, out _);
+            return false;
+        }
         var started = DateTimeOffset.UtcNow;
         _status[project.ProjectId] = Status(project.ProjectId) with { State = "running", LastAttemptAt = started, Error = null, UploadedFiles = 0, DeletedEntries = 0, Manual = manual, CommandId = commandId };
         try

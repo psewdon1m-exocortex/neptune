@@ -95,6 +95,36 @@ public sealed class ServicePolicyTests
         finally { Directory.Delete(directory, true); }
     }
 
+    [Fact]
+    public async Task UnlinkDrainsOneProjectAndLeavesOtherRegistrationsIntact()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-unlink-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var cancellation = TestContext.Current.CancellationToken;
+            var registry = new ProjectRegistry(Path.Combine(directory, "projects.json"));
+            var export = new Uri("http://127.0.0.1:18880/backup");
+            await registry.UpsertAsync(new ProjectRegistration("volt", export, "control", "export", "producer",
+                "services.volt.backup.saturn_slug", true, 3,
+                Mirror: new MirrorRegistration(export, "volt", "mirror", "single-file", "personal.volt", true, 30)), cancellation);
+            await registry.UpsertAsync(new ProjectRegistration("chronos", export, "control", "export", "producer",
+                "services.chronos.backup.saturn_slug", true, 24), cancellation);
+            await registry.PrepareUnlinkAsync("volt", cancellation);
+            await registry.ApplyRemoteDesiredAsync("volt", 99, true, 1, true, 5, cancellation);
+            var paused = (await registry.FindAsync("volt", cancellation))!;
+            Assert.True(paused.Unlinking);
+            Assert.False(paused.Enabled);
+            Assert.False(paused.Mirror!.Enabled);
+            Assert.Null(paused.NextRunAt);
+            await registry.MarkRemoteDisconnectedAsync("volt", cancellation);
+            await registry.RemoveAsync("volt", cancellation);
+            Assert.Null(await registry.FindAsync("volt", cancellation));
+            Assert.True((await registry.FindAsync("chronos", cancellation))!.Enabled);
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     private sealed class MissingPolicyHandler : HttpMessageHandler, IHttpClientFactory
     {
         public HttpClient CreateClient(string name) => new(this, false);

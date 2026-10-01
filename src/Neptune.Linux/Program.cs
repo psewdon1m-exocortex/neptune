@@ -9,7 +9,7 @@ using BadHttpRequestException = Microsoft.AspNetCore.Http.BadHttpRequestExceptio
 
 if (args is ["version"])
 {
-    Console.WriteLine(typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.10-dev");
+    Console.WriteLine(typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.11-dev");
     return;
 }
 
@@ -157,12 +157,13 @@ app.MapGet("/v1/projects/{projectId}/status", async (HttpContext context, string
     return Results.Ok(new
     {
         product = "neptune-linux",
-        version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.10-dev",
+        version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.11-dev",
         client_instance_id = worker.ClientInstanceId,
         project = new
         {
             project.ProjectId,
             project.Enabled,
+            unlinking = project.Unlinking,
             interval_hours = project.IntervalHours,
             policy_paused = project.PolicyPaused,
             applied_revision = project.ControlRevision,
@@ -196,15 +197,43 @@ app.MapGet("/v1/health", (BackupWorker worker) => Results.Ok(new
 {
     status = "ok",
     product = "neptune-linux",
-    version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.10-dev",
+    version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.11-dev",
     client_instance_id = worker.ClientInstanceId,
     policy_protocol = 1
 }));
+
+app.MapPost("/v1/projects/{projectId}/unlink/prepare", async (HttpContext context, string projectId, ProjectRegistry registry) =>
+{
+    await AuthorizedProjectAsync(context, projectId);
+    await registry.PrepareUnlinkAsync(projectId, context.RequestAborted);
+    return Results.Ok(new { state = "draining" });
+});
+
+app.MapPost("/v1/projects/{projectId}/unlink/finish", async (HttpContext context, string projectId,
+    ProjectRegistry registry, BackupWorker backups, MirrorWorker mirrors, ServicePolicyClient policies,
+    NeptuneStateStore state, LinuxOptions options) =>
+{
+    var project = await AuthorizedProjectAsync(context, projectId);
+    if (!project.Unlinking) return Results.Conflict(new { error = "Prepare the project for unlink first" });
+    if (backups.IsActive(projectId) || mirrors.IsActive(projectId))
+        return Results.Conflict(new { error = "An accepted backup or mirror is still running" });
+    await state.AbandonProjectRunsAsync(backups.ClientInstanceId, projectId,
+        Path.Combine(options.StateDirectory, "spool"), context.RequestAborted);
+    if (!project.RemoteDisconnected)
+    {
+        await policies.DisconnectAsync(project, context.RequestAborted);
+        await registry.MarkRemoteDisconnectedAsync(projectId, context.RequestAborted);
+    }
+    await registry.RemoveAsync(projectId, context.RequestAborted);
+    return Results.Ok(new { state = "unlinked" });
+});
 
 app.MapMethods("/v1/projects/{projectId}/policy", ["GET", "PUT"], async (HttpContext context, string projectId, ServicePolicyClient policies) =>
 {
     var project = await AuthorizedProjectAsync(context, projectId);
     var method = context.Request.Method == "GET" ? HttpMethod.Get : HttpMethod.Put;
+    if (project.Unlinking && method != HttpMethod.Get)
+        return Results.Conflict(new { error = "Project unlink is in progress" });
     var body = method == HttpMethod.Put ? await ServicePolicyClient.ReadBodyAsync(context.Request.Body, context.RequestAborted) : null;
     return Results.Json(await policies.RequestAsync(project, method, body: body, cancellationToken: context.RequestAborted));
 });
@@ -213,6 +242,8 @@ app.MapMethods("/v1/projects/{projectId}/policy/runs", ["GET", "POST"], async (H
 {
     var project = await AuthorizedProjectAsync(context, projectId);
     var method = context.Request.Method == "GET" ? HttpMethod.Get : HttpMethod.Post;
+    if (project.Unlinking && method != HttpMethod.Get)
+        return Results.Conflict(new { error = "Project unlink is in progress" });
     var body = method == HttpMethod.Post ? await ServicePolicyClient.ReadBodyAsync(context.Request.Body, context.RequestAborted) : null;
     return Results.Json(await policies.RequestAsync(project, method, "/runs", body, context.RequestAborted));
 });
@@ -231,6 +262,7 @@ foreach (var (route, operation) in new[] { ("resources", "list"), ("resource-met
     app.MapGet("/api/v1/projects/{projectId}/" + route, async (HttpContext context, string projectId, ResourceReader reader) =>
     {
         var project = await AuthorizedProjectAsync(context, projectId);
+        if (project.Unlinking) { context.Response.StatusCode = StatusCodes.Status409Conflict; return; }
         await reader.TransferAsync(context, project, operation);
     });
 }

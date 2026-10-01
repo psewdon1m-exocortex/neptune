@@ -34,6 +34,7 @@ public sealed class RemoteControlWorker(
                     var saturnOrigin = await ResolveSaturnOriginAsync(http, stoppingToken);
                     foreach (var project in projects)
                     {
+                        if (project.Unlinking) continue;
                         try { await CheckInAsync(project, saturnOrigin, stoppingToken); }
                         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
                         catch (Exception error) { logger.LogWarning(error, "Saturn remote control check-in failed for project {ProjectId}; other projects will continue", project.ProjectId); }
@@ -114,7 +115,8 @@ public sealed class RemoteControlWorker(
             control.Desired.ArchiveEnabled, control.Desired.ArchiveIntervalHours,
             project.Mirror is not null && control.Desired.MirrorEnabled,
             control.Desired.MirrorIntervalMinutes, cancellationToken, control.Desired.Paused);
-        var current = await registry.FindAsync(project.ProjectId, cancellationToken) ?? project;
+        var current = await registry.FindAsync(project.ProjectId, cancellationToken);
+        if (current is null || current.Unlinking) return;
         foreach (var command in control.Commands)
         {
             if (current.PolicyPaused && command.Kind is "archive.run" or "mirror.run") continue;
@@ -143,6 +145,8 @@ public sealed class RemoteControlWorker(
 
     private async Task ExecuteCommandAsync(ProjectRegistration project, RemoteCommand command, CancellationToken cancellationToken)
     {
+        var registration = await registry.FindAsync(project.ProjectId, cancellationToken);
+        if (registration is null || registration.Unlinking) return;
         var existing = await state.GetRemoteCommandAsync(command.Id, cancellationToken);
         if (existing?.State is "succeeded" or "failed") return;
         if (command.ExpiresAt is null || command.ExpiresAt <= DateTimeOffset.UtcNow)
@@ -239,5 +243,5 @@ public sealed class RemoteControlWorker(
         await CredentialFile.ReadAsync(path, cancellationToken);
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.10-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0.1.11-dev";
 }

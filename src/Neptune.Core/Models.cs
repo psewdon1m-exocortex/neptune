@@ -28,7 +28,9 @@ public sealed record ProjectRegistration(
     MirrorRegistration? Mirror = null,
     long ControlRevision = 0,
     bool PolicyPaused = false,
-    ReaderRegistration? Reader = null)
+    ReaderRegistration? Reader = null,
+    bool Unlinking = false,
+    bool RemoteDisconnected = false)
 {
     public ProjectRegistration Validate()
     {
