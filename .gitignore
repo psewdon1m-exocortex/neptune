@@ -1,6 +1,7 @@
 artifacts/
 .release/*
 !.release/known-problems-policy.json
+!.release/known-problems-supplement.json
 !.release/updater.version
 !.release/updater.sha256
 !.release/updater-bootstrap.sha256
