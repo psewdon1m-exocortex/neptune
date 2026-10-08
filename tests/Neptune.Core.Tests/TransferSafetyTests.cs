@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
 using Neptune.Core;
 using Xunit;
 
@@ -111,7 +112,7 @@ public sealed class TransferSafetyTests
             var scope=Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("https://saturn.test\n"+token)));
             Assert.Single(await restarted.ListSyncUploadCheckpointsAsync(scope,TestContext.Current.CancellationToken));
             failCancel=false;await Act();Assert.Equal(2,cancels);Assert.Empty(await restarted.ListSyncUploadCheckpointsAsync(scope,TestContext.Current.CancellationToken));
-        } finally { Directory.Delete(directory,true); }
+        } finally { SqliteConnection.ClearAllPools(); Directory.Delete(directory,true); }
     }
 
     [Fact]

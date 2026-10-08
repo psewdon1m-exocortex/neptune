@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
 using Neptune.Windows;
 using Xunit;
 
@@ -31,7 +32,7 @@ public sealed class WindowsEnrollmentTests
             Assert.NotEmpty(handler.DavRequests);
             Assert.All(handler.DavRequests, uri => Assert.StartsWith("/webdav/sync/" + Uri.EscapeDataString(folder) + "/Documents/", uri.AbsolutePath));
         }
-        finally { Directory.Delete(directory, true); }
+        finally { SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
     }
 
     [Theory]
@@ -49,7 +50,7 @@ public sealed class WindowsEnrollmentTests
             await Assert.ThrowsAsync<InvalidDataException>(() => service.ConnectAsync("client", new WindowsConnection(new Uri("https://kernel.test"), "fixture", new string('b', 43), "old-folder"), TestContext.Current.CancellationToken));
             Assert.Empty(handler.DavRequests);
         }
-        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public sealed class WindowsEnrollmentTests
             await Assert.ThrowsAsync<HttpRequestException>(()=>service.ConnectAsync("client",connection,TestContext.Current.CancellationToken));
             handler.KernelFailure=HttpStatusCode.ServiceUnavailable;
             await Assert.ThrowsAsync<HttpRequestException>(()=>service.ConnectAsync("client",connection,TestContext.Current.CancellationToken));
-        } finally {if(Directory.Exists(directory))Directory.Delete(directory,true);}
+        } finally {SqliteConnection.ClearAllPools();if(Directory.Exists(directory))Directory.Delete(directory,true);}
     }
 
     private sealed class Handler(string? folder) : HttpMessageHandler
