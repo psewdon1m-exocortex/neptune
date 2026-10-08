@@ -49,7 +49,7 @@ public sealed class ServicePolicyClient(
         if (method == HttpMethod.Put && body?["kind"]?.ToString() == "resume")
         {
             var exportToken = (await File.ReadAllTextAsync(project.ExportTokenFile, token)).Trim();
-            await VerifySourceAsync(http, project.ExportUri, exportToken, token);
+            if (project.ArchiveAvailable) await VerifySourceAsync(http, project.ExportUri, exportToken, token);
             if (project.Mirror is not null)
             {
                 await VerifySourceAsync(http, project.Mirror.ExportUri, exportToken, token);
@@ -98,6 +98,8 @@ public sealed class ServicePolicyClient(
                 throw new InvalidDataException("Upgrade Saturn: service-owned backup policy protocol is required");
             if ((result["mirror"] is not null) != (project.Mirror is not null))
                 throw new InvalidDataException("Enrolled backup policy and local pipeline profile differ");
+            if ((result["archive"]?["available"]?.GetValue<bool>() ?? true) != project.ArchiveAvailable)
+                throw new InvalidDataException("Enrolled archive capability and local pipeline profile differ");
             if (method == HttpMethod.Put)
             {
                 await registry.ApplyRemoteDesiredAsync(project.ProjectId, result["revision"]!.GetValue<long>(),

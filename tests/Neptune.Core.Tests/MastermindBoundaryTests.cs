@@ -75,7 +75,7 @@ public sealed class MastermindBoundaryTests
             return request.Method.Method == "PROPFIND" ? Xml(Row(href, name)) : new HttpResponseMessage(HttpStatusCode.NoContent);
         }));
         Assert.Equal(1, await new WebDavSyncClient(http).MirrorAsync(new Uri("https://saturn.test/webdav/mastermind/"), "fixture",
-            new HashSet<string>(), new HashSet<string>(), cancellationToken: TestContext.Current.CancellationToken));
+            new HashSet<string> { "local-kept.md" }, new HashSet<string>(), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal("DELETE /webdav/mastermind/" + suffix, requests[1]);
     }
 

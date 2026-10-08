@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Revision-bound, fail-closed Part 12 release evidence gate for Neptune."""
+"""Revision-bound, fail-closed Part 12 release evidence gate."""
 import argparse
 import hashlib
 import json
@@ -36,6 +36,11 @@ def git(*args):
 
 
 def load_catalog(policy, directory):
+    # Revision-specific caches prevent linked documents from a previous release
+    # being reused as current policy. Synthetic unit fixtures retain the default.
+    if policy.get("revision_cache"):
+        directory = directory / policy["catalog_revision"]
+        directory.mkdir(parents=True, exist_ok=True)
     catalog = directory / "catalog.md"
     if not catalog.exists():
         url = (
@@ -56,8 +61,16 @@ def load_catalog(policy, directory):
         match = re.match(r"\| \*\*([A-Z]+-\d{2})\*\* \| (.+) \| (.+) \|$", line)
         if match:
             rows.append({"id": match[1], "problem": match[2].strip(), "solution": match[3].strip()})
+    if policy.get("supplemental_catalog"):
+        supplement = (ROOT / policy["supplemental_catalog"]).resolve()
+        if not supplement.is_relative_to(ROOT) or digest(supplement.read_bytes()) != policy["supplemental_sha256"]:
+            raise ValueError("Supplemental policy checksum mismatch")
+        extra = read_json(supplement)
+        if extra.get("schema_version") != 1 or not re.fullmatch(r"[a-f0-9]{64}", extra.get("source_sha256", "")):
+            raise ValueError("Invalid supplemental source identity")
+        rows.extend(extra["rows"])
     ids = [row["id"] for row in rows]
-    if not ids or len(ids) != len(set(ids)) or len(ids) != policy["active_ids"]:
+    if not ids or any(not re.fullmatch(r"[A-Z]+-\d{2}", item) for item in ids) or len(ids) != len(set(ids)) or len(ids) != policy["active_ids"]:
         raise ValueError("Invalid catalog ID inventory")
     if any(not row["problem"] or not row["solution"] for row in rows):
         raise ValueError("Empty problem/solution cell")
@@ -118,16 +131,26 @@ def main():
     args = parser.parse_args()
     policy = read_json(POLICY)
     directory = (ROOT / args.evidence_dir).resolve()
-    directory.mkdir(parents=True, exist_ok=True)
     if not directory.is_relative_to(ROOT):
         raise ValueError("Evidence must remain inside the project")
+    directory.mkdir(parents=True, exist_ok=True)
+    report_path = (ROOT / args.report).resolve()
+    if not report_path.is_relative_to(ROOT):
+        raise ValueError("Report must remain inside the project")
     if not re.fullmatch(r"[a-f0-9]{40}", policy["catalog_revision"]):
         raise ValueError("Policy must pin a full commit SHA")
     rows = load_catalog(policy, directory)
     plan = expand_plan(policy, rows)
-    revision = git("rev-parse", "HEAD")
+    try:
+        revision = git("rev-parse", "HEAD")
+    except subprocess.CalledProcessError:
+        if args.phase != "structure" or args.record:
+            raise ValueError("Release receipts require a versioned Git checkout")
+        revision = "unversioned"
     run_id = os.getenv("GITHUB_RUN_ID", "local") + ":" + os.getenv("GITHUB_RUN_ATTEMPT", "1")
     identity = {"revision": revision, "catalog_sha256": policy["catalog_sha256"], "run_id": run_id}
+    if policy.get("supplemental_catalog"):
+        identity["supplemental_sha256"] = policy["supplemental_sha256"]
     if args.record:
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,40}", args.record or "") or not args.command:
             raise ValueError("A receipt needs a named executable command")
@@ -157,7 +180,7 @@ def main():
         if entry.get("not_applicable"):
             reason = entry["reason"]
             paths = entry.get("paths", [])
-            if len(reason) < 50 or not paths or any(not (ROOT / item).exists() for item in paths):
+            if len(reason) < 50 or not paths or any(not (ROOT / item).resolve().is_relative_to(ROOT) or not (ROOT / item).exists() for item in paths):
                 raise ValueError("Unexplained N/A: " + problem_id)
             status = "N/A"
         else:
@@ -223,10 +246,10 @@ def main():
         "release_qualification": args.phase == "final" and not unresolved,
         "deployment_activation": {
             "status": "NOT_RUN",
-            "reason": "Production DNS/TLS, enrolled credentials, external reachability and installed agent versions require operator activation checks on the target hosts.",
+            "reason": "Production DNS/TLS, provider credentials, external reachability and installed helper versions require the operator activation checks in DEPLOYMENT_READINESS.md.",
         },
     }
-    (ROOT / args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Part 12 {args.phase}: {len(checks)} IDs, {len(unresolved)} unresolved, qualification={report['release_qualification']}")
     return 1 if unresolved and args.phase != "structure" else 0
 

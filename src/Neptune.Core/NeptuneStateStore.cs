@@ -69,6 +69,14 @@ public sealed class NeptuneStateStore(string databasePath)
                 error TEXT,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS sync_upload_checkpoints (
+                scope TEXT NOT NULL,
+                target_uri TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                upload_id TEXT,
+                PRIMARY KEY(scope,target_uri)
+            );
             CREATE TRIGGER IF NOT EXISTS remote_commands_capacity BEFORE INSERT ON remote_commands
             WHEN NOT EXISTS (SELECT 1 FROM remote_commands WHERE command_id=NEW.command_id)
             BEGIN
@@ -414,6 +422,49 @@ public sealed class NeptuneStateStore(string databasePath)
         command.Parameters.AddWithValue("$state", record.State);
         command.Parameters.AddWithValue("$updatedAt", record.UpdatedAt.ToString("O"));
         command.Parameters.AddWithValue("$error", (object?)record.Error ?? DBNull.Value);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SyncUploadCheckpoint>> ListSyncUploadCheckpointsAsync(string scope, CancellationToken cancellationToken = default)
+    {
+        var result = new List<SyncUploadCheckpoint>();
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT target_uri,idempotency_key,fingerprint,upload_id FROM sync_upload_checkpoints WHERE scope=$scope";
+        command.Parameters.AddWithValue("$scope", scope);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken)) result.Add(new(scope,reader.GetString(0),reader.GetString(1),reader.GetString(2),reader.IsDBNull(3)?null:reader.GetString(3)));
+        return result;
+    }
+
+    public async Task SaveSyncUploadCheckpointAsync(SyncUploadCheckpoint checkpoint, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO sync_upload_checkpoints(scope,target_uri,idempotency_key,fingerprint,upload_id)
+            VALUES($scope,$target,$key,$fingerprint,$id)
+            ON CONFLICT(scope,target_uri) DO UPDATE SET idempotency_key=excluded.idempotency_key,fingerprint=excluded.fingerprint,upload_id=excluded.upload_id;
+            """;
+        command.Parameters.AddWithValue("$scope",checkpoint.Scope);
+        command.Parameters.AddWithValue("$target",checkpoint.TargetUri);
+        command.Parameters.AddWithValue("$key",checkpoint.IdempotencyKey);
+        command.Parameters.AddWithValue("$fingerprint",checkpoint.Fingerprint);
+        command.Parameters.AddWithValue("$id",(object?)checkpoint.UploadId??DBNull.Value);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task RemoveSyncUploadCheckpointAsync(SyncUploadCheckpoint checkpoint, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM sync_upload_checkpoints WHERE scope=$scope AND target_uri=$target AND idempotency_key=$key";
+        command.Parameters.AddWithValue("$scope",checkpoint.Scope);
+        command.Parameters.AddWithValue("$target",checkpoint.TargetUri);
+        command.Parameters.AddWithValue("$key",checkpoint.IdempotencyKey);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

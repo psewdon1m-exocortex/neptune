@@ -4,15 +4,16 @@ namespace Neptune.Windows;
 
 public partial class ConnectionWindow : Window
 {
+    private string _existingFolder = "";
     public WindowsConnection? Connection { get; private set; }
     public ConnectionWindow(WindowsConnection? existing)
     {
         InitializeComponent();
         if (existing is null) return;
+        _existingFolder = existing.RemoteFolder;
         KernelOrigin.Text = existing.KernelOrigin.AbsoluteUri;
         KernelToken.Password = existing.KernelToken;
         SaturnToken.Password = existing.SaturnToken;
-        RemoteFolder.Text = existing.RemoteFolder;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -24,16 +25,10 @@ public partial class ConnectionWindow : Window
         }
         if (string.IsNullOrWhiteSpace(KernelToken.Password) || string.IsNullOrWhiteSpace(SaturnToken.Password))
         {
-            MessageBox.Show(this, "Both tokens are required.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "The Kernel token and Saturn setup code are required.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-        var remoteFolder = RemoteFolder.Text.Trim().Normalize();
-        if (remoteFolder.Length is < 1 or > 100 || remoteFolder is "." or ".." || remoteFolder.Any(value => char.IsControl(value) || value is '/' or '\\'))
-        {
-            MessageBox.Show(this, "Destination must contain 1-100 characters without slashes or control characters.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password, remoteFolder);
+        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password, _existingFolder);
         DialogResult = true;
     }
 }

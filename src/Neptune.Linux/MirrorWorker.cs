@@ -187,7 +187,7 @@ public sealed class MirrorWorker(
             return resolved;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception error) when (_lastSaturnOrigin is not null)
+        catch (Exception error) when (RegisterFallback.CanUse(error) && _lastSaturnOrigin is not null)
         {
             logger.LogWarning(error, "Kernel Register refresh failed; mirror upload is using the last resolved Saturn origin held in memory");
             return _lastSaturnOrigin;

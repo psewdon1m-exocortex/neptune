@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Neptune.Core;
 
@@ -12,8 +14,17 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
         "^volt://[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[1-5]$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    public async Task<JsonDocument> GetSnapshotAsync(Uri kernelOrigin, string token, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? requestedKeys = null)
+    private sealed record MetadataCache(string Binding, DateTimeOffset SavedAt, string Snapshot);
+    private static readonly HashSet<string> CacheableKeys = ["services.saturn.sni", "services.saturn.port", "services.saturn.paths.sync", "services.saturn.paths.sync_preferences"];
+
+    public async Task<JsonDocument> GetSnapshotAsync(Uri kernelOrigin, string token, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? requestedKeys = null, bool allowCachedMetadata = false)
     {
+        var callerCancellation = cancellationToken;
+        var cacheAllowed = allowCachedMetadata && requestedKeys is { Count: > 0 } && requestedKeys.All(CacheableKeys.Contains);
+        var binding = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(kernelOrigin.AbsoluteUri + "\0" + token + "\0" + string.Join('\n', (requestedKeys ?? Array.Empty<string>()).Order(StringComparer.Ordinal)))));
+        var metadataPath = cachePath + ".resolved.json";
+        var discoveryComplete = false;
+        try {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(15));
         cancellationToken = deadline.Token;
@@ -28,7 +39,29 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
         var temporary = $"{cachePath}.{Guid.NewGuid():N}.tmp";
         await File.WriteAllTextAsync(temporary, downloaded.RootElement.GetRawText(), cancellationToken);
         File.Move(temporary, cachePath, overwrite: true);
-        return await ResolveAsync(kernelOrigin, token, downloaded.RootElement.GetRawText(), requestedKeys, cancellationToken);
+        var resolved = await ResolveAsync(kernelOrigin, token, downloaded.RootElement.GetRawText(), requestedKeys, cancellationToken);
+        discoveryComplete = true;
+        if (cacheAllowed)
+        {
+            var cacheTemporary = $"{metadataPath}.{Guid.NewGuid():N}.tmp";
+            try { await File.WriteAllTextAsync(cacheTemporary, JsonSerializer.Serialize(new MetadataCache(binding, DateTimeOffset.UtcNow, resolved.RootElement.GetRawText())), cancellationToken); File.Move(cacheTemporary,metadataPath,overwrite:true); }
+            catch { resolved.Dispose(); throw; }
+            finally { if(File.Exists(cacheTemporary)) File.Delete(cacheTemporary); }
+        }
+        return resolved;
+        }
+        catch (HttpRequestException error) when (error.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            if (cacheAllowed && File.Exists(metadataPath)) File.Delete(metadataPath);
+            throw;
+        }
+        catch (Exception error) when (cacheAllowed && !discoveryComplete && !callerCancellation.IsCancellationRequested && RegisterFallback.CanUse(error))
+        {
+            if (!File.Exists(metadataPath) || new FileInfo(metadataPath).Length > 1024 * 1024) throw;
+            var saved = JsonSerializer.Deserialize<MetadataCache>(await File.ReadAllTextAsync(metadataPath, callerCancellation));
+            if (saved is null || saved.Binding != binding || saved.SavedAt > DateTimeOffset.UtcNow || DateTimeOffset.UtcNow-saved.SavedAt > TimeSpan.FromHours(24)) throw;
+            return JsonDocument.Parse(saved.Snapshot);
+        }
     }
 
     private async Task<JsonDocument> ResolveAsync(Uri kernelOrigin, string token, string rawSnapshot, IReadOnlyCollection<string>? requestedKeys, CancellationToken cancellationToken)

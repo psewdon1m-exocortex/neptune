@@ -4,7 +4,6 @@ using System.Text.Json;
 
 namespace Neptune.Windows;
 
-public sealed record WindowsConnection(Uri KernelOrigin, string KernelToken, string SaturnToken, string RemoteFolder);
 internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken, string? RemoteFolder);
 
 public sealed class WindowsConnectionStore(string stateDirectory)

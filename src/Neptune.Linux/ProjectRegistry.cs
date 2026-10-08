@@ -42,7 +42,7 @@ public sealed class ProjectRegistry(string path)
             var previous = projects.SingleOrDefault(item => item.ProjectId == registration.ProjectId);
             if (preservePolicy && previous is not null)
                 registration = registration with {
-                    Enabled = previous.Enabled, IntervalHours = previous.IntervalHours, NextRunAt = previous.NextRunAt,
+                    Enabled = registration.ArchiveAvailable && previous.Enabled, IntervalHours = previous.IntervalHours, NextRunAt = previous.NextRunAt,
                     ControlRevision = previous.ControlRevision, PolicyPaused = previous.PolicyPaused,
                     Mirror = registration.Mirror is not null && previous.Mirror is not null
                         ? registration.Mirror with { Enabled = previous.Mirror.Enabled, IntervalMinutes = previous.Mirror.IntervalMinutes,
@@ -69,9 +69,9 @@ public sealed class ProjectRegistry(string path)
         if (intervalHours is < 1 or > 8760) throw new ArgumentOutOfRangeException(nameof(intervalHours));
         await MutateAsync(projectId, registration => registration with
         {
-            Enabled = enabled,
+            Enabled = registration.ArchiveAvailable && enabled,
             IntervalHours = intervalHours,
-            NextRunAt = enabled ? DateTimeOffset.UtcNow.AddHours(intervalHours) : null
+            NextRunAt = registration.ArchiveAvailable && enabled ? DateTimeOffset.UtcNow.AddHours(intervalHours) : null
         }, cancellationToken);
     }
 
@@ -155,7 +155,7 @@ public sealed class ProjectRegistry(string path)
             var now = DateTimeOffset.UtcNow;
             // Keep old readers safe too: paused intent lives in Saturn, while
             // the compatible local enabled flags govern actual execution.
-            archiveEnabled = archiveEnabled && !paused;
+            archiveEnabled = registration.ArchiveAvailable && archiveEnabled && !paused;
             mirrorEnabled = mirrorEnabled && !paused;
             var archiveChanged = registration.Enabled != archiveEnabled || registration.IntervalHours != archiveIntervalHours
                 || registration.PolicyPaused && !paused;

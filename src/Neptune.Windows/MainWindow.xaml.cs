@@ -48,7 +48,7 @@ public partial class MainWindow : Window
         _tray = new WindowsTrayIcon(profile.ProfileId, RestoreFromTray, SyncFromTrayAsync, CheckForUpdatesAsync, ExitFromTray);
         MappingsList.ItemsSource = _mappings;
         ProfileLabel.Text = $"profile / {profile.ProfileId}";
-        SourceInitialized += (_, _) => SetClientSize(800, 500);
+        SourceInitialized += (_, _) => SetClientSize(500, 800);
         Loaded += async (_, _) => await LoadAsync();
         Closing += Window_Closing;
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) HideToTray(showHint: false); };
@@ -80,7 +80,12 @@ public partial class MainWindow : Window
         var connection = _connections.Read();
         if (connection is not null)
         {
-            try { ApplyAccent(await _syncServiceFactory().ConnectAsync(_clientInstanceId, connection)); }
+            try
+            {
+                var connected = await _syncServiceFactory().ConnectAsync(_clientInstanceId, connection);
+                _connections.Write(connected.Connection);
+                ApplyAccent(connected.AccentColor);
+            }
             catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
         }
         if (_profile.StartMinimized) HideToTray(showHint: false);
@@ -204,12 +209,12 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() != true || dialog.Connection is null) return null;
         try
         {
-            var accent = await _syncServiceFactory().ConnectAsync(_clientInstanceId, dialog.Connection);
-            _connections.Write(dialog.Connection);
-            ApplyAccent(accent);
+            var connected = await _syncServiceFactory().ConnectAsync(_clientInstanceId, dialog.Connection);
+            _connections.Write(connected.Connection);
+            ApplyAccent(connected.AccentColor);
             ShowConnectionState();
-            FooterStatus.Text = $"Connected · sync/{dialog.Connection.RemoteFolder}";
-            return dialog.Connection;
+            FooterStatus.Text = $"Connected · sync/{connected.Connection.RemoteFolder}";
+            return connected.Connection;
         }
         catch (Exception error)
         {

@@ -52,6 +52,7 @@ if (args is ["register-project", var projectId, var envFile])
         int.TryParse(environment.GetValueOrDefault("NEPTUNE_BACKUP_INTERVAL_HOURS"), out var hours) ? hours : 24,
         SaturnSlug: saturnSlug.Length == 0 ? null : saturnSlug,
         Mirror: mirror,
+        ArchiveAvailable: !bool.TryParse(environment.GetValueOrDefault("NEPTUNE_BACKUP_AVAILABLE"), out var archiveAvailable) || archiveAvailable,
         Reader: environment.TryGetValue("NEPTUNE_READER_TOKEN_FILE", out var readerToken)
             ? new ReaderRegistration(readerToken, environment.GetValueOrDefault("NEPTUNE_READER_ROOT", "root")) : null);
     await new ProjectRegistry(registryPath).UpsertAsync(registration, preservePolicy: true);

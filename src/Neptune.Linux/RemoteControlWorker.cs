@@ -60,7 +60,7 @@ public sealed class RemoteControlWorker(
             return resolved;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception error) when (_lastSaturnOrigin is not null)
+        catch (Exception error) when (RegisterFallback.CanUse(error) && _lastSaturnOrigin is not null)
         {
             logger.LogWarning(error, "Kernel Register refresh failed; remote check-in is using the last resolved Saturn origin held in memory");
             return _lastSaturnOrigin;
@@ -184,7 +184,7 @@ public sealed class RemoteControlWorker(
         catch (Exception error)
         {
             await state.SaveRemoteCommandAsync(command.Id, project.ProjectId, command.Kind, rawPayload,
-                command.Kind == "archive.run" ? "retry-wait" : "failed", error.Message, CancellationToken.None);
+                command.Kind == "archive.run" && project.ArchiveAvailable ? "retry-wait" : "failed", error.Message, CancellationToken.None);
         }
     }
 

@@ -30,7 +30,8 @@ public sealed record ProjectRegistration(
     bool PolicyPaused = false,
     ReaderRegistration? Reader = null,
     bool Unlinking = false,
-    bool RemoteDisconnected = false)
+    bool RemoteDisconnected = false,
+    bool ArchiveAvailable = true)
 {
     public ProjectRegistration Validate()
     {
@@ -145,6 +146,8 @@ public sealed record SyncFileRecord(
     string State,
     DateTimeOffset UpdatedAt,
     string? Error);
+
+public sealed record SyncUploadCheckpoint(string Scope, string TargetUri, string IdempotencyKey, string Fingerprint, string? UploadId);
 
 public sealed record NeptuneStatus(
     string Product,

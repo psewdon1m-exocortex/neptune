@@ -1,56 +1,121 @@
 {
   "schema_version": 1,
   "service": "neptune",
-  "catalog_revision": "c54527d1d72c096daccb61a130dfc35152937944",
-  "catalog_sha256": "50c76318747867575935e77fff0520c9517fe513912fef4c8c08944de9562ac5",
+  "catalog_revision": "3415ca3eac2191b623928733d3f7ee996f505c84",
+  "catalog_sha256": "413cd04e0a7c082a9d1cd3b33236230f4047338321e5f5f44230e8f356c45d65",
   "remote_path": "PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md",
-  "active_ids": 97,
+  "active_ids": 117,
   "case_defaults": {
-    "REL": ["unit", "linux-package", "windows-package"],
-    "BST": ["linux-package"],
-    "TRUST": ["unit", "linux-package", "windows-package"],
-    "PERM": ["linux-package"],
-    "CTR": ["linux-package"],
-    "NET": ["unit", "linux-package"],
-    "HLT": ["unit", "linux-package"],
-    "INT": ["unit", "linux-package"],
-    "DATA": ["unit", "linux-package"],
-    "OPS": ["linux-package", "windows-package"]
+    "REL": [
+      "unit",
+      "linux-package",
+      "windows-package"
+    ],
+    "BST": [
+      "linux-package"
+    ],
+    "TRUST": [
+      "unit",
+      "linux-package",
+      "windows-package"
+    ],
+    "PERM": [
+      "linux-package"
+    ],
+    "CTR": [
+      "linux-package"
+    ],
+    "NET": [
+      "unit",
+      "linux-package"
+    ],
+    "HLT": [
+      "unit",
+      "linux-package"
+    ],
+    "INT": [
+      "unit",
+      "linux-package"
+    ],
+    "DATA": [
+      "unit",
+      "linux-package"
+    ],
+    "OPS": [
+      "linux-package",
+      "windows-package"
+    ]
   },
-  "case_overrides": {},
-  "final_checks": ["REL-03", "REL-06", "REL-09", "TRUST-06"],
+  "case_overrides": {
+    "INT-16": [
+      "kernel-register-contract"
+    ]
+  },
+  "final_checks": [
+    "REL-03",
+    "REL-06",
+    "REL-09",
+    "TRUST-06"
+  ],
   "not_applicable": {
     "TRUST-02": {
       "reason": "Neptune does not implement an SFTP or SSH client or store a host-key trust database; remote storage transport and fingerprint verification are owned by Saturn.",
-      "paths": ["src/Neptune.Linux/BackupWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/BackupWorker.cs",
+        "README.md"
+      ]
     },
     "TRUST-07": {
       "reason": "Neptune consumes typed project and producer credentials but does not register an external provider webhook or pass a webhook secret to a provider; those trust boundaries belong to the provider integration service.",
-      "paths": ["src/Neptune.Linux/Program.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/Program.cs",
+        "README.md"
+      ]
     },
     "HLT-07": {
       "reason": "Neptune does not own the remote storage credential or root and cannot perform an SFTP read-write-delete canary; Saturn owns that storage capability probe while Neptune reports transfer outcomes separately.",
-      "paths": ["src/Neptune.Linux/BackupWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/BackupWorker.cs",
+        "README.md"
+      ]
     },
     "INT-09": {
       "reason": "Neptune is a backup and synchronization agent with a local socket API; it does not own a chat command gateway, provider command menu, reply keyboard, aliases, or conversational state machine.",
-      "paths": ["src/Neptune.Linux/Program.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/Program.cs",
+        "README.md"
+      ]
     },
     "INT-10": {
       "reason": "Neptune polls Saturn over outbound HTTPS and does not register Telegram or other external-provider webhooks; it owns no provider callback activation lifecycle.",
-      "paths": ["src/Neptune.Linux/RemoteControlWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/RemoteControlWorker.cs",
+        "README.md"
+      ]
     },
     "INT-11": {
       "reason": "Neptune accepts scoped commands through an authenticated Saturn poll and has no external webhook ingestion queue, repository or tenant filter, provider delivery worker, or callback ping.",
-      "paths": ["src/Neptune.Linux/RemoteControlWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/RemoteControlWorker.cs",
+        "README.md"
+      ]
     },
     "DATA-05": {
       "reason": "Neptune sends archives to Saturn over authenticated HTTP and owns no storage account or namespace in which to execute a remote write-read-delete canary; Saturn performs the storage capability probe.",
-      "paths": ["src/Neptune.Linux/BackupWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/BackupWorker.cs",
+        "README.md"
+      ]
     },
     "DATA-10": {
       "reason": "Independent storage accounts and failure domains are external Saturn deployment resources; Neptune exports one scoped archive and cannot establish remote storage independence by itself.",
-      "paths": ["src/Neptune.Linux/BackupWorker.cs", "README.md"]
+      "paths": [
+        "src/Neptune.Linux/BackupWorker.cs",
+        "README.md"
+      ]
     }
-  }
+  },
+  "revision_cache": true,
+  "supplemental_catalog": ".release/known-problems-supplement.json",
+  "supplemental_sha256": "8e749f7b58c8a052de934850f1fb2f2e427dbe996b40d44539e2a265b64fb796"
 }

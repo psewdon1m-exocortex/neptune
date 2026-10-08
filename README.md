@@ -47,7 +47,7 @@ credentials and never exposes a web interface.
 - `src/Neptune.Core` contains Kernel Register verification, the SQLite journal,
   exact-byte backup spooling, resumable Saturn upload and one-way WebDAV sync;
 - `src/Neptune.Linux` is the host-wide daemon and authenticated Unix-socket API;
-- `src/Neptune.Windows` is the 800 x 500 WPF application with isolated profiles,
+- `src/Neptune.Windows` is the 500 x 800 portrait WPF application with isolated profiles,
   native folder selection, DPAPI-protected tokens, watcher hints and periodic
   reconciliation, tray operation, per-profile current-user autostart and a
   checksummed portable updater;
@@ -70,6 +70,13 @@ separate protected configuration, SQLite journals and stable client IDs:
 Neptune.Windows.exe --profile work
 Neptune.Windows.exe --profile personal
 ```
+
+Neptune Windows is enrolled with the one-time setup code created by Saturn's
+Synchronization page. The desktop client resolves Saturn through the signed
+Kernel Register, exchanges the code for a scoped device credential, protects
+that credential with DPAPI and sends a heartbeat on every connection or sync.
+The permanent credential is never shown in Saturn. Reissuing a setup code and
+redeeming it rotates that individual connection without affecting other agents.
 
 ## 1. Repository and release contract
 
@@ -458,3 +465,9 @@ files and reparse points, long paths/case collisions, installer rollback,
 accessibility at 800 x 500 and secret scans of logs, backups and release assets.
 
 The current six-service deployment, trust, recovery and acceptance contract is documented in [Deployment readiness](DEPLOYMENT_READINESS.md).
+
+## Windows folder assignment and selected service pipelines
+
+Saturn creates `sync/<Connection name>` and returns `syncRootId` and `syncFolderName` during enrollment and heartbeat. Windows has no destination-folder input; its protected profile stores the server assignment. A missing or unsafe assignment stops the client before DAV requests. The server enforces both endpoints of MOVE/COPY, prevents removal or relocation of the assigned root and denies other clients’ folders. Reissue setup for legacy unbound devices; if the name collides with an existing folder, create a new isolated connection name instead of adopting that folder. File data is retained.
+
+Volt and Mastermind setup codes provision the selected archive/mirror capabilities. `NEPTUNE_BACKUP_AVAILABLE` defaults to true for older profiles. Mirror-only projects retain their control credential for policy and check-in but cannot run archives. See [service-owned policy](docs/service-owned-policy.md).

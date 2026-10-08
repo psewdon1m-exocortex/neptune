@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Xml;
@@ -7,7 +8,7 @@ using System.Xml.Linq;
 
 namespace Neptune.Core;
 
-public sealed class WebDavSyncClient(HttpClient httpClient)
+public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? state = null)
 {
     private const string OwnerMarker = "_neptune-owner";
 
@@ -16,15 +17,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         var segments = TargetSegments(clientInstanceId, mappingId, relativePath);
         await EnsureCollectionsAsync(syncBaseUri, token, segments[..^1], cancellationToken);
         var target = new Uri(EnsureSlash(syncBaseUri), string.Join('/', segments));
-        var currentEtag = await ReadEtagAsync(target, token, cancellationToken);
-        using var request = new HttpRequestMessage(HttpMethod.Put, target);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
-        request.Headers.TryAddWithoutValidation(currentEtag is null ? "If-None-Match" : "If-Match", currentEtag ?? "*");
-        request.Content = new StreamContent(new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan));
-        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
+        return await UploadTargetAsync(target, token, localPath, cancellationToken);
     }
 
     public static Uri TargetUri(Uri syncBaseUri, string clientInstanceId, string mappingId, string relativePath) =>
@@ -88,15 +81,148 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         if (segments.Length == 0) throw new ArgumentException("Relative file path is empty.", nameof(relativePath));
         await EnsureCollectionsAsync(mappingRoot, token, segments[..^1], cancellationToken);
         var target = new Uri(EnsureSlash(mappingRoot), string.Join('/', segments));
+        return await UploadTargetAsync(target, token, localPath, cancellationToken);
+    }
+
+    private async Task<string> UploadTargetAsync(Uri target, string token, string localPath, CancellationToken cancellationToken)
+    {
+        await using var source = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        var digest = Convert.ToHexStringLower(await SHA256.HashDataAsync(source, cancellationToken));
+        source.Position = 0;
         var currentEtag = await ReadEtagAsync(target, token, cancellationToken);
+        var expectedEtag = $"\"sha256-{digest}\"";
+        var fingerprint = digest + "\n" + source.Length + "\n" + currentEtag;
+        if (state is not null)
+        {
+            var previous = (await state.ListSyncUploadCheckpointsAsync(UploadScope(target,token), cancellationToken)).SingleOrDefault(item=>item.TargetUri==target.AbsoluteUri);
+            if (previous is not null && (previous.Fingerprint != fingerprint || currentEtag == expectedEtag))
+                await CancelCheckpointAsync(previous, token, cancellationToken);
+        }
+        if (string.Equals(currentEtag, expectedEtag, StringComparison.Ordinal)) return expectedEtag;
+        var davPrefix = target.AbsolutePath.StartsWith("/dav/sync/", StringComparison.Ordinal) ? "/dav/"
+            : target.AbsolutePath.StartsWith("/webdav/sync/", StringComparison.Ordinal) ? "/webdav/" : null;
+        if (source.Length >= 1024 * 1024 && davPrefix is not null)
+        {
+            var resumed = await UploadResumableAsync(target, target.AbsolutePath[davPrefix.Length..], token, source, digest, currentEtag, cancellationToken);
+            if (resumed is not null) return resumed;
+            source.Position = 0;
+        }
         using var request = new HttpRequestMessage(HttpMethod.Put, target);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
         request.Headers.TryAddWithoutValidation(currentEtag is null ? "If-None-Match" : "If-Match", currentEtag ?? "*");
-        request.Content = new StreamContent(new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan));
+        request.Headers.TryAddWithoutValidation("X-Content-Sha256", digest);
+        request.Content = new StreamContent(source);
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
-        return response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
+        var receipt = response.Headers.ETag?.Tag ?? await ReadEtagAsync(target, token, cancellationToken);
+        if (receipt is null || !string.Equals(receipt, $"\"sha256-{digest}\"", StringComparison.Ordinal)) throw new InvalidDataException("Saturn did not confirm the uploaded file checksum.");
+        return receipt;
+    }
+
+    private sealed record UploadCheckpoint(string Id, string Status, long ReceivedSize, long ExpectedSize, string? Etag);
+
+    private async Task<string?> UploadResumableAsync(Uri target, string logicalPath, string token, FileStream source, string digest, string? currentEtag, CancellationToken cancellationToken)
+    {
+        var endpoint = new Uri(target, "/api/v1/sync/uploads");
+        var scope = UploadScope(target, token);
+        var fingerprint = digest + "\n" + source.Length + "\n" + currentEtag;
+        var key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(target.AbsoluteUri + "\n" + fingerprint)));
+        var saved = state is null ? null : (await state.ListSyncUploadCheckpointsAsync(scope,cancellationToken)).SingleOrDefault(item=>item.TargetUri==target.AbsoluteUri);
+        key = saved?.IdempotencyKey ?? (state is null ? key : Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key+"\n"+Guid.NewGuid().ToString("N")))));
+        // Persist before create: even losing the create response leaves a key
+        // with which this device can cancel the old session after a restart.
+        saved = new SyncUploadCheckpoint(scope,target.AbsoluteUri,key,fingerprint,saved?.UploadId);
+        if (state is not null) await state.SaveSyncUploadCheckpointAsync(saved,cancellationToken);
+        using var create = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        create.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+        create.Content = new StringContent(JsonSerializer.Serialize(new { path = logicalPath, expectedSize = source.Length, expectedSha256 = digest, idempotencyKey = key, ifMatch = currentEtag, ifNoneMatch = currentEtag is null ? "*" : null },
+            new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), Encoding.UTF8, "application/json");
+        using var created = await httpClient.SendAsync(create, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        // Older Saturn releases have no resumable endpoint.
+        if (created.StatusCode == HttpStatusCode.NotFound)
+        {
+            if (state is not null) await state.RemoveSyncUploadCheckpointAsync(saved,cancellationToken);
+            return null;
+        }
+        if (created.StatusCode == HttpStatusCode.Conflict && state is not null)
+        {
+            // Expired or terminal sessions cannot be revived under their old
+            // key. Confirm cancellation, then the next attempt gets a new key.
+            await CancelCheckpointAsync(saved,token,cancellationToken);
+        }
+        created.EnsureSuccessStatusCode();
+        var checkpoint = await ReadCheckpointAsync(created, source.Length, cancellationToken);
+        saved = saved with { UploadId=checkpoint.Id };
+        if (state is not null) await state.SaveSyncUploadCheckpointAsync(saved,cancellationToken);
+        var uploadUri = new Uri(endpoint.AbsoluteUri + "/" + checkpoint.Id);
+        var buffer = new byte[1024 * 1024];
+        while (checkpoint.Status != "active" && checkpoint.ReceivedSize < source.Length)
+        {
+            source.Position = checkpoint.ReceivedSize;
+            var count = (int)Math.Min(buffer.Length, source.Length - source.Position);
+            await source.ReadExactlyAsync(buffer.AsMemory(0, count), cancellationToken);
+            using var append = new HttpRequestMessage(HttpMethod.Patch, uploadUri);
+            append.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+            append.Headers.TryAddWithoutValidation("Upload-Offset", checkpoint.ReceivedSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            append.Content = new ByteArrayContent(buffer, 0, count);
+            append.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            using var appended = await httpClient.SendAsync(append, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            appended.EnsureSuccessStatusCode();
+            var next = await ReadCheckpointAsync(appended, source.Length, cancellationToken);
+            if (next.Id != checkpoint.Id || next.ReceivedSize != checkpoint.ReceivedSize + count) throw new InvalidDataException("Saturn returned an invalid upload checkpoint.");
+            checkpoint = next;
+        }
+        if (checkpoint.Status != "active")
+        {
+            using var complete = new HttpRequestMessage(HttpMethod.Post, new Uri(uploadUri.AbsoluteUri + "/complete"));
+            complete.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+            using var completed = await httpClient.SendAsync(complete, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            completed.EnsureSuccessStatusCode();
+            checkpoint = await ReadCheckpointAsync(completed, source.Length, cancellationToken);
+        }
+        if (checkpoint.Status != "active" || !string.Equals(checkpoint.Etag, $"\"sha256-{digest}\"", StringComparison.Ordinal))
+            throw new InvalidDataException("Saturn did not confirm the completed file checksum.");
+        if (state is not null) await state.RemoveSyncUploadCheckpointAsync(saved,cancellationToken);
+        return checkpoint.Etag;
+    }
+
+    private static string UploadScope(Uri target, string token) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(target.GetLeftPart(UriPartial.Authority)+"\n"+token.Trim())));
+
+    private async Task CancelCheckpointAsync(SyncUploadCheckpoint checkpoint, string token, CancellationToken cancellationToken)
+    {
+        using var cancel = new HttpRequestMessage(HttpMethod.Post,new Uri(new Uri(checkpoint.TargetUri),"/api/v1/sync/uploads/cancel"));
+        cancel.Headers.Authorization = new AuthenticationHeaderValue("Bearer",token.Trim());
+        cancel.Content = new StringContent(JsonSerializer.Serialize(new { idempotencyKey=checkpoint.IdempotencyKey }),Encoding.UTF8,"application/json");
+        using var response = await httpClient.SendAsync(cancel,HttpCompletionOption.ResponseHeadersRead,cancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var document = await BoundedJson.ReadAsync(response.Content,4096,cancellationToken);
+        var status = document.RootElement.GetProperty("status").GetString();
+        if (status is not ("absent" or "abandoned" or "active")) throw new InvalidDataException("Saturn did not confirm checkpoint cancellation.");
+        if (state is not null) await state.RemoveSyncUploadCheckpointAsync(checkpoint,cancellationToken);
+    }
+
+    public async Task CancelMissingUploadsAsync(Uri mappingRoot, string token, IReadOnlySet<string> localFiles, CancellationToken cancellationToken = default)
+    {
+        if (state is null) return;
+        var root = EnsureSlash(mappingRoot);
+        foreach (var checkpoint in await state.ListSyncUploadCheckpointsAsync(UploadScope(root,token),cancellationToken))
+        {
+            var target = new Uri(checkpoint.TargetUri);
+            if (!root.IsBaseOf(target)) continue;
+            var relative = Uri.UnescapeDataString(root.MakeRelativeUri(target).OriginalString);
+            if (!localFiles.Contains(relative)) await CancelCheckpointAsync(checkpoint,token,cancellationToken);
+        }
+    }
+
+    private static async Task<UploadCheckpoint> ReadCheckpointAsync(HttpResponseMessage response, long expectedSize, CancellationToken cancellationToken)
+    {
+        using var document = await BoundedJson.ReadAsync(response.Content, 4096, cancellationToken);
+        var value = document.RootElement.Deserialize<UploadCheckpoint>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        if (value is null || !Guid.TryParseExact(value.Id, "D", out _) || value.ExpectedSize != expectedSize || value.ReceivedSize < 0 || value.ReceivedSize > expectedSize
+            || value.Status is not ("created" or "uploading" or "failed_retryable" or "verifying" or "committing" or "active"))
+            throw new InvalidDataException("Saturn returned an invalid upload checkpoint.");
+        return value;
     }
 
     public async Task<int> MirrorAsync(Uri mappingRoot, string token, IReadOnlySet<string> localFiles, IReadOnlySet<string> localDirectories, bool protectMassDeletion = true, CancellationToken cancellationToken = default)
@@ -105,6 +231,8 @@ public sealed class WebDavSyncClient(HttpClient httpClient)
         var removedFiles = remote.Where(value => !value.IsCollection && !localFiles.Contains(value.RelativePath)).ToArray();
         var removedDirectories = remote.Where(value => value.IsCollection && !localDirectories.Contains(value.RelativePath)).OrderByDescending(value => value.RelativePath.Count(c => c == '/')).ToArray();
         var removed = removedFiles.Length + removedDirectories.Length;
+        if (protectMassDeletion && localFiles.Count == 0 && removedFiles.Length > 0)
+            throw new InvalidOperationException("Mirror deletion guard stopped an empty local snapshot from removing stored files.");
         if (protectMassDeletion && removed > 20 && removed * 4 > Math.Max(1, remote.Count))
             throw new InvalidOperationException($"Mirror deletion guard stopped removal of {removed} out of {remote.Count} remote entries.");
         foreach (var entry in removedFiles)

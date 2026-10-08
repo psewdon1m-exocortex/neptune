@@ -109,6 +109,17 @@ class GateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.run_gate()
 
+    def test_supplement_is_checksum_bound_and_invalidates_old_receipts(self):
+        supplement = self.root / "supplement.json"
+        supplement.write_text(json.dumps({"schema_version": 1, "source_sha256": "c" * 64, "rows": [{"id": "TEST-02", "problem": "Local pending requirement", "solution": "Current contract evidence"}]}), encoding="utf-8")
+        self.policy.update({"supplemental_catalog": "supplement.json", "supplemental_sha256": gate.digest(supplement.read_bytes()), "active_ids": 2})
+        self.save(); self.receipt_file()
+        self.assertEqual(self.run_gate()[0], 1)
+        self.receipt["supplemental_sha256"] = self.policy["supplemental_sha256"]
+        self.receipt_file(); self.assertEqual(self.run_gate()[0], 0)
+        supplement.write_text("{}", encoding="utf-8")
+        with self.assertRaises(ValueError): self.run_gate()
+
     def test_dirty_source_and_wrong_tag(self):
         self.receipt_file()
         with self.assertRaises(ValueError):

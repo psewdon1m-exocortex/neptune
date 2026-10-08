@@ -13,4 +13,9 @@
     <ProjectReference Include="../../src/Neptune.Linux/Neptune.Linux.csproj" />
   </ItemGroup>
   <ItemGroup><None Update="TestData/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Neptune.Windows/WindowsConnection.cs" Link="Windows/WindowsConnection.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsProfileContext.cs" Link="Windows/WindowsProfileContext.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsSyncService.cs" Link="Windows/WindowsSyncService.cs" />
+  </ItemGroup>
 </Project>

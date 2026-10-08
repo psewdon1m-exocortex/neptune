@@ -58,6 +58,7 @@ public sealed class BackupWorker(
 
     public async Task RunCommandAsync(ProjectRegistration project, string commandId, CancellationToken cancellationToken)
     {
+        if (!project.ArchiveAvailable) throw new InvalidOperationException("This project has no archive pipeline.");
         var runId = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(project.ProjectId + "\n" + commandId)));
         while (true)
@@ -82,6 +83,7 @@ public sealed class BackupWorker(
 
     private Task<bool>? TryStart(ProjectRegistration project, BackupRun? existingRun, string? requestedRunId)
     {
+        if (!project.ArchiveAvailable) return null;
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var task = RunAfterGateAsync(project, existingRun, requestedRunId, gate.Task, _stoppingToken);
         if (!_active.TryAdd(project.ProjectId, task))
@@ -188,7 +190,7 @@ public sealed class BackupWorker(
             return resolved;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception error) when (_lastTargets.TryGetValue(project.ProjectId, out var previous))
+        catch (Exception error) when (RegisterFallback.CanUse(error) && _lastTargets.TryGetValue(project.ProjectId, out var previous))
         {
             logger.LogWarning(error, "Kernel Register refresh failed for {ProjectId}; archive upload is using the last resolved target held in memory", project.ProjectId);
             return previous;
