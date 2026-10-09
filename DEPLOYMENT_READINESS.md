@@ -6,9 +6,11 @@ and the shared-agent contracts in
 [Part 09](https://github.com/psewdon1m-exocortex/general/blob/main/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
 [Part 10](https://github.com/psewdon1m-exocortex/general/blob/main/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
-Neptune 0.1.12 pins the published Updater 0.6.13 bootstrap and install archive.
+Neptune 0.1.13 pins the published Updater 0.6.13 bootstrap and install archive.
 Its unified Linux x64/arm64 and Windows release pipeline now verifies the
-anonymous published asset inventory and bytes before promoting the release.
+anonymous published asset inventory and bytes before promoting the release,
+and records the exact published Kernel 0.3.9 machine-principal contract for
+INT-16 before signing.
 
 Linux archive export, dedicated Volt and Mastermind mirrors, and Windows folder synchronization are separate pipelines. The owning service edits its automatic schedule in Settings; Saturn stores the authoritative revision and Neptune applies it after check-in. Previously accepted remote commands may complete, but new manual remote runs are unavailable. A run succeeds only after the matching pipeline and receipt complete. Interrupted upload resumes the same spool and nonzero Saturn offset. Windows stores credentials with per-user DPAPI, isolates profiles, preserves Unicode names and mirrors renames/deletions; an incomplete or inaccessible local tree aborts before remote cleanup. Only Register references are cached. A new Windows identity must re-enroll protected credentials.
 

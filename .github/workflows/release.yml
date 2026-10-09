@@ -24,14 +24,28 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out the published Kernel contract
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: psewdon1m-exocortex/kernel
+          ref: 0c163f5c1cb52d8c8ed92cff45a231e1ba08bdf2
+          path: .kernel-contract
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: .kernel-contract/package-lock.json
+      - name: Install the pinned Kernel contract dependencies
+        run: npm ci --prefix .kernel-contract
       - name: Record exact candidate checks
         run: |
           python3 scripts/known-problems-gate.py --record unit --command dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
           python3 scripts/known-problems-gate.py --record linux-package --command bash scripts/verify-linux-package.sh
           python3 scripts/known-problems-gate.py --record windows-package --command dotnet build Neptune.slnx -c Release -p:EnableWindowsTargeting=true
+          python3 scripts/known-problems-gate.py --record kernel-register-contract --command bash -lc 'cd .kernel-contract && node --test tests/wyvern-machine-enrollment.test.js'
           python3 scripts/known-problems-gate.py --phase pre-signing
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

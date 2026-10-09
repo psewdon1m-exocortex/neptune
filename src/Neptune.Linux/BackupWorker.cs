@@ -210,7 +210,7 @@ public sealed class BackupWorker(
         await CredentialFile.ReadAsync(path, cancellationToken);
 
     private static string ProductVersion() =>
-        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.12-dev";
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.13-dev";
 
     private sealed record BackupTarget(Uri SaturnOrigin, string BackupPath, string Slug);
 }
