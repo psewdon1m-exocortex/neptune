@@ -20,10 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
       - name: Validate packaging scripts
         run: |
           sh -n packaging/linux/install.sh
@@ -36,6 +39,7 @@ jobs:
         run: |
           python3 scripts/test-known-problems-gate.py
           python3 scripts/test-verify-unified-release.py
+          python3 scripts/test-verify-published-release.py
           python3 scripts/known-problems-gate.py --phase structure
       - name: Check vulnerable runtime dependencies
         run: dotnet list src/Neptune.Linux/Neptune.Linux.csproj package --vulnerable --include-transitive
@@ -51,8 +55,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
       - name: Build and test
@@ -69,7 +73,7 @@ jobs:
           if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
       - name: Upload Windows test build
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: neptune-windows-${{ github.sha }}
           path: artifacts/win-x64
@@ -82,14 +86,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
       - name: Validate seven mandatory areas
         env:
           GATE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: python3 scripts/pre-push-gate.py --upstream-result "${{ needs.linux.result == 'success' && needs.windows.result == 'success' && 'success' || 'failure' }}" --report .pre-push-gate-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}
         with:
           name: neptune-pre-push-gate-${{ github.sha }}

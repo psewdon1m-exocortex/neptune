@@ -6,6 +6,9 @@ on:
 
 permissions:
   contents: write
+concurrency:
+  group: neptune-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   quality-gate:
@@ -20,8 +23,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
       - name: Record exact candidate checks
@@ -30,9 +33,10 @@ jobs:
           python3 scripts/known-problems-gate.py --record linux-package --command bash scripts/verify-linux-package.sh
           python3 scripts/known-problems-gate.py --record windows-package --command dotnet build Neptune.slnx -c Release -p:EnableWindowsTargeting=true
           python3 scripts/known-problems-gate.py --phase pre-signing
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
-          name: neptune-policy-${{ github.sha }}
+          name: neptune-policy-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .release-evidence/
             known-problems-report.json
@@ -49,8 +53,8 @@ jobs:
       matrix:
         runtime: [linux-x64, linux-arm64]
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
       - name: Resolve version
@@ -94,9 +98,9 @@ jobs:
           else
             node scripts/sign-release.mjs artifacts/neptune-linux-release-${{ matrix.runtime }}.json
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: neptune-release-${{ matrix.runtime }}
+          name: neptune-release-${{ matrix.runtime }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             artifacts/*.tar.gz
             artifacts/*.sha256
@@ -110,8 +114,8 @@ jobs:
     needs: qualification
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
       - name: Resolve version
@@ -158,9 +162,9 @@ jobs:
           $manifest | Set-Content artifacts/neptune-windows-release.json
           node scripts/sign-release.mjs artifacts/neptune-windows-release.json
           if ($LASTEXITCODE -ne 0) { throw 'Windows release manifest could not be signed.' }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: neptune-release-win-x64
+          name: neptune-release-win-x64-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             artifacts/*.zip
             artifacts/*.sha256
@@ -172,17 +176,18 @@ jobs:
     name: Publish immutable unified release
     needs: [linux, windows]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: neptune-policy-${{ github.sha }}
-      - uses: actions/download-artifact@v4
+          name: neptune-policy-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: neptune-release-*
+          pattern: neptune-release-*-${{ github.run_id }}-${{ github.run_attempt }}
           path: release
           merge-multiple: true
       - name: Require a pinned Updater with host dependency support
@@ -199,18 +204,54 @@ jobs:
           python3 scripts/build-host-bootstrap.py neptune "${GITHUB_REF_NAME#neptune-v}" release/neptune.pem release/bootstrap.sh
           sh -n release/bootstrap.sh
       - name: Verify unified release set
-        run: |
-          python3 scripts/known-problems-gate.py --record published-assets --command python3 scripts/verify-unified-release.py release
-          python3 scripts/known-problems-gate.py --phase final
-          cp known-problems-report.json release/known-problems-report.json
-      - name: Publish GitHub release
+        run: python3 scripts/verify-unified-release.py release
+      - name: Stage immutable prerelease candidate
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          set -euo pipefail
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists and will not be replaced." >&2
-            exit 1
+            test "$(gh release view "$GITHUB_REF_NAME" --json isDraft,isPrerelease --jq '[.isDraft,.isPrerelease] | join(",")')" = "false,true"
+          else
+            python3 scripts/verify-published-release.py --asset-names > "$RUNNER_TEMP/neptune-assets.txt"
+            mapfile -t names < "$RUNNER_TEMP/neptune-assets.txt"
+            assets=()
+            for name in "${names[@]}"; do assets+=("release/$name"); done
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+              --verify-tag --prerelease --latest=false \
+              --title "$GITHUB_REF_NAME" --generate-notes
           fi
-          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --latest=false \
-            --title "$GITHUB_REF_NAME" --generate-notes
+      - name: Verify anonymously downloaded final release bytes
+        run: |
+          unset GH_TOKEN GITHUB_TOKEN
+          python3 scripts/known-problems-gate.py --record published-assets --command python3 scripts/verify-published-release.py release
+          python3 scripts/known-problems-gate.py --phase final
+      - name: Attach final qualification report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          exists="$(gh release view "$GITHUB_REF_NAME" --json assets --jq 'any(.assets[]; .name == "known-problems-report.json")')"
+          if [ "$exists" = false ]; then
+            gh release upload "$GITHUB_REF_NAME" known-problems-report.json
+          else
+            test "$exists" = true
+          fi
+          unset GH_TOKEN GITHUB_TOKEN
+          python3 scripts/verify-published-release.py --verify-report known-problems-report.json
+      - name: Promote verified candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --prerelease=false --latest=false
+      - name: Preserve final qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: neptune-final-qualification-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .release-evidence/
+            known-problems-report.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
