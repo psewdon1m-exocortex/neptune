@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Neptune.Windows;
 
-internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken, string? RemoteFolder);
+internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken, string? RemoteFolder, string? KernelCredentialKind = null);
 
 [SupportedOSPlatform("windows")]
 public sealed class WindowsConnectionStore(string stateDirectory)
@@ -17,14 +17,26 @@ public sealed class WindowsConnectionStore(string stateDirectory)
         if (!File.Exists(_path)) return null;
         var stored = JsonSerializer.Deserialize<StoredWindowsConnection>(File.ReadAllText(_path))
             ?? throw new InvalidDataException("Neptune connection configuration is invalid.");
+        var kind = stored.KernelCredentialKind switch
+        {
+            null or "legacy-service" => WindowsKernelCredentialKind.LegacyServiceToken,
+            "neptune-outdoor-v1" => WindowsKernelCredentialKind.NeptuneOutdoorToken,
+            _ => throw new InvalidDataException("Neptune Kernel credential type is invalid."),
+        };
         return new WindowsConnection(new Uri(stored.KernelOrigin), Unprotect(stored.KernelToken), Unprotect(stored.SaturnToken),
-            string.IsNullOrWhiteSpace(stored.RemoteFolder) ? Environment.MachineName : stored.RemoteFolder);
+            string.IsNullOrWhiteSpace(stored.RemoteFolder) ? Environment.MachineName : stored.RemoteFolder, kind);
     }
 
     public void Write(WindowsConnection connection)
     {
         Directory.CreateDirectory(stateDirectory);
-        var stored = new StoredWindowsConnection(connection.KernelOrigin.AbsoluteUri, Protect(connection.KernelToken), Protect(connection.SaturnToken), connection.RemoteFolder.Trim());
+        var kind = connection.KernelCredentialKind switch
+        {
+            WindowsKernelCredentialKind.LegacyServiceToken => "legacy-service",
+            WindowsKernelCredentialKind.NeptuneOutdoorToken => "neptune-outdoor-v1",
+            _ => throw new InvalidDataException("Neptune Kernel credential type is invalid."),
+        };
+        var stored = new StoredWindowsConnection(connection.KernelOrigin.AbsoluteUri, Protect(connection.KernelToken), Protect(connection.SaturnToken), connection.RemoteFolder.Trim(), kind);
         var temporary = _path + ".tmp";
         File.WriteAllText(temporary, JsonSerializer.Serialize(stored, new JsonSerializerOptions { WriteIndented = true }));
         File.Move(temporary, _path, overwrite: true);

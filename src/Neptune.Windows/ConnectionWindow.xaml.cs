@@ -13,7 +13,12 @@ public partial class ConnectionWindow : Window
         if (existing is null) return;
         _existingFolder = existing.RemoteFolder;
         KernelOrigin.Text = existing.KernelOrigin.AbsoluteUri;
-        KernelToken.Password = existing.KernelToken;
+        if (existing.KernelCredentialKind == WindowsKernelCredentialKind.NeptuneOutdoorToken) KernelToken.Password = existing.KernelToken;
+        else
+        {
+            ConnectionInstructions.Text = "This profile still uses the retired shared Kernel service token. Paste a Neptune outdoor token to migrate it safely; the existing Saturn credential will be preserved.";
+            ConnectionInstructions.SetResourceReference(ForegroundProperty, "DangerBrush");
+        }
         SaturnToken.Password = existing.SaturnToken;
     }
 
@@ -26,10 +31,10 @@ public partial class ConnectionWindow : Window
         }
         if (string.IsNullOrWhiteSpace(KernelToken.Password) || string.IsNullOrWhiteSpace(SaturnToken.Password))
         {
-            MessageBox.Show(this, "The Kernel token and Saturn setup code are required.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "The Kernel Neptune outdoor token and Saturn setup code or device credential are required.", "Neptune", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password, _existingFolder);
+        Connection = new WindowsConnection(origin, KernelToken.Password, SaturnToken.Password, _existingFolder, WindowsKernelCredentialKind.NeptuneOutdoorToken);
         DialogResult = true;
     }
 }

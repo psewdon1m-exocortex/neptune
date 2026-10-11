@@ -6,6 +6,15 @@ and the shared-agent contracts in
 [Part 09](https://github.com/psewdon1m-exocortex/general/blob/main/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
 [Part 10](https://github.com/psewdon1m-exocortex/general/blob/main/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
+Neptune 0.1.17 pins the published Updater 0.6.17 bootstrap and install archive.
+Windows profiles can now enroll through Kernel 0.3.12's dedicated
+`neptune-v1` Outdoor token and `/api/v1/outdoor/resolve` endpoint. The client
+requests only Saturn coordinates, synchronization paths and the Neptune release
+source, rejects secrets or unexpected response keys, and binds its bounded
+metadata cache to the exact Kernel origin, credential and key set. Profiles
+created by older versions retain the legacy path until the operator supplies a
+Neptune Outdoor token, so an update does not interrupt an active sync.
+
 Neptune 0.1.16 pins the published Updater 0.6.17 bootstrap and install archive.
 Windows sync normalizes Saturn WebDAV path segments to Unicode NFC, rejects
 canonical path collisions before remote cleanup and migrates legacy upload
@@ -34,6 +43,13 @@ Populate actual Kernel/Volt coordinates and service tokens. Neptune Linux keeps 
 Keep the Access Key and helper-recovery passphrase separately from their archives. Main-service recovery retains user settings and application data while preserving or requiring re-enrollment of external host trust. The encrypted helper profile is controlled by Updater and contains Neptune/Gryphon state and credentials plus Updater job/rollback history. It excludes executable files, release trust keys, systemd units and head deployment environments. Install trusted software and register target heads before restoring. The bounded helper archive fails explicitly at 128 MiB expanded or 10000 files; it never silently omits data.
 
 ## Acceptance evidence
+
+Core contract tests verify the Outdoor endpoint, exact returned-key set,
+secret-value rejection, credential-bound fallback cache and cache removal after
+authorization failure. Windows enrollment tests verify that new profiles never
+download the full Register snapshot, while legacy profile loading remains
+compatible. Release qualification checks the exact published Kernel 0.3.12
+source revision before signing the unified Linux and Windows artifacts.
 
 The seven-area policy in .github/pre-push-gate.json is required after native CI verification. Public indexing is intentionally not applicable. For an uncommitted local review run the gate with --worktree after the native checks. Gate PASS checks policy/evidence/verification linkage; it is not a substitute for executing the integration scenarios.
 

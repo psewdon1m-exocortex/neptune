@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using Neptune.Windows;
 using Xunit;
@@ -28,6 +29,15 @@ public sealed class WindowsEnrollmentTests
         var state = new NeptuneStateStore(Path.Combine(profile.StateDirectory,"neptune.db"));
         try
         {
+            connections.Write(connection);
+            var connectionPath = Path.Combine(profile.StateDirectory, "connection.json");
+            var legacyJson = JsonNode.Parse(await File.ReadAllTextAsync(connectionPath, TestContext.Current.CancellationToken))!.AsObject();
+            legacyJson.Remove("KernelCredentialKind");
+            await File.WriteAllTextAsync(connectionPath, legacyJson.ToJsonString(), TestContext.Current.CancellationToken);
+            Assert.Equal(WindowsKernelCredentialKind.LegacyServiceToken, connections.Read()!.KernelCredentialKind);
+            var outdoorConnection = connection with { KernelCredentialKind = WindowsKernelCredentialKind.NeptuneOutdoorToken };
+            connections.Write(outdoorConnection);
+            Assert.Equal(outdoorConnection, connections.Read());
             connections.Write(connection);
             var clientId = await new ClientIdentityStore(profile.StateDirectory).GetOrCreateAsync(TestContext.Current.CancellationToken);
             await state.InitializeAsync(TestContext.Current.CancellationToken);
@@ -116,10 +126,29 @@ public sealed class WindowsEnrollmentTests
         } finally {SqliteConnection.ClearAllPools();if(Directory.Exists(directory))Directory.Delete(directory,true);}
     }
 
+    [Fact]
+    public async Task NeptuneOutdoorConnectionUsesOutdoorDiscoveryWithoutDownloadingRegisterSnapshot()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-outdoor-enrollment-" + Guid.NewGuid().ToString("N"));
+        using var handler = new Handler("Assigned"); using var http = new HttpClient(handler);
+        var service = new WindowsSyncService(new WindowsProfileContext("test", directory, false), http);
+        var connection = new WindowsConnection(new Uri("https://kernel.test"), "outdoor-fixture", new string('b', 43), "Assigned", WindowsKernelCredentialKind.NeptuneOutdoorToken);
+        try
+        {
+            var result = await service.ConnectAsync("client", connection, TestContext.Current.CancellationToken);
+            Assert.Equal(1, handler.OutdoorRequests);
+            Assert.Equal(0, handler.SnapshotRequests);
+            Assert.Equal(WindowsKernelCredentialKind.NeptuneOutdoorToken, result.Connection.KernelCredentialKind);
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
     private sealed class Handler(string? folder) : HttpMessageHandler
     {
         public HttpStatusCode? KernelFailure {get;set;}
         public int EnrollmentRequests {get;private set;}
+        public int OutdoorRequests { get; private set; }
+        public int SnapshotRequests { get; private set; }
         public List<Uri> DavRequests { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -128,6 +157,7 @@ public sealed class WindowsEnrollmentTests
             HttpResponseMessage Json(object body) => new(HttpStatusCode.OK) { Content = JsonContent.Create(body) };
             if (route == "/api/v1/register/snapshot")
             {
+                SnapshotRequests++;
                 using var values = JsonDocument.Parse("""{"services":{"saturn":{"sni":"volt://3518462b-bb66-459a-a1ab-c38a837740ab/1","port":"volt://3518462b-bb66-459a-a1ab-c38a837740ab/2","paths":{"sync":"volt://3518462b-bb66-459a-a1ab-c38a837740ab/3","sync_preferences":"volt://3518462b-bb66-459a-a1ab-c38a837740ab/4"}}}}""");
                 return Task.FromResult(Json(new { schema = "exocortex.register.snapshot.v1", revision = 1, checksum = CanonicalJson.ComputeRegisterChecksum(values.RootElement), values = values.RootElement.Clone() }));
             }
@@ -135,6 +165,14 @@ public sealed class WindowsEnrollmentTests
                 ["services.saturn.sni"] = new { value = "saturn.test" }, ["services.saturn.port"] = new { value = "443" },
                 ["services.saturn.paths.sync"] = new { value = "/webdav/sync/" }, ["services.saturn.paths.sync_preferences"] = new { value = "/preferences" }
             } }));
+            if (route == "/api/v1/outdoor/resolve")
+            {
+                OutdoorRequests++;
+                return Task.FromResult(Json(new { schema = "exocortex.register.resolution.v1", register_revision = "register-1", values = new Dictionary<string, object> {
+                    ["services.saturn.sni"] = new { value = "saturn.test", secret = false }, ["services.saturn.port"] = new { value = "443", secret = false },
+                    ["services.saturn.paths.sync"] = new { value = "/webdav/sync/", secret = false }, ["services.saturn.paths.sync_preferences"] = new { value = "/preferences", secret = false }
+                } }));
+            }
             if (route == "/api/v1/device-enrollments/redeem") { EnrollmentRequests++; return Task.FromResult(Json(new { token = new string('b', 43) })); }
             if (route == "/api/v1/device-session/heartbeat")
             {

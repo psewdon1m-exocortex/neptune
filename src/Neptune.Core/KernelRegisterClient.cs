@@ -64,6 +64,91 @@ public sealed class KernelRegisterClient(HttpClient httpClient, string cachePath
         }
     }
 
+    public async Task<JsonDocument> ResolveOutdoorAsync(Uri kernelOrigin, string token, IReadOnlyCollection<string> requestedKeys,
+        CancellationToken cancellationToken = default, bool allowCachedMetadata = false)
+    {
+        if (requestedKeys.Count is < 1 or > 128 || requestedKeys.Any(key => string.IsNullOrWhiteSpace(key)))
+            throw new ArgumentException("Outdoor discovery requires one or more Register keys.", nameof(requestedKeys));
+        var keys = requestedKeys.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var callerCancellation = cancellationToken;
+        var cacheAllowed = allowCachedMetadata && keys.All(CacheableKeys.Contains);
+        var binding = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(
+            "outdoor-v1\0" + kernelOrigin.AbsoluteUri + "\0" + token + "\0" + string.Join('\n', keys))));
+        var metadataPath = cachePath + ".resolved.json";
+        var discoveryComplete = false;
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(15));
+            cancellationToken = deadline.Token;
+            var selectedValues = new JsonObject();
+            string? registerRevision = null;
+            for (var offset = 0; offset < keys.Length; offset += 20)
+            {
+                var batch = keys.Skip(offset).Take(20).ToArray();
+                using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(kernelOrigin, "/api/v1/outdoor/resolve"));
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = registerRevision is null
+                    ? JsonContent.Create(new { keys = batch })
+                    : JsonContent.Create(new { keys = batch, expected_register_revision = registerRevision });
+                using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                using var resolved = await BoundedJson.ReadAsync(response.Content, 1024 * 1024, cancellationToken);
+                if (resolved.RootElement.GetProperty("schema").GetString() != "exocortex.register.resolution.v1")
+                    throw new InvalidDataException("Unsupported Kernel outdoor resolution schema.");
+                var responseRevision = resolved.RootElement.GetProperty("register_revision").GetString()
+                    ?? throw new InvalidDataException("Kernel omitted the Register revision.");
+                if (registerRevision is not null && responseRevision != registerRevision)
+                    throw new InvalidDataException("Kernel returned a mixed Register revision.");
+                registerRevision = responseRevision;
+                var returned = resolved.RootElement.GetProperty("values");
+                if (returned.ValueKind != JsonValueKind.Object || returned.EnumerateObject().Count() != batch.Length
+                    || returned.EnumerateObject().Any(item => !batch.Contains(item.Name, StringComparer.Ordinal)))
+                    throw new InvalidDataException("Kernel returned an unexpected outdoor discovery key set.");
+                foreach (var key in batch)
+                {
+                    var item = returned.GetProperty(key);
+                    if (item.GetProperty("secret").GetBoolean()) throw new InvalidDataException("Kernel returned a secret through outdoor discovery.");
+                    var value = item.GetProperty("value").GetString()
+                        ?? throw new InvalidDataException($"Kernel omitted Register key {key}.");
+                    SetDotted(selectedValues, key, value);
+                }
+            }
+            var result = JsonDocument.Parse(new JsonObject
+            {
+                ["schema"] = "exocortex.register.outdoor.v1",
+                ["revision"] = registerRevision,
+                ["values"] = selectedValues,
+            }.ToJsonString());
+            discoveryComplete = true;
+            if (cacheAllowed)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(metadataPath)!);
+                var temporary = $"{metadataPath}.{Guid.NewGuid():N}.tmp";
+                try
+                {
+                    await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new MetadataCache(binding, DateTimeOffset.UtcNow, result.RootElement.GetRawText())), cancellationToken);
+                    File.Move(temporary, metadataPath, overwrite: true);
+                }
+                catch { result.Dispose(); throw; }
+                finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            }
+            return result;
+        }
+        catch (HttpRequestException error) when (error.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            if (cacheAllowed && File.Exists(metadataPath)) File.Delete(metadataPath);
+            throw;
+        }
+        catch (Exception error) when (cacheAllowed && !discoveryComplete && !callerCancellation.IsCancellationRequested && RegisterFallback.CanUse(error))
+        {
+            if (!File.Exists(metadataPath) || new FileInfo(metadataPath).Length > 1024 * 1024) throw;
+            var saved = JsonSerializer.Deserialize<MetadataCache>(await File.ReadAllTextAsync(metadataPath, callerCancellation));
+            if (saved is null || saved.Binding != binding || saved.SavedAt > DateTimeOffset.UtcNow || DateTimeOffset.UtcNow - saved.SavedAt > TimeSpan.FromHours(24)) throw;
+            return JsonDocument.Parse(saved.Snapshot);
+        }
+    }
+
     private async Task<JsonDocument> ResolveAsync(Uri kernelOrigin, string token, string rawSnapshot, IReadOnlyCollection<string>? requestedKeys, CancellationToken cancellationToken)
     {
         var root = JsonNode.Parse(rawSnapshot)?.AsObject() ?? throw new InvalidDataException("Invalid Kernel Register snapshot.");

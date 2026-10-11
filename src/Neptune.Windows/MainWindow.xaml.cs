@@ -316,8 +316,11 @@ public partial class MainWindow : Window
 
     private void ShowConnectionState()
     {
-        var configured = _connections.Read() is not null;
-        ConnectionStatus.Text = configured ? "Saturn configured" : "Not configured";
+        var connection = _connections.Read();
+        var configured = connection is not null;
+        ConnectionStatus.Text = connection?.KernelCredentialKind == WindowsKernelCredentialKind.LegacyServiceToken
+            ? "Legacy Kernel credential"
+            : configured ? "Saturn configured" : "Not configured";
         ConnectionDot.Fill = configured ? (Brush)Application.Current.Resources["AccentBrush"] : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#697680"));
     }
 

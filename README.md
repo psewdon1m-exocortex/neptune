@@ -71,12 +71,23 @@ Neptune.Windows.exe --profile work
 Neptune.Windows.exe --profile personal
 ```
 
-Neptune Windows is enrolled with the one-time setup code created by Saturn's
-Synchronization page. The desktop client resolves Saturn through the signed
-Kernel Register, exchanges the code for a scoped device credential, protects
-that credential with DPAPI and sends a heartbeat on every connection or sync.
-The permanent credential is never shown in Saturn. Reissuing a setup code and
-redeeming it rotates that individual connection without affecting other agents.
+Neptune Windows is enrolled with a **Neptune outdoor token** created in Kernel
+Settings → Security and the one-time setup code created by Saturn's
+Synchronization page. The desktop client resolves only its five allowed,
+non-secret discovery values through Kernel's outdoor-only endpoint, exchanges
+the Saturn code for a scoped device credential, protects both credentials with
+DPAPI and sends a heartbeat on every connection or sync. The permanent Saturn
+credential is never shown in Saturn. Reissuing a setup code and redeeming it
+rotates that individual connection without affecting other agents.
+
+Existing production Windows profiles that predate outdoor tokens are loaded as
+`legacy-service` and continue using the old Register snapshot flow so an update
+does not interrupt synchronization. The UI marks them **Legacy Kernel
+credential**. Opening Configure connection requires a new `neptune-v1` outdoor
+token and saves the migrated profile as `neptune-outdoor-v1`; its existing
+Saturn device credential remains valid. After all Windows profiles are migrated,
+rotate the formerly shared Kernel service token. Linux Neptune remains an
+internal server agent and continues to use its scoped internal Kernel token.
 
 ## 1. Repository and release contract
 

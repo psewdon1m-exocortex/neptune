@@ -22,13 +22,13 @@
                     </StackPanel>
                 </Border>
                 <StackPanel Grid.Row="1" Margin="20">
-                    <TextBlock Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21"
+                    <TextBlock x:Name="ConnectionInstructions" Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21"
                                Text="Connect this Neptune profile through Kernel and redeem the one-time setup code created in Saturn." />
 
                     <TextBlock Margin="0,20,0,6" Text="Kernel HTTPS origin" />
                     <TextBox x:Name="KernelOrigin" Text="https://kernel.example.com" />
 
-                    <TextBlock Margin="0,20,0,6" Text="Kernel service token" />
+                    <TextBlock Margin="0,20,0,6" Text="Kernel Neptune outdoor token" />
                     <PasswordBox x:Name="KernelToken" />
 
                     <TextBlock Margin="0,20,0,6" Text="Saturn setup code" />
@@ -36,7 +36,7 @@
 
                     <Border Margin="0,20,0,0" BorderBrush="{DynamicResource White80Brush}" BorderThickness="1" Padding="12">
                         <TextBlock Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21"
-                                   Text="Neptune exchanges the setup code for a scoped device credential. The credential is protected for the current Windows user and is never shown again in Saturn." />
+                                   Text="Create a Neptune outdoor token in Kernel Settings. Neptune exchanges the Saturn setup code for a scoped device credential. Both credentials are protected for the current Windows user." />
                     </Border>
                 </StackPanel>
             </Grid>

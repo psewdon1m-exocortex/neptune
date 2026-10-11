@@ -49,6 +49,7 @@ public sealed class WindowsUiContractTests
             Assert.Contains($"x:Name=\"{screen}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Light theme", xaml, StringComparison.Ordinal);
         Assert.Contains("Synchronize colors with Saturn", xaml, StringComparison.Ordinal);
+        Assert.Contains("Kernel Neptune outdoor token", File.ReadAllText(Path.Combine(root, "src", "Neptune.Windows", "ConnectionWindow.xaml")), StringComparison.Ordinal);
         Assert.Contains("SaturnPalette_Changed", xaml, StringComparison.Ordinal);
         Assert.Contains("Synchronization enabled", xaml, StringComparison.Ordinal);
         Assert.Contains("MappingEnabled_Changed", xaml, StringComparison.Ordinal);
