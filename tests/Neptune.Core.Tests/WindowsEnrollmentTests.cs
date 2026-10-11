@@ -9,6 +9,48 @@ namespace Neptune.Core.Tests;
 
 public sealed class WindowsEnrollmentTests
 {
+    [Fact]
+    public async Task InPlaceClientUpdatePreservesConnectionIdentityAndMappings()
+    {
+        // DPAPI is the production credential boundary and can only be exercised
+        // on the Windows CI lane. The rest of the suite still compiles/runs on Linux.
+        if (!OperatingSystem.IsWindows()) return;
+        var root = Path.Combine(Path.GetTempPath(),"neptune-windows-upgrade-"+Guid.NewGuid().ToString("N"));
+        var stateDirectory = Path.Combine(root,"persistent-profile");
+        var source = Path.Combine(root,"new-release");
+        var target = Path.Combine(root,"installed-application");
+        Directory.CreateDirectory(source); Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(source,"Neptune.Windows.exe"),"new",TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(target,"Neptune.Windows.exe"),"old",TestContext.Current.CancellationToken);
+        var profile = new WindowsProfileContext("existing-profile",stateDirectory,false);
+        var connection = new WindowsConnection(new Uri("https://kernel.test"),"kernel-token",new string('s',43),"Assigned PC");
+        var connections = new WindowsConnectionStore(profile.StateDirectory);
+        var state = new NeptuneStateStore(Path.Combine(profile.StateDirectory,"neptune.db"));
+        try
+        {
+            connections.Write(connection);
+            var clientId = await new ClientIdentityStore(profile.StateDirectory).GetOrCreateAsync(TestContext.Current.CancellationToken);
+            await state.InitializeAsync(TestContext.Current.CancellationToken);
+            var mapping = new SyncMapping("mapping-existing",clientId,Path.Combine(root,"Documents"),true,DateTimeOffset.UtcNow);
+            await state.AddMappingAsync(mapping,TestContext.Current.CancellationToken);
+
+            UpdateApplyMode.ReplaceApplicationFiles(source,target);
+            var relaunch = UpdateApplyMode.CreateRelaunchStartInfo(target,profile.ProfileId);
+
+            Assert.Equal("new",await File.ReadAllTextAsync(Path.Combine(target,"Neptune.Windows.exe"),TestContext.Current.CancellationToken));
+            Assert.Equal(["--profile",profile.ProfileId],relaunch.ArgumentList);
+            Assert.Equal(connection,connections.Read());
+            Assert.Equal(clientId,await new ClientIdentityStore(profile.StateDirectory).GetOrCreateAsync(TestContext.Current.CancellationToken));
+            Assert.Equal(mapping,Assert.Single(await new NeptuneStateStore(Path.Combine(profile.StateDirectory,"neptune.db"))
+                .ListMappingsAsync(TestContext.Current.CancellationToken)));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if(Directory.Exists(root)) Directory.Delete(root,true);
+        }
+    }
+
     [Theory]
     [InlineData("Office PC")]
     [InlineData("Домашний ПК")]
@@ -26,6 +68,7 @@ public sealed class WindowsEnrollmentTests
             var result = await service.ConnectAsync("client-id", connection, TestContext.Current.CancellationToken);
             Assert.Equal(folder, result.Connection.RemoteFolder);
             Assert.Equal(new string('b', 43), result.Connection.SaturnToken);
+            Assert.Equal(1,handler.EnrollmentRequests);
             Assert.Empty(handler.DavRequests);
             var mapping = new SyncMapping("mapping-id", "client-id", mappingDirectory, true, DateTimeOffset.UtcNow);
             await service.SyncAsync("client-id", [mapping], result.Connection, cancellationToken: TestContext.Current.CancellationToken);
@@ -62,6 +105,7 @@ public sealed class WindowsEnrollmentTests
         var connection=new WindowsConnection(new Uri("https://kernel.test"),"fixture",new string('b',43),"Assigned");
         try {
             await service.ConnectAsync("client",connection,TestContext.Current.CancellationToken);
+            Assert.Equal(0,handler.EnrollmentRequests);
             handler.KernelFailure=HttpStatusCode.ServiceUnavailable;
             Assert.Equal("Assigned",(await service.ConnectAsync("client",connection,TestContext.Current.CancellationToken)).Connection.RemoteFolder);
             await Assert.ThrowsAsync<HttpRequestException>(()=>service.ConnectAsync("client",connection with{KernelToken="different"},TestContext.Current.CancellationToken));
@@ -75,6 +119,7 @@ public sealed class WindowsEnrollmentTests
     private sealed class Handler(string? folder) : HttpMessageHandler
     {
         public HttpStatusCode? KernelFailure {get;set;}
+        public int EnrollmentRequests {get;private set;}
         public List<Uri> DavRequests { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -90,7 +135,7 @@ public sealed class WindowsEnrollmentTests
                 ["services.saturn.sni"] = new { value = "saturn.test" }, ["services.saturn.port"] = new { value = "443" },
                 ["services.saturn.paths.sync"] = new { value = "/webdav/sync/" }, ["services.saturn.paths.sync_preferences"] = new { value = "/preferences" }
             } }));
-            if (route == "/api/v1/device-enrollments/redeem") return Task.FromResult(Json(new { token = new string('b', 43) }));
+            if (route == "/api/v1/device-enrollments/redeem") { EnrollmentRequests++; return Task.FromResult(Json(new { token = new string('b', 43) })); }
             if (route == "/api/v1/device-session/heartbeat")
             {
                 Assert.Equal(new string('b', 43), request.Headers.Authorization?.Parameter);

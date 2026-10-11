@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
@@ -15,7 +16,9 @@
   <ItemGroup><None Update="TestData/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup>
     <Compile Include="../../src/Neptune.Windows/WindowsConnection.cs" Link="Windows/WindowsConnection.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsConnectionStore.cs" Link="Windows/WindowsConnectionStore.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsProfileContext.cs" Link="Windows/WindowsProfileContext.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsSyncService.cs" Link="Windows/WindowsSyncService.cs" />
+    <Compile Include="../../src/Neptune.Windows/UpdateApplyMode.cs" Link="Windows/UpdateApplyMode.cs" />
   </ItemGroup>
 </Project>

@@ -456,6 +456,44 @@ public sealed class NeptuneStateStore(string databasePath)
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<SyncUploadCheckpoint> MoveSyncUploadCheckpointAsync(
+        SyncUploadCheckpoint checkpoint,
+        string targetUri,
+        CancellationToken cancellationToken = default)
+    {
+        if (checkpoint.TargetUri == targetUri) return checkpoint;
+        var migrated = checkpoint with { TargetUri = targetUri };
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(deferred: false);
+        await using (var remove = connection.CreateCommand())
+        {
+            remove.Transaction = transaction;
+            remove.CommandText = "DELETE FROM sync_upload_checkpoints WHERE scope=$scope AND target_uri=$target AND idempotency_key=$key";
+            remove.Parameters.AddWithValue("$scope",checkpoint.Scope);
+            remove.Parameters.AddWithValue("$target",checkpoint.TargetUri);
+            remove.Parameters.AddWithValue("$key",checkpoint.IdempotencyKey);
+            if (await remove.ExecuteNonQueryAsync(cancellationToken) != 1)
+                throw new InvalidOperationException("Upload checkpoint changed while its target path was being migrated.");
+        }
+        await using (var insert = connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO sync_upload_checkpoints(scope,target_uri,idempotency_key,fingerprint,upload_id)
+                VALUES($scope,$target,$key,$fingerprint,$id);
+                """;
+            insert.Parameters.AddWithValue("$scope",migrated.Scope);
+            insert.Parameters.AddWithValue("$target",migrated.TargetUri);
+            insert.Parameters.AddWithValue("$key",migrated.IdempotencyKey);
+            insert.Parameters.AddWithValue("$fingerprint",migrated.Fingerprint);
+            insert.Parameters.AddWithValue("$id",(object?)migrated.UploadId??DBNull.Value);
+            await insert.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await transaction.CommitAsync(cancellationToken);
+        return migrated;
+    }
+
     public async Task RemoveSyncUploadCheckpointAsync(SyncUploadCheckpoint checkpoint, CancellationToken cancellationToken = default)
     {
         await using var connection = new SqliteConnection(ConnectionString);

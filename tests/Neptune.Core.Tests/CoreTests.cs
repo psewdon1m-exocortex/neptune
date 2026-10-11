@@ -186,13 +186,27 @@ public sealed class CoreTests
         await client.MirrorAsync(
             new Uri("https://saturn.example/dav/sync/User%20PC/Project/"),
             "token",
-            new HashSet<string>(["keep.txt"], StringComparer.Ordinal),
+            new HashSet<string>(["keep.txt", "FI\u0307LM LI\u0307STESI\u0307.pdf"], StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal),
             cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("/dav/sync/User%20PC/Project/stale.txt", handler.Deleted);
         Assert.Contains("/dav/sync/User%20PC/Project/old/", handler.Deleted);
         Assert.DoesNotContain("/dav/sync/User%20PC/Project/keep.txt", handler.Deleted);
+        Assert.DoesNotContain("/dav/sync/User%20PC/Project/F%C4%B0LM%20L%C4%B0STES%C4%B0.pdf", handler.Deleted);
+    }
+
+    [Fact]
+    public void WebDavRelativeTargetsUseSaturnUnicodeNormalization()
+    {
+        const string decomposed = "FI\u0307LM LI\u0307STESI\u0307.pdf";
+        const string composed = "FİLM LİSTESİ.pdf";
+        var uri = WebDavSyncClient.RelativeTargetUri(
+            new Uri("https://saturn.example/dav/sync/User%20PC/Project/"),
+            decomposed);
+
+        Assert.Equal("https://saturn.example/dav/sync/User%20PC/Project/F%C4%B0LM%20L%C4%B0STES%C4%B0.pdf", uri.AbsoluteUri);
+        Assert.Equal(WebDavSyncClient.CanonicalPathKey(composed), WebDavSyncClient.CanonicalPathKey(decomposed));
     }
 
     [Theory]
@@ -295,6 +309,7 @@ public sealed class CoreTests
                     ? ""
                     : """
                       <d:response><d:href>/dav/sync/User%20PC/Project/keep.txt</d:href><d:propstat><d:prop><d:displayname>keep.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
+                      <d:response><d:href>/dav/sync/User%20PC/Project/F%C4%B0LM%20L%C4%B0STES%C4%B0.pdf</d:href><d:propstat><d:prop><d:displayname>FİLM LİSTESİ.pdf</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
                       <d:response><d:href>/dav/sync/User%20PC/Project/stale.txt</d:href><d:propstat><d:prop><d:displayname>stale.txt</d:displayname><d:getcontentlength>1</d:getcontentlength></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
                       <d:response><d:href>/dav/sync/User%20PC/Project/old/</d:href><d:propstat><d:prop><d:displayname>old</d:displayname><d:resourcetype><d:collection /></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>
                       """;

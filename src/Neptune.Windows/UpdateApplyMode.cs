@@ -23,12 +23,9 @@ public static class UpdateApplyMode
             if (!process.WaitForExit(60_000)) throw new TimeoutException("The running Neptune process did not stop in time.");
         }
         catch (ArgumentException) { }
-        CopyTree(source, target);
+        ReplaceApplicationFiles(source, target);
 
-        var executable = Path.Combine(target, "Neptune.Windows.exe");
-        var start = new ProcessStartInfo(executable) { UseShellExecute = false, WorkingDirectory = target };
-        start.ArgumentList.Add("--profile"); start.ArgumentList.Add(profile);
-        Process.Start(start);
+        Process.Start(CreateRelaunchStartInfo(target, profile));
     }
 
     private static string Required(string[] arguments, string name)
@@ -38,7 +35,15 @@ public static class UpdateApplyMode
         return arguments[index + 1];
     }
 
-    private static void CopyTree(string source, string target)
+    internal static ProcessStartInfo CreateRelaunchStartInfo(string target, string profile)
+    {
+        var executable = Path.Combine(target, "Neptune.Windows.exe");
+        var start = new ProcessStartInfo(executable) { UseShellExecute = false, WorkingDirectory = target };
+        start.ArgumentList.Add("--profile"); start.ArgumentList.Add(profile);
+        return start;
+    }
+
+    internal static void ReplaceApplicationFiles(string source, string target)
     {
         foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
             Directory.CreateDirectory(Path.Combine(target, Path.GetRelativePath(source, directory)));

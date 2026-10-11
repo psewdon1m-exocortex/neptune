@@ -24,11 +24,16 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         new(EnsureSlash(syncBaseUri), string.Join('/', TargetSegments(clientInstanceId, mappingId, relativePath)));
 
     public static Uri RelativeTargetUri(Uri root, string relativePath) =>
-        new(EnsureSlash(root), string.Join('/', relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString)));
+        new(EnsureSlash(root), string.Join('/', CanonicalSegments(relativePath).Select(Uri.EscapeDataString)));
+
+    public static string CanonicalPathKey(string relativePath) =>
+        UnicodeNames.Key(string.Join('/', CanonicalSegments(relativePath)));
 
     public async Task<Uri> ClaimNamespaceAsync(Uri syncBaseUri, string token, string folderName, string clientInstanceId, CancellationToken cancellationToken = default)
     {
-        var target = new Uri(EnsureSlash(syncBaseUri), Uri.EscapeDataString(folderName) + "/");
+        var folderSegments = CanonicalSegments(folderName);
+        if (folderSegments.Length != 1) throw new ArgumentException("Folder name must be one path segment.", nameof(folderName));
+        var target = new Uri(EnsureSlash(syncBaseUri), Uri.EscapeDataString(folderSegments[0]) + "/");
         if (await CollectionExistsAsync(target, token, cancellationToken))
         {
             var owner = await ReadTextAsync(new Uri(target, OwnerMarker), token, cancellationToken);
@@ -71,13 +76,13 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
 
     public async Task EnsureDirectoryAsync(Uri mappingRoot, string token, string relativePath, CancellationToken cancellationToken = default)
     {
-        var segments = relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString).ToArray();
+        var segments = CanonicalSegments(relativePath).Select(Uri.EscapeDataString).ToArray();
         await EnsureCollectionsAsync(mappingRoot, token, segments, cancellationToken);
     }
 
     public async Task<string?> UploadAsync(Uri mappingRoot, string token, string relativePath, string localPath, CancellationToken cancellationToken = default)
     {
-        var segments = relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString).ToArray();
+        var segments = CanonicalSegments(relativePath).Select(Uri.EscapeDataString).ToArray();
         if (segments.Length == 0) throw new ArgumentException("Relative file path is empty.", nameof(relativePath));
         await EnsureCollectionsAsync(mappingRoot, token, segments[..^1], cancellationToken);
         var target = new Uri(EnsureSlash(mappingRoot), string.Join('/', segments));
@@ -94,7 +99,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         var fingerprint = digest + "\n" + source.Length + "\n" + currentEtag;
         if (state is not null)
         {
-            var previous = (await state.ListSyncUploadCheckpointsAsync(UploadScope(target,token), cancellationToken)).SingleOrDefault(item=>item.TargetUri==target.AbsoluteUri);
+            var previous = await FindCheckpointAsync(target, UploadScope(target,token), cancellationToken);
             if (previous is not null && (previous.Fingerprint != fingerprint || currentEtag == expectedEtag))
                 await CancelCheckpointAsync(previous, token, cancellationToken);
         }
@@ -128,7 +133,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         var scope = UploadScope(target, token);
         var fingerprint = digest + "\n" + source.Length + "\n" + currentEtag;
         var key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(target.AbsoluteUri + "\n" + fingerprint)));
-        var saved = state is null ? null : (await state.ListSyncUploadCheckpointsAsync(scope,cancellationToken)).SingleOrDefault(item=>item.TargetUri==target.AbsoluteUri);
+        var saved = await FindCheckpointAsync(target, scope, cancellationToken);
         key = saved?.IdempotencyKey ?? (state is null ? key : Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key+"\n"+Guid.NewGuid().ToString("N")))));
         // Persist before create: even losing the create response leaves a key
         // with which this device can cancel the old session after a restart.
@@ -189,6 +194,25 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
 
     private static string UploadScope(Uri target, string token) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(target.GetLeftPart(UriPartial.Authority)+"\n"+token.Trim())));
 
+    private async Task<SyncUploadCheckpoint?> FindCheckpointAsync(Uri target, string scope, CancellationToken cancellationToken)
+    {
+        if (state is null) return null;
+        var key = CanonicalTargetKey(target);
+        var matches = (await state.ListSyncUploadCheckpointsAsync(scope, cancellationToken))
+            .Where(item => CanonicalTargetKey(new Uri(item.TargetUri)) == key).ToArray();
+        if (matches.Length > 1) throw new InvalidDataException("Multiple upload checkpoints resolve to the same Saturn path.");
+        var match = matches.SingleOrDefault();
+        // Releases before NFC path canonicalization persisted the exact local
+        // spelling in this key. Move it transactionally and retain the same
+        // idempotency key/upload id so an in-flight upload resumes after update.
+        return match is not null && match.TargetUri != target.AbsoluteUri
+            ? await state.MoveSyncUploadCheckpointAsync(match, target.AbsoluteUri, cancellationToken)
+            : match;
+    }
+
+    private static string CanonicalTargetKey(Uri target) =>
+        target.GetLeftPart(UriPartial.Authority).ToLowerInvariant() + "\n" + CanonicalPathKey(Uri.UnescapeDataString(target.AbsolutePath));
+
     private async Task CancelCheckpointAsync(SyncUploadCheckpoint checkpoint, string token, CancellationToken cancellationToken)
     {
         using var cancel = new HttpRequestMessage(HttpMethod.Post,new Uri(new Uri(checkpoint.TargetUri),"/api/v1/sync/uploads/cancel"));
@@ -206,12 +230,13 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
     {
         if (state is null) return;
         var root = EnsureSlash(mappingRoot);
+        var localKeys = localFiles.Select(CanonicalPathKey).ToHashSet(StringComparer.Ordinal);
         foreach (var checkpoint in await state.ListSyncUploadCheckpointsAsync(UploadScope(root,token),cancellationToken))
         {
             var target = new Uri(checkpoint.TargetUri);
             if (!root.IsBaseOf(target)) continue;
             var relative = Uri.UnescapeDataString(root.MakeRelativeUri(target).OriginalString);
-            if (!localFiles.Contains(relative)) await CancelCheckpointAsync(checkpoint,token,cancellationToken);
+            if (!localKeys.Contains(CanonicalPathKey(relative))) await CancelCheckpointAsync(checkpoint,token,cancellationToken);
         }
     }
 
@@ -228,8 +253,10 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
     public async Task<int> MirrorAsync(Uri mappingRoot, string token, IReadOnlySet<string> localFiles, IReadOnlySet<string> localDirectories, bool protectMassDeletion = true, CancellationToken cancellationToken = default)
     {
         var remote = await EnumerateAsync(mappingRoot, token, "", cancellationToken);
-        var removedFiles = remote.Where(value => !value.IsCollection && !localFiles.Contains(value.RelativePath)).ToArray();
-        var removedDirectories = remote.Where(value => value.IsCollection && !localDirectories.Contains(value.RelativePath)).OrderByDescending(value => value.RelativePath.Count(c => c == '/')).ToArray();
+        var localFileKeys = localFiles.Select(CanonicalPathKey).ToHashSet(StringComparer.Ordinal);
+        var localDirectoryKeys = localDirectories.Select(CanonicalPathKey).ToHashSet(StringComparer.Ordinal);
+        var removedFiles = remote.Where(value => !value.IsCollection && !localFileKeys.Contains(CanonicalPathKey(value.RelativePath))).ToArray();
+        var removedDirectories = remote.Where(value => value.IsCollection && !localDirectoryKeys.Contains(CanonicalPathKey(value.RelativePath))).OrderByDescending(value => value.RelativePath.Count(c => c == '/')).ToArray();
         var removed = removedFiles.Length + removedDirectories.Length;
         if (protectMassDeletion && localFiles.Count == 0 && removedFiles.Length > 0)
             throw new InvalidOperationException("Mirror deletion guard stopped an empty local snapshot from removing stored files.");
@@ -391,9 +418,18 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         ? uri : new Uri(uri.AbsoluteUri + "/");
 
     private static string[] TargetSegments(string clientInstanceId, string mappingId, string relativePath) =>
-        new[] { clientInstanceId, mappingId }
-            .Concat(relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries))
+        new[] { clientInstanceId.Normalize(NormalizationForm.FormC), mappingId.Normalize(NormalizationForm.FormC) }
+            .Concat(CanonicalSegments(relativePath))
             .Select(Uri.EscapeDataString).ToArray();
+
+    private static string[] CanonicalSegments(string relativePath)
+    {
+        var segments = relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment => segment.Normalize(NormalizationForm.FormC).Trim()).ToArray();
+        if (segments.Any(segment => segment is "" or "." or ".." || segment.Length > 255 || segment.Any(char.IsControl)))
+            throw new InvalidDataException("Relative path contains an invalid segment.");
+        return segments;
+    }
 
     private sealed record SaturnPreferences(string AccentColor);
     private sealed record RemoteEntry(Uri Uri, string RelativePath, bool IsCollection);

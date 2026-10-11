@@ -39,11 +39,15 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
             {
                 var mappingName = Path.GetFileName(mapping.LocalPath.TrimEnd(Path.DirectorySeparatorChar));
                 if (string.IsNullOrWhiteSpace(mappingName)) mappingName = "root";
-                if (mappings.Any(other => other.MappingId != mapping.MappingId && string.Equals(Path.GetFileName(other.LocalPath.TrimEnd(Path.DirectorySeparatorChar)), mappingName, StringComparison.OrdinalIgnoreCase)))
+                var mappingKey = WebDavSyncClient.CanonicalPathKey(mappingName);
+                if (mappings.Any(other => other.MappingId != mapping.MappingId
+                    && WebDavSyncClient.CanonicalPathKey(Path.GetFileName(other.LocalPath.TrimEnd(Path.DirectorySeparatorChar))) == mappingKey))
                     throw new InvalidOperationException($"Two selected directories cannot use the same Saturn folder name '{mappingName}'.");
-                await client.EnsureDirectoryAsync(prepared.NamespaceRoot, prepared.SaturnToken, mappingName, cancellationToken);
-                var mappingRoot = new Uri(prepared.NamespaceRoot, Uri.EscapeDataString(mappingName) + "/");
                 var entries = SafeEntries(mapping.LocalPath).ToArray();
+                EnsureCanonicalPathsAreUnique(entries);
+                await client.EnsureDirectoryAsync(prepared.NamespaceRoot, prepared.SaturnToken, mappingName, cancellationToken);
+                var canonicalMapping = WebDavSyncClient.RelativeTargetUri(prepared.NamespaceRoot, mappingName);
+                var mappingRoot = new Uri(canonicalMapping.AbsoluteUri.TrimEnd('/') + "/");
                 var localFiles = entries.Where(value => !value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
                 var localDirectories = entries.Where(value => value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
                 await client.CancelMissingUploadsAsync(mappingRoot, prepared.SaturnToken, localFiles, cancellationToken);
@@ -189,6 +193,18 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
                 }
                 else yield return new LocalEntry(entry, relative, false);
             }
+        }
+    }
+
+    private static void EnsureCanonicalPathsAreUnique(IEnumerable<LocalEntry> entries)
+    {
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in entries)
+        {
+            var key = WebDavSyncClient.CanonicalPathKey(entry.RelativePath);
+            if (paths.TryGetValue(key, out var existing) && !string.Equals(existing, entry.RelativePath, StringComparison.Ordinal))
+                throw new InvalidDataException($"Local paths '{existing}' and '{entry.RelativePath}' resolve to the same Saturn path.");
+            paths[key] = entry.RelativePath;
         }
     }
 

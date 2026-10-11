@@ -116,6 +116,60 @@ public sealed class TransferSafetyTests
     }
 
     [Fact]
+    public async Task ClientUpdateMigratesLegacyUnicodeCheckpointWithoutLosingUploadIdentity()
+    {
+        const string decomposed = "FI\u0307LM LI\u0307STESI\u0307.pdf";
+        const string composed = "FİLM LİSTESİ.pdf";
+        const string token = "fixture";
+        const string idempotencyKey = "pre-update-idempotency-key";
+        var directory = Path.Combine(Path.GetTempPath(),"neptune-upgrade-checkpoint-"+Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var file = Path.Combine(directory,"payload.bin");
+        var content = new byte[1024*1024+13]; RandomNumberGenerator.Fill(content);
+        await File.WriteAllBytesAsync(file,content,TestContext.Current.CancellationToken);
+        var database = Path.Combine(directory,"state.db");
+        var store = new NeptuneStateStore(database); await store.InitializeAsync(TestContext.Current.CancellationToken);
+        var root = new Uri("https://saturn.test/webdav/sync/Fixture/");
+        var canonicalTarget = WebDavSyncClient.RelativeTargetUri(root,decomposed);
+        var legacyTarget = new Uri(root,Uri.EscapeDataString(decomposed)).AbsoluteUri;
+        Assert.NotEqual(legacyTarget,canonicalTarget.AbsoluteUri);
+        var scope = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("https://saturn.test\n"+token)));
+        var digest = Convert.ToHexStringLower(SHA256.HashData(content));
+        var fingerprint = digest+"\n"+content.Length+"\n";
+        await store.SaveSyncUploadCheckpointAsync(new(scope,legacyTarget,idempotencyKey,fingerprint,Guid.NewGuid().ToString("D")),TestContext.Current.CancellationToken);
+
+        string? submittedKey = null;
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if(request.Method==HttpMethod.Head) return new(HttpStatusCode.NotFound);
+            if(request.Method==HttpMethod.Post && request.RequestUri!.AbsolutePath=="/api/v1/sync/uploads")
+            {
+                using var body=JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+                submittedKey=body.RootElement.GetProperty("idempotencyKey").GetString();
+                throw new HttpRequestException("stop after observing the migrated request");
+            }
+            throw new InvalidOperationException("Unexpected request: "+request);
+        }));
+        try
+        {
+            await Assert.ThrowsAsync<HttpRequestException>(() => new WebDavSyncClient(http,store)
+                .UploadAsync(root,token,decomposed,file,TestContext.Current.CancellationToken));
+            Assert.Equal(idempotencyKey,submittedKey);
+            var checkpoints = await store.ListSyncUploadCheckpointsAsync(scope,TestContext.Current.CancellationToken);
+            var migrated = Assert.Single(checkpoints);
+            Assert.Equal(canonicalTarget.AbsoluteUri,migrated.TargetUri);
+            Assert.Equal(idempotencyKey,migrated.IdempotencyKey);
+            Assert.Equal(fingerprint,migrated.Fingerprint);
+            Assert.Equal(WebDavSyncClient.CanonicalPathKey(composed),WebDavSyncClient.CanonicalPathKey(decomposed));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory,true);
+        }
+    }
+
+    [Fact]
     public async Task EmptyLocalSnapshotCannotDeleteEvenOneRemoteFile()
     {
         var deletes = 0;

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 
@@ -6,6 +7,7 @@ namespace Neptune.Windows;
 
 internal sealed record StoredWindowsConnection(string KernelOrigin, string KernelToken, string SaturnToken, string? RemoteFolder);
 
+[SupportedOSPlatform("windows")]
 public sealed class WindowsConnectionStore(string stateDirectory)
 {
     private readonly string _path = Path.Combine(stateDirectory, "connection.json");
