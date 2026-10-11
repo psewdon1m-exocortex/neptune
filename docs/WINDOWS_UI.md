@@ -24,6 +24,9 @@ The connection dialog is a portrait `500 × 640` form. It keeps the native Windo
 - Hover and keyboard-focus states change color inside the arranged control
   bounds. They never scale beyond a ScrollViewer, card, footer or window edge,
   so their one-pixel outlines remain visible on every screen.
+- Buttons and checkbox labels use a one-pixel text underline for hover and
+  keyboard focus. Interactive states never replace the resting background;
+  fields and compound list items use their accent outline instead.
 - The main menu opens dedicated Mirrors, Activity and Settings screens. Each
   secondary screen has an explicit return action, following the same
   screen-oriented control model as the local Cake Proxy VPN application.

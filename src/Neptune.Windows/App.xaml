@@ -6,7 +6,6 @@
         <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
         <SolidColorBrush x:Key="BlackBrush" Color="#000000" />
         <SolidColorBrush x:Key="PanelBrush" Color="#050505" />
-        <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#111111" />
         <SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="White80Brush" Color="#CCCCCC" />
         <SolidColorBrush x:Key="DecorativeDotBrush" Color="#D9D9D9" />
@@ -50,17 +49,20 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                            <Grid HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <ContentPresenter RecognizesAccessKey="True" />
+                                <Border x:Name="TextUnderline" Height="1" VerticalAlignment="Bottom" Background="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True" />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="TextUnderline" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="TextUnderline" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.78" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.45" /><Setter Property="Cursor" Value="Arrow" /></Trigger>
@@ -113,8 +115,8 @@
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.45" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -141,8 +143,8 @@
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.45" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -165,12 +167,15 @@
                             <Border x:Name="Box" Width="20" Height="20" BorderBrush="{DynamicResource White80Brush}" BorderThickness="1" Background="{DynamicResource BlackBrush}" VerticalAlignment="Center" SnapsToDevicePixels="True">
                                 <Rectangle x:Name="Mark" Width="8" Height="8" Fill="{DynamicResource AccentBrush}" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            <Grid Grid.Column="1" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <ContentPresenter />
+                                <Border x:Name="TextUnderline" Height="1" VerticalAlignment="Bottom" Background="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True" />
+                            </Grid>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True"><Setter TargetName="Mark" Property="Visibility" Value="Visible" /><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter TargetName="Box" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}" /><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter TargetName="TextUnderline" Property="Visibility" Value="Visible" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}" /><Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter TargetName="TextUnderline" Property="Visibility" Value="Visible" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /><Setter Property="Cursor" Value="Arrow" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -191,8 +196,8 @@
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="Frame" Padding="12" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True"><ContentPresenter /></Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
-                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" /><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

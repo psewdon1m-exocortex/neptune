@@ -98,6 +98,17 @@ public sealed class WindowsUiContractTests
         Assert.DoesNotContain("ScrollBarVisibility=\"Visible\"", windows, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Hover_states_use_text_underlines_without_background_fills()
+    {
+        var root = RepositoryRoot();
+        var app = File.ReadAllText(Path.Combine(root, "src", "Neptune.Windows", "App.xaml"));
+
+        Assert.Contains("x:Name=\"TextUnderline\"", app, StringComparison.Ordinal);
+        Assert.Contains("TargetName=\"TextUnderline\" Property=\"Visibility\" Value=\"Visible\"", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("SurfaceHoverBrush", app, StringComparison.Ordinal);
+    }
+
     private static string RepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

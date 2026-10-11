@@ -542,7 +542,6 @@ public partial class MainWindow : Window
         SetBrush("AccentBrush", accent);
         SetBrush("BlackBrush", synchronized ? background : light ? "#F3F1EA" : black);
         SetBrush("PanelBrush", synchronized ? background : light ? white : "#050505");
-        SetBrush("SurfaceHoverBrush", light ? Blend(white, black, 0.10) : Blend(black, white, 0.067));
         SetBrush("WhiteBrush", synchronized ? foreground : light ? "#151515" : white);
         SetBrush("White80Brush", light ? Blend(white, black, 0.72) : Blend(black, white, 0.80));
         SetBrush("DecorativeDotBrush", light ? Blend(white, black, 0.58) : Blend(black, white, 0.85));
