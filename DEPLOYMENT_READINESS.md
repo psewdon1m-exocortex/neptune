@@ -6,6 +6,12 @@ and the shared-agent contracts in
 [Part 09](https://github.com/psewdon1m-exocortex/general/blob/main/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
 [Part 10](https://github.com/psewdon1m-exocortex/general/blob/main/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
+Neptune 0.1.18 pins the published Updater 0.6.17 bootstrap and install archive.
+The Windows Saturn enrollment dialog now keeps its fixed title and action row
+while allowing the credential form to scroll vertically on constrained displays.
+The scrollbar remains visually hidden without disabling mouse-wheel or touch
+panning, matching the existing Windows UI contract.
+
 Neptune 0.1.17 pins the published Updater 0.6.17 bootstrap and install archive.
 Windows profiles can now enroll through Kernel 0.3.12's dedicated
 `neptune-v1` Outdoor token and `/api/v1/outdoor/resolve` endpoint. The client
