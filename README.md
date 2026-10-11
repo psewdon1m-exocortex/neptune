@@ -52,7 +52,7 @@ credentials and never exposes a web interface.
   reconciliation, tray operation, per-profile current-user autostart and a
   checksummed portable updater;
 - `packaging/linux` contains the hardened systemd unit and installer;
-- `packaging/windows` contains the future MSIX manifest and complete planet icon family;
+- `packaging/windows` contains the future MSIX manifest and complete Windows icon family;
 - `.github/workflows` publishes platform-specific artifacts from one
   service-qualified release stream.
 
@@ -345,35 +345,52 @@ window close button hides it instead of stopping synchronization; the tray menu
 can reopen the window, synchronize immediately, check for updates or explicitly
 exit the process.
 
-The primary window has a tested client size of **800 x 500 logical pixels** and
-uses the common Exocortex visual language: black background, white text,
-square one-pixel borders, Space Grotesk/monospace typography and Saturn's
-current accent obtained from Saturn. `#00A8FF` is only the offline/default
-fallback before the first successful preference synchronization.
+The primary window has a tested client size of **500 x 800 logical pixels** and
+uses the common Exocortex visual language: square one-pixel borders and
+Space Grotesk/monospace typography. Appearance independently stores the selected
+dark/light theme and whether Saturn palette synchronization is enabled. When it
+is enabled, Neptune obtains Saturn's accent, white and black tokens and assigns
+their foreground/background roles for the selected theme. `#00A8FF`, `#FFFFFF`
+and `#000000` remain the offline/local fallbacks. Every application surface is
+updated through dynamic resources.
 
-The first release has one main panel:
+The English-only client follows Cake Proxy VPN's screen-oriented navigation
+model while retaining Neptune's own visual language:
 
 ```text
-+------------------------------------------------------------------+
-| Neptune planet   NEPTUNE                         Saturn: ready    |
-|------------------------------------------------------------------|
-| SYNC WITH SATURN                                                |
-| One-way copy of selected local directories to the sync root     |
-|                                                                  |
-| C:\Work\Project A             Up to date       [Remove]          |
-| D:\Photos                     Uploading 42%     [Pause]           |
-|                                                                  |
-| [Add local directory]                         [Sync now]          |
-|------------------------------------------------------------------|
-| 3 queued | Last success 14:20 | destination from Kernel Register |
-+------------------------------------------------------------------+
++--------------------------------------------+
+| Neptune                         SYNC ENABLED|
+|--------------------------------------------|
+| synchronization                            |
+| [x] Synchronization enabled                |
+| 104.2 GiB confirmed mirror size            |
+|                                            |
+| 1. Mirrors                                 |
+| 2. Activity                                |
+| 3. Settings                                |
+|                                  Sync now →|
++--------------------------------------------+
 ```
+
+Each secondary screen returns to the main menu. **Mirrors** owns entity
+selection, per-entity enable/disable controls, confirmed byte/file counts and
+manual synchronization. **Activity** summarizes the most recent confirmed
+snapshot for every configured entity. **Settings** owns appearance, autostart,
+Saturn enrollment and updates. The global synchronization switch pauses both
+periodic reconciliation and filesystem watcher hints without deleting remote
+data. Per-entity switches do the same for only that mapping.
+
+Mirror size is not an optimistic local directory scan. Neptune records the
+file count and exact local snapshot bytes only after uploads and remote cleanup
+for that entity both succeed. Disabled entities retain their last confirmed
+size until they are enabled and synchronized again.
 
 Directory selection uses the native Windows folder picker. The Saturn origin
 and base sync path come only from values resolved through the verified Kernel
 Register snapshot and are
-not editable text fields. A stable local mapping ID determines the subdirectory
-below the registered `/dav/sync` base and prevents name collisions.
+not editable text fields. The selected directory's final name determines its
+subdirectory below the server-assigned device namespace; Neptune rejects local
+name collisions before synchronization.
 
 Each Windows profile must use its own scoped Saturn device token and a unique,
 operator-selected destination such as `User PC`. Remote paths are
@@ -397,15 +414,18 @@ Version 1 behavior is deliberately one-way:
 - the local SQLite journal survives restart and records upload offsets,
   checksums, mappings, retries and terminal failures.
 
-The application, Start menu, taskbar, system tray, installer, notifications and
-file associations use one Neptune planet icon family rendered at all required
-Windows sizes. The taskbar icon also provides progress/error overlays where the
-platform supports them. No Saturn artwork is recolored and reused as Neptune;
-Neptune receives its own planet silhouette while sharing the accent token.
+The application, Start menu, taskbar, Task Manager, system tray, installer,
+notifications and file associations use one Neptune portrait emblem rendered at
+all required Windows sizes. The executable embeds a multi-resolution icon so
+small notification-area glyphs do not depend on a scaled taskbar bitmap. The
+taskbar icon also provides progress/error overlays where the platform supports
+them. The emblem uses a full-bleed square composition without a decorative
+outline, while runtime controls continue to share Saturn's current accent token.
 
-The accent is not compiled into runtime controls. Neptune reads the current
-device-authenticated Saturn preference from the path published in Kernel Register
-at connection time and during reconciliation, then updates WPF dynamic resources.
+The palette is not compiled into runtime controls. When enabled in Appearance,
+Neptune reads the current device-authenticated Saturn accent, white and black
+preferences from the path published in Kernel Register at connection time and
+during reconciliation, then updates WPF dynamic resources.
 
 The Windows application reads `repositories.neptune.url` and follows only the
 `neptune-v*` release stream. Current portable releases are immutable

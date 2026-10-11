@@ -5,6 +5,7 @@
         <Color x:Key="AccentColor">#00A8FF</Color>
         <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
         <SolidColorBrush x:Key="BlackBrush" Color="#000000" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#050505" />
         <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#111111" />
         <SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="White80Brush" Color="#CCCCCC" />
@@ -14,11 +15,18 @@
         <FontFamily x:Key="DisplayFont">Space Grotesk, Segoe UI</FontFamily>
         <FontFamily x:Key="InterfaceFont">Consolas, Cascadia Mono, Segoe UI Mono</FontFamily>
 
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="0" />
+            <Setter Property="Height" Value="0" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
         <Style x:Key="ControlFocusVisual" TargetType="Control">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate>
-                        <Rectangle Margin="-4" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1" SnapsToDevicePixels="True" />
+                        <Rectangle Margin="2" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1" SnapsToDevicePixels="True" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -35,28 +43,26 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource ControlFocusVisual}" />
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5" SnapsToDevicePixels="True">
-                            <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1" /></Border.RenderTransform>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                        <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="Frame" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="1.02" ScaleY="1.05" /></Setter.Value></Setter>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                                <Setter TargetName="Frame" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="1.02" ScaleY="1.05" /></Setter.Value></Setter>
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.985" ScaleY="0.985" /></Setter.Value></Setter></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.78" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.45" /><Setter Property="Cursor" Value="Arrow" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -72,6 +78,20 @@
         <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+        </Style>
+        <Style x:Key="NavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="Padding" Value="0,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+            <Setter Property="FontSize" Value="24" />
+        </Style>
+        <Style x:Key="BackButtonStyle" TargetType="Button" BasedOn="{StaticResource NavigationButtonStyle}">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="FontFamily" Value="{DynamicResource InterfaceFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource White80Brush}" />
         </Style>
 
         <Style TargetType="TextBox">

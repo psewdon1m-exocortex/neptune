@@ -60,7 +60,7 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         return target;
     }
 
-    public async Task<string> ReadAccentAsync(Uri preferencesUri, string token, CancellationToken cancellationToken = default)
+    public async Task<SaturnPalette> ReadPaletteAsync(Uri preferencesUri, string token, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, preferencesUri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
@@ -69,10 +69,14 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         using var document = await BoundedJson.ReadAsync(response.Content, 4096, cancellationToken);
         var value = document.RootElement.Deserialize<SaturnPreferences>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
             ?? throw new InvalidDataException("Saturn preferences response is empty.");
-        if (value.AccentColor is not { Length: 7 } accent || accent[0] != '#' || !accent[1..].All(Uri.IsHexDigit))
-            throw new InvalidDataException("Saturn returned an invalid accent color.");
-        return accent;
+        var palette = new SaturnPalette(value.AccentColor, value.BlackColor ?? SaturnPalette.Default.BlackColor, value.WhiteColor ?? SaturnPalette.Default.WhiteColor);
+        if (!IsColor(palette.AccentColor) || !IsColor(palette.BlackColor) || !IsColor(palette.WhiteColor))
+            throw new InvalidDataException("Saturn returned an invalid color palette.");
+        return palette;
     }
+
+    private static bool IsColor(string? value) =>
+        value is { Length: 7 } && value[0] == '#' && value[1..].All(Uri.IsHexDigit);
 
     public async Task EnsureDirectoryAsync(Uri mappingRoot, string token, string relativePath, CancellationToken cancellationToken = default)
     {
@@ -431,6 +435,6 @@ public sealed class WebDavSyncClient(HttpClient httpClient, NeptuneStateStore? s
         return segments;
     }
 
-    private sealed record SaturnPreferences(string AccentColor);
+    private sealed record SaturnPreferences(string AccentColor, string? BlackColor = null, string? WhiteColor = null);
     private sealed record RemoteEntry(Uri Uri, string RelativePath, bool IsCollection);
 }

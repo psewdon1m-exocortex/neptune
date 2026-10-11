@@ -6,7 +6,7 @@ and the shared-agent contracts in
 [Part 09](https://github.com/psewdon1m-exocortex/general/blob/main/PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) and
 [Part 10](https://github.com/psewdon1m-exocortex/general/blob/main/PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
-Neptune 0.1.14 pins the published Updater 0.6.16 bootstrap and install archive.
+Neptune 0.1.15 pins the published Updater 0.6.17 bootstrap and install archive.
 Windows sync normalizes Saturn WebDAV path segments to Unicode NFC, rejects
 canonical path collisions before remote cleanup and migrates legacy upload
 checkpoints without changing their idempotency identity. In-place Windows

@@ -10,10 +10,45 @@ using Neptune.Core;
 
 namespace Neptune.Windows;
 
-public sealed record MappingViewModel(SyncMapping Mapping)
+public sealed class MappingViewModel(SyncMapping mapping) : INotifyPropertyChanged
 {
+    public SyncMapping Mapping { get; private set; } = mapping;
     public string DisplayName => Path.GetFileName(Mapping.LocalPath.TrimEnd(Path.DirectorySeparatorChar)) is { Length: > 0 } name ? name : Mapping.LocalPath;
     public string LocalPath => Mapping.LocalPath;
+    public bool IsEnabled => Mapping.Enabled;
+    public long MirroredBytes { get; private set; }
+    public int MirroredFiles { get; private set; }
+    public DateTimeOffset? LastSuccessfulSyncAt { get; private set; }
+    public string MirroredSizeLabel => $"{FormatBytes(MirroredBytes)} mirrored";
+    public string FileCountLabel => $"{MirroredFiles:N0} file{(MirroredFiles == 1 ? "" : "s")}";
+    public string LastSyncLabel => LastSuccessfulSyncAt is { } value ? $"confirmed {value.LocalDateTime:g}" : "not synchronized";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void SetEnabled(bool enabled)
+    {
+        if (Mapping.Enabled == enabled) return;
+        Mapping = Mapping with { Enabled = enabled };
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+    }
+
+    public void ApplyStats(SyncMappingMirrorState? stats)
+    {
+        MirroredBytes = stats?.MirroredBytes ?? 0;
+        MirroredFiles = stats?.MirroredFiles ?? 0;
+        LastSuccessfulSyncAt = stats?.LastSuccessfulSyncAt;
+        foreach (var property in new[] { nameof(MirroredBytes), nameof(MirroredFiles), nameof(LastSuccessfulSyncAt), nameof(MirroredSizeLabel), nameof(FileCountLabel), nameof(LastSyncLabel) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
+    }
+
+    public static string FormatBytes(long value)
+    {
+        string[] units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        var size = (double)Math.Max(0, value);
+        var unit = 0;
+        while (size >= 1024 && unit < units.Length - 1) { size /= 1024; unit++; }
+        return unit == 0 ? $"{size:0} {units[unit]}" : $"{size:0.##} {units[unit]}";
+    }
 }
 
 public partial class MainWindow : Window
@@ -23,15 +58,20 @@ public partial class MainWindow : Window
     private readonly Func<WindowsSyncService> _syncServiceFactory;
     private readonly WindowsAutostartService _autostart;
     private readonly WindowsUpdateService _updates;
+    private readonly WindowsPreferencesStore _preferencesStore;
     private readonly WindowsTrayIcon _tray;
     private readonly NeptuneStateStore _state;
     private readonly ObservableCollection<MappingViewModel> _mappings = [];
+    private WindowsPreferences _preferences;
+    private SaturnPalette _saturnPalette = SaturnPalette.Default;
     private string _clientInstanceId = "initializing";
     private CancellationTokenSource? _syncCancellation;
     private bool _changingAutostart = true;
     private bool _allowExit;
     private bool _backgroundHintShown;
     private bool _checkingUpdates;
+    private bool _changingPreferences = true;
+    private DateTimeOffset? _lastRunAt;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly DispatcherTimer _reconciliationTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromSeconds(5) };
@@ -43,12 +83,20 @@ public partial class MainWindow : Window
         _connections = new WindowsConnectionStore(profile.StateDirectory);
         _autostart = new WindowsAutostartService(profile);
         _updates = new WindowsUpdateService(profile);
+        _preferencesStore = new WindowsPreferencesStore(profile.StateDirectory);
+        _preferences = _preferencesStore.Read();
         _state = new NeptuneStateStore(Path.Combine(profile.StateDirectory, "neptune.db"));
         InitializeComponent();
+        ApplyAppearance();
         _tray = new WindowsTrayIcon(profile.ProfileId, RestoreFromTray, SyncFromTrayAsync, CheckForUpdatesAsync, ExitFromTray);
         MappingsList.ItemsSource = _mappings;
+        ActivityList.ItemsSource = _mappings;
         ProfileLabel.Text = $"profile / {profile.ProfileId}";
-        SourceInitialized += (_, _) => SetClientSize(500, 800);
+        SourceInitialized += (_, _) =>
+        {
+            SetClientSize(500, 800);
+            WindowsTitleBar.Apply(this);
+        };
         Loaded += async (_, _) => await LoadAsync();
         Closing += Window_Closing;
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) HideToTray(showHint: false); };
@@ -70,13 +118,23 @@ public partial class MainWindow : Window
         _changingAutostart = true;
         try { AutostartToggle.IsChecked = _autostart.IsEnabled(); }
         finally { _changingAutostart = false; }
+        _changingPreferences = true;
+        try
+        {
+            ThemeToggle.IsChecked = _preferences.Theme == "light";
+            SaturnPaletteToggle.IsChecked = _preferences.SynchronizeSaturnPalette;
+            GlobalSyncToggle.IsChecked = _preferences.SynchronizationEnabled;
+        }
+        finally { _changingPreferences = false; }
         await _state.InitializeAsync();
         _clientInstanceId = await new ClientIdentityStore(_profile.StateDirectory).GetOrCreateAsync();
         ClientLabel.Text = _clientInstanceId;
         foreach (var mapping in await _state.ListMappingsAsync()) _mappings.Add(new MappingViewModel(mapping));
+        await RefreshMirrorStatsAsync();
         RefreshWatchers();
         _reconciliationTimer.Start();
         ShowConnectionState();
+        UpdateSummary();
         var connection = _connections.Read();
         if (connection is not null)
         {
@@ -84,7 +142,8 @@ public partial class MainWindow : Window
             {
                 var connected = await _syncServiceFactory().ConnectAsync(_clientInstanceId, connection);
                 _connections.Write(connected.Connection);
-                ApplyAccent(connected.AccentColor);
+                _saturnPalette = connected.Palette;
+                ApplyAppearance();
             }
             catch (Exception error) { FooterStatus.Text = $"Connection check failed · {error.Message}"; }
         }
@@ -121,6 +180,120 @@ public partial class MainWindow : Window
     {
         _allowExit = true;
         Close();
+    }
+
+    private void Dashboard_Click(object sender, RoutedEventArgs e) => ShowScreen(DashboardScreen);
+    private void Mirrors_Click(object sender, RoutedEventArgs e) => ShowScreen(MirrorsScreen);
+    private void Activity_Click(object sender, RoutedEventArgs e) => ShowScreen(ActivityScreen);
+    private void Settings_Click(object sender, RoutedEventArgs e) => ShowScreen(SettingsScreen);
+
+    private void ShowScreen(UIElement selected)
+    {
+        foreach (var screen in new UIElement[] { DashboardScreen, MirrorsScreen, ActivityScreen, SettingsScreen })
+            screen.Visibility = ReferenceEquals(screen, selected) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void Theme_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_changingPreferences) return;
+        var theme = ThemeToggle.IsChecked == true ? "light" : "dark";
+        var previous = _preferences;
+        try
+        {
+            _preferences = _preferences with { Theme = theme };
+            _preferencesStore.Write(_preferences);
+            ApplyAppearance();
+            FooterStatus.Text = theme == "light" ? "Light theme enabled" : "Dark theme enabled";
+        }
+        catch (Exception error)
+        {
+            _preferences = previous;
+            _changingPreferences = true;
+            try { ThemeToggle.IsChecked = previous.Theme == "light"; }
+            finally { _changingPreferences = false; }
+            MessageBox.Show(this, error.Message, "Neptune appearance", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void SaturnPalette_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_changingPreferences) return;
+        var enabled = SaturnPaletteToggle.IsChecked == true;
+        var previous = _preferences;
+        try
+        {
+            _preferences = _preferences with { SynchronizeSaturnPalette = enabled };
+            _preferencesStore.Write(_preferences);
+            if (enabled && _connections.Read() is { } connection)
+            {
+                try
+                {
+                    var connected = await _syncServiceFactory().ConnectAsync(_clientInstanceId, connection);
+                    _connections.Write(connected.Connection);
+                    _saturnPalette = connected.Palette;
+                    FooterStatus.Text = "Saturn color palette synchronized";
+                }
+                catch (Exception error)
+                {
+                    FooterStatus.Text = $"Saturn palette pending · {error.Message}";
+                }
+            }
+            else FooterStatus.Text = enabled ? "Saturn palette will apply after connection" : "Local color palette enabled";
+            ApplyAppearance();
+        }
+        catch (Exception error)
+        {
+            _preferences = previous;
+            _changingPreferences = true;
+            try { SaturnPaletteToggle.IsChecked = previous.SynchronizeSaturnPalette; }
+            finally { _changingPreferences = false; }
+            MessageBox.Show(this, error.Message, "Neptune appearance", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void GlobalSync_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_changingPreferences) return;
+        var enabled = GlobalSyncToggle.IsChecked == true;
+        var previous = _preferences;
+        try
+        {
+            _preferences = _preferences with { SynchronizationEnabled = enabled };
+            _preferencesStore.Write(_preferences);
+            if (!enabled) _syncCancellation?.Cancel();
+            RefreshWatchers();
+            UpdateSummary();
+            FooterStatus.Text = enabled ? "Synchronization enabled" : "Synchronization paused for this profile";
+        }
+        catch (Exception error)
+        {
+            _preferences = previous;
+            _changingPreferences = true;
+            try { GlobalSyncToggle.IsChecked = previous.SynchronizationEnabled; }
+            finally { _changingPreferences = false; }
+            MessageBox.Show(this, error.Message, "Neptune synchronization", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void MappingEnabled_Changed(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.CheckBox { Tag: MappingViewModel item } toggle) return;
+        var enabled = toggle.IsChecked == true;
+        if (item.IsEnabled == enabled) return;
+        try
+        {
+            await _state.SetMappingEnabledAsync(item.Mapping.MappingId, _clientInstanceId, enabled);
+            item.SetEnabled(enabled);
+            RefreshWatchers();
+            UpdateSummary();
+            FooterStatus.Text = enabled ? $"Mirror enabled · {item.DisplayName}" : $"Mirror paused · {item.DisplayName}";
+            if (enabled && _preferences.SynchronizationEnabled) ScheduleHintSync();
+        }
+        catch (Exception error)
+        {
+            item.SetEnabled(!enabled);
+            MessageBox.Show(this, error.Message, "Neptune mirror", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Autostart_Changed(object sender, RoutedEventArgs e)
@@ -211,7 +384,8 @@ public partial class MainWindow : Window
         {
             var connected = await _syncServiceFactory().ConnectAsync(_clientInstanceId, dialog.Connection);
             _connections.Write(connected.Connection);
-            ApplyAccent(connected.AccentColor);
+            _saturnPalette = connected.Palette;
+            ApplyAppearance();
             ShowConnectionState();
             FooterStatus.Text = $"Connected · sync/{connected.Connection.RemoteFolder}";
             return connected.Connection;
@@ -239,6 +413,7 @@ public partial class MainWindow : Window
         await _state.AddMappingAsync(mapping);
         _mappings.Add(new MappingViewModel(mapping));
         RefreshWatchers();
+        UpdateSummary();
     }
 
     private async void Remove_Click(object sender, RoutedEventArgs e)
@@ -247,6 +422,7 @@ public partial class MainWindow : Window
         await _state.RemoveMappingAsync(item.Mapping.MappingId, _clientInstanceId);
         _mappings.Remove(item);
         RefreshWatchers();
+        UpdateSummary();
     }
 
     private async void Sync_Click(object sender, RoutedEventArgs e)
@@ -262,6 +438,16 @@ public partial class MainWindow : Window
     private async Task StartSyncAsync(bool interactive)
     {
         if (_syncCancellation is not null || _mappings.Count == 0) return;
+        if (!_preferences.SynchronizationEnabled)
+        {
+            FooterStatus.Text = "Synchronization is paused";
+            return;
+        }
+        if (!_mappings.Any(item => item.IsEnabled))
+        {
+            FooterStatus.Text = "No mirror entities are enabled";
+            return;
+        }
         var connection = _connections.Read();
         if (connection is null)
         {
@@ -271,12 +457,16 @@ public partial class MainWindow : Window
         }
         _syncCancellation = new CancellationTokenSource();
         SyncButton.Content = "Cancel";
+        DashboardSyncButton.Content = "Cancel  →";
         FooterStatus.Text = "Starting synchronization…";
         try
         {
             var progress = new Progress<string>(value => FooterStatus.Text = "Uploading · " + value);
             var result = await _syncServiceFactory().SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
-            ApplyAccent(result.AccentColor);
+            _saturnPalette = result.Palette;
+            ApplyAppearance();
+            ApplyMirrorStats(result.Mirrors);
+            _lastRunAt = DateTimeOffset.Now;
             FooterStatus.Text = $"Up to date · {result.UploadedFiles} file(s) uploaded · {DateTime.Now:t}";
         }
         catch (OperationCanceledException) { FooterStatus.Text = "Synchronization cancelled"; }
@@ -287,16 +477,20 @@ public partial class MainWindow : Window
         }
         finally
         {
+            await RefreshMirrorStatsAsync();
             _syncCancellation.Dispose();
             _syncCancellation = null;
             SyncButton.Content = "Sync now";
+            DashboardSyncButton.Content = "Sync now  →";
+            UpdateSummary();
         }
     }
 
     private void RefreshWatchers()
     {
         DisposeWatchers();
-        foreach (var mapping in _mappings.Where(item => Directory.Exists(item.LocalPath)))
+        if (!_preferences.SynchronizationEnabled) return;
+        foreach (var mapping in _mappings.Where(item => item.IsEnabled && Directory.Exists(item.LocalPath)))
         {
             var watcher = new FileSystemWatcher(mapping.LocalPath)
             {
@@ -328,12 +522,86 @@ public partial class MainWindow : Window
         _watchers.Clear();
     }
 
-    private void ApplyAccent(string value)
+    private void ApplyAppearance()
     {
-        var color = (Color)ColorConverter.ConvertFromString(value);
-        Application.Current.Resources["AccentColor"] = color;
-        Application.Current.Resources["AccentBrush"] = new SolidColorBrush(color);
+        var palette = _preferences.SynchronizeSaturnPalette ? _saturnPalette : SaturnPalette.Default;
+        ApplyTheme(_preferences.Theme, palette, _preferences.SynchronizeSaturnPalette);
+        if (new WindowInteropHelper(this).Handle != nint.Zero) WindowsTitleBar.Apply(this);
         if (_connections.Read() is not null) ConnectionDot.Fill = (Brush)Application.Current.Resources["AccentBrush"];
+    }
+
+    private static void ApplyTheme(string theme, SaturnPalette palette, bool synchronized)
+    {
+        var light = theme == "light";
+        var black = synchronized ? palette.BlackColor : SaturnPalette.Default.BlackColor;
+        var white = synchronized ? palette.WhiteColor : SaturnPalette.Default.WhiteColor;
+        var accent = synchronized ? palette.AccentColor : SaturnPalette.Default.AccentColor;
+        var background = light ? white : black;
+        var foreground = light ? black : white;
+        SetColor("AccentColor", accent);
+        SetBrush("AccentBrush", accent);
+        SetBrush("BlackBrush", synchronized ? background : light ? "#F3F1EA" : black);
+        SetBrush("PanelBrush", synchronized ? background : light ? white : "#050505");
+        SetBrush("SurfaceHoverBrush", light ? Blend(white, black, 0.10) : Blend(black, white, 0.067));
+        SetBrush("WhiteBrush", synchronized ? foreground : light ? "#151515" : white);
+        SetBrush("White80Brush", light ? Blend(white, black, 0.72) : Blend(black, white, 0.80));
+        SetBrush("DecorativeDotBrush", light ? Blend(white, black, 0.58) : Blend(black, white, 0.85));
+        SetBrush("SuccessBrush", light ? "#147A3A" : "#62FF8C");
+        SetBrush("DangerBrush", light ? "#C72929" : "#F83D3D");
+    }
+
+    private static string Blend(string first, string second, double secondWeight)
+    {
+        var left = (Color)ColorConverter.ConvertFromString(first);
+        var right = (Color)ColorConverter.ConvertFromString(second);
+        static byte Channel(byte left, byte right, double weight) =>
+            (byte)Math.Round(left + (right - left) * weight, MidpointRounding.AwayFromZero);
+        return $"#{Channel(left.R, right.R, secondWeight):X2}{Channel(left.G, right.G, secondWeight):X2}{Channel(left.B, right.B, secondWeight):X2}";
+    }
+
+    private static void SetColor(string key, string value) =>
+        Application.Current.Resources[key] = (Color)ColorConverter.ConvertFromString(value);
+
+    private static void SetBrush(string key, string value) =>
+        Application.Current.Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));
+
+    private async Task RefreshMirrorStatsAsync()
+    {
+        if (_clientInstanceId == "initializing") return;
+        try { ApplyMirrorStats(await _state.ListSyncMappingStatsAsync(_clientInstanceId)); }
+        catch (Exception error) when (error is IOException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            FooterStatus.Text = $"Mirror statistics unavailable · {error.Message}";
+        }
+    }
+
+    private void ApplyMirrorStats(IReadOnlyList<SyncMappingMirrorState> values)
+    {
+        var byMapping = values.ToDictionary(value => value.MappingId, StringComparer.Ordinal);
+        foreach (var mapping in _mappings)
+            mapping.ApplyStats(byMapping.GetValueOrDefault(mapping.Mapping.MappingId));
+        UpdateSummary();
+    }
+
+    private void UpdateSummary()
+    {
+        var totalBytes = _mappings.Sum(item => item.MirroredBytes);
+        var totalFiles = _mappings.Sum(item => (long)item.MirroredFiles);
+        var confirmed = _mappings.Count(item => item.LastSuccessfulSyncAt is not null);
+        var enabled = _mappings.Count(item => item.IsEnabled);
+        var formatted = MappingViewModel.FormatBytes(totalBytes);
+        MirrorTotalText.Text = formatted;
+        ActivityTotalText.Text = formatted;
+        DashboardSummaryText.Text = $"Confirmed mirror size across {confirmed} of {_mappings.Count} entities";
+        ActivitySummaryText.Text = $"{totalFiles:N0} files · {enabled} enabled · {_mappings.Count - enabled} paused";
+        LastRunText.Text = _lastRunAt is { } last ? $"Last run · {last.LocalDateTime:g}" : "Last run · this session has not synchronized yet";
+        HeaderSyncState.Text = _preferences.SynchronizationEnabled ? "SYNC ENABLED" : "SYNC PAUSED";
+        HeaderSyncState.Foreground = _preferences.SynchronizationEnabled
+            ? (Brush)Application.Current.Resources["AccentBrush"]
+            : (Brush)Application.Current.Resources["White80Brush"];
+        var canSync = _preferences.SynchronizationEnabled && enabled > 0;
+        SyncButton.IsEnabled = canSync;
+        DashboardSyncButton.IsEnabled = canSync;
     }
 
     private void SetClientSize(int width, int height)

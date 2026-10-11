@@ -6,6 +6,11 @@ public sealed record NeptunePaths(
     string SyncPath,
     Uri NeptuneRepository);
 
+public sealed record SaturnPalette(string AccentColor, string BlackColor, string WhiteColor)
+{
+    public static SaturnPalette Default { get; } = new("#00A8FF", "#000000", "#FFFFFF");
+}
+
 public sealed record KernelRegisterSnapshot(
     string Schema,
     long Revision,
@@ -135,6 +140,12 @@ public sealed record SyncMapping(
     string LocalPath,
     bool Enabled,
     DateTimeOffset CreatedAt);
+
+public sealed record SyncMappingMirrorState(
+    string MappingId,
+    long MirroredBytes,
+    int MirroredFiles,
+    DateTimeOffset LastSuccessfulSyncAt);
 
 public sealed record SyncFileRecord(
     string MappingId,

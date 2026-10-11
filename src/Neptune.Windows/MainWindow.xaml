@@ -7,124 +7,166 @@
         UseLayoutRounding="True" SnapsToDevicePixels="True" Icon="neptune.ico">
     <Grid Background="{DynamicResource BlackBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="86"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="48"/>
         </Grid.RowDefinitions>
 
-        <Border BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="0,0,0,1" Padding="20">
+        <Border BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="0,0,0,1" Padding="20,10">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="64"/>
-                    <RowDefinition Height="40"/>
-                    <RowDefinition Height="40"/>
-                </Grid.RowDefinitions>
-
-                <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Image Source="neptune.png" Width="60" Height="60" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="neptune" FontFamily="{DynamicResource DisplayFont}" FontSize="38" FontWeight="Bold" LineHeight="40" Foreground="{DynamicResource AccentBrush}" />
-                        <TextBlock x:Name="ProfileLabel" FontSize="11" Foreground="{DynamicResource White80Brush}" TextTrimming="CharacterEllipsis" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Image Source="neptune.png" Width="52" Height="52" Stretch="UniformToFill" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                    <TextBlock Text="neptune" FontFamily="{DynamicResource DisplayFont}" FontSize="30" FontWeight="Bold" LineHeight="32" Foreground="{DynamicResource AccentBrush}" />
+                    <TextBlock x:Name="ProfileLabel" FontSize="10" Foreground="{DynamicResource White80Brush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Rectangle x:Name="ConnectionDot" Width="8" Height="8" Fill="#697680" Margin="0,0,7,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="ConnectionStatus" Text="Not configured" FontSize="10" VerticalAlignment="Center" Foreground="{DynamicResource White80Brush}" />
                     </StackPanel>
-                </Grid>
-
-                <Border Grid.Row="1" BorderBrush="{DynamicResource White80Brush}" BorderThickness="1" Background="{DynamicResource BlackBrush}" Padding="10,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="122"/></Grid.ColumnDefinitions>
-                        <Rectangle x:Name="ConnectionDot" Width="10" Height="10" Fill="#697680" VerticalAlignment="Center" />
-                        <TextBlock x:Name="ConnectionStatus" Grid.Column="1" Text="Not configured" Margin="10,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                        <Button Grid.Column="2" Content="Connection" Click="Connection_Click" MinHeight="34" Height="34" Margin="0,2" />
-                    </Grid>
-                </Border>
-
-                <Grid Grid.Row="2" Margin="0,10,0,-10">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <CheckBox x:Name="AutostartToggle" Content="Start with Windows" Checked="Autostart_Changed" Unchecked="Autostart_Changed" />
-                    <Button x:Name="UpdateButton" Grid.Column="2" Content="Check updates" Click="Update_Click" />
-                </Grid>
+                    <TextBlock x:Name="HeaderSyncState" Text="SYNC READY" Margin="0,5,0,0" HorizontalAlignment="Right" FontSize="10" Foreground="{DynamicResource AccentBrush}" />
+                </StackPanel>
             </Grid>
         </Border>
 
         <Grid Grid.Row="1" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+            <Grid x:Name="DashboardScreen">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="synchronization" FontFamily="{DynamicResource DisplayFont}" FontSize="40" FontWeight="Bold" LineHeight="44" Foreground="{DynamicResource AccentBrush}" />
+                    <TextBlock Margin="0,8,0,0" Text="One-way local-to-Saturn mirror" Foreground="{DynamicResource White80Brush}" />
+                </StackPanel>
 
-            <TextBlock Text="synchronization" FontFamily="{DynamicResource DisplayFont}" FontSize="38" FontWeight="Bold" LineHeight="42" Foreground="{DynamicResource AccentBrush}" />
-            <TextBlock Grid.Row="1" Margin="0,8,0,20" Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21"
-                       Text="One-way mirror of selected local folders. Local deletions are reflected in Saturn; remote changes never affect this computer." />
-
-            <Border Grid.Row="2" BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="1" Background="{DynamicResource BlackBrush}">
-                <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="55"/><RowDefinition Height="*"/><RowDefinition Height="65"/></Grid.RowDefinitions>
-
-                    <Border BorderBrush="{DynamicResource White80Brush}" BorderThickness="0,0,0,1" Padding="12,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="01" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource White80Brush}" />
-                            <TextBlock Grid.Column="1" Text="Folders" Margin="10,0,0,0" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
-                            <Grid Grid.Column="2" Width="20" Height="20" VerticalAlignment="Center" ToolTip="Fixed synchronization card">
-                                <Ellipse Width="4" Height="4" Fill="{DynamicResource DecorativeDotBrush}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,2,0,0" />
-                                <Ellipse Width="4" Height="4" Fill="{DynamicResource DecorativeDotBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" />
-                                <Ellipse Width="4" Height="4" Fill="{DynamicResource DecorativeDotBrush}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="2,0,0,2" />
-                                <Ellipse Width="4" Height="4" Fill="{DynamicResource DecorativeDotBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,2" />
-                            </Grid>
-                        </Grid>
-                    </Border>
-
-                    <Grid Grid.Row="1" Margin="12,12,12,2">
-                        <ListBox x:Name="MappingsList" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource WhiteBrush}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 VirtualizingPanel.IsVirtualizing="True">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid>
-                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
-                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Row="1" Margin="0,4,0,10" Text="{Binding LocalPath}" Foreground="{DynamicResource White80Brush}" FontSize="11" TextWrapping="Wrap" />
-                                        <Grid Grid.Row="2">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="104"/></Grid.ColumnDefinitions>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Rectangle Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" />
-                                                <TextBlock Text="Ready" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
-                                            </StackPanel>
-                                            <Button Grid.Column="1" Content="Remove" Tag="{Binding}" Click="Remove_Click" Style="{StaticResource DangerButtonStyle}" />
-                                        </Grid>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <TextBlock Text="No local folders selected. Add a folder to begin one-way synchronization."
-                                   Margin="18" Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21" VerticalAlignment="Top" IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers><DataTrigger Binding="{Binding ElementName=MappingsList, Path=HasItems}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                <Border Grid.Row="1" Margin="0,24,0,0" BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="1" Background="{DynamicResource PanelBrush}" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <CheckBox x:Name="GlobalSyncToggle" Content="Synchronization enabled" FontWeight="Bold" Checked="GlobalSync_Changed" Unchecked="GlobalSync_Changed" />
+                        <TextBlock x:Name="MirrorTotalText" Grid.Row="1" Margin="0,12,0,0" FontFamily="{DynamicResource DisplayFont}" FontSize="34" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" Text="0 B" />
+                        <TextBlock x:Name="DashboardSummaryText" Grid.Row="2" Margin="0,3,0,0" Foreground="{DynamicResource White80Brush}" Text="Confirmed mirror size across 0 entities" />
                     </Grid>
+                </Border>
 
-                    <Border Grid.Row="2" BorderBrush="{DynamicResource White80Brush}" BorderThickness="0,1,0,0" Padding="12">
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Button Content="Add local folder" Click="AddDirectory_Click" />
-                            <Button x:Name="SyncButton" Grid.Column="2" Content="Sync now" Click="Sync_Click" Style="{StaticResource PrimaryButtonStyle}" />
-                        </Grid>
-                    </Border>
+                <StackPanel Grid.Row="2" Margin="0,34,0,0" VerticalAlignment="Top">
+                    <Button Content="1. Mirrors" Click="Mirrors_Click" Style="{StaticResource NavigationButtonStyle}" />
+                    <Button Content="2. Activity" Click="Activity_Click" Style="{StaticResource NavigationButtonStyle}" />
+                    <Button Content="3. Settings" Click="Settings_Click" Style="{StaticResource NavigationButtonStyle}" />
+                </StackPanel>
+
+                <Button x:Name="DashboardSyncButton" Grid.Row="3" Content="Sync now  →" Click="Sync_Click" Style="{StaticResource NavigationButtonStyle}" HorizontalAlignment="Right" />
+            </Grid>
+
+            <Grid x:Name="MirrorsScreen" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="58"/></Grid.RowDefinitions>
+                <TextBlock Text="mirrors" FontFamily="{DynamicResource DisplayFont}" FontSize="44" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                <Button Grid.Row="1" Content="← main menu" Click="Dashboard_Click" Style="{StaticResource BackButtonStyle}" />
+                <Grid Grid.Row="2" Margin="0,10,0,0">
+                    <ListBox x:Name="MappingsList" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource WhiteBrush}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                             ScrollViewer.PanningMode="VerticalOnly"
+                             VirtualizingPanel.IsVirtualizing="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="40"/></Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="16" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        <CheckBox Grid.Column="1" Content="Mirror" Tag="{Binding}" IsChecked="{Binding IsEnabled, Mode=OneWay}" Checked="MappingEnabled_Changed" Unchecked="MappingEnabled_Changed" />
+                                    </Grid>
+                                    <TextBlock Grid.Row="1" Margin="0,2,0,8" Text="{Binding LocalPath}" Foreground="{DynamicResource White80Brush}" FontSize="10" TextWrapping="Wrap" />
+                                    <Grid Grid.Row="2" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding MirroredSizeLabel}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" />
+                                        <TextBlock Grid.Column="1" Text="{Binding LastSyncLabel}" Foreground="{DynamicResource White80Brush}" FontSize="10" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Grid Grid.Row="3">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="104"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding FileCountLabel}" Foreground="{DynamicResource White80Brush}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Content="Remove" Tag="{Binding}" Click="Remove_Click" Style="{StaticResource DangerButtonStyle}" />
+                                    </Grid>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="No local folders selected. Add a folder to create an entity."
+                               Margin="18" Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="21" VerticalAlignment="Top" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers><DataTrigger Binding="{Binding ElementName=MappingsList, Path=HasItems}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </Grid>
-            </Border>
+                <Grid Grid.Row="3" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Button Content="Add local folder" Click="AddDirectory_Click" />
+                    <Button x:Name="SyncButton" Grid.Column="2" Content="Sync now" Click="Sync_Click" Style="{StaticResource PrimaryButtonStyle}" />
+                </Grid>
+            </Grid>
+
+            <Grid x:Name="ActivityScreen" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <TextBlock Text="activity" FontFamily="{DynamicResource DisplayFont}" FontSize="44" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                <Button Grid.Row="1" Content="← main menu" Click="Dashboard_Click" Style="{StaticResource BackButtonStyle}" />
+                <Border Grid.Row="2" Margin="0,14,0,18" BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="1" Background="{DynamicResource PanelBrush}" Padding="16">
+                    <StackPanel>
+                        <TextBlock x:Name="ActivityTotalText" FontFamily="{DynamicResource DisplayFont}" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" Text="0 B" />
+                        <TextBlock x:Name="ActivitySummaryText" Margin="0,4,0,0" Text="No confirmed mirror snapshots" Foreground="{DynamicResource White80Brush}" />
+                        <TextBlock x:Name="LastRunText" Margin="0,12,0,0" Text="Last run · never" />
+                    </StackPanel>
+                </Border>
+                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
+                    <ItemsControl x:Name="ActivityList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" />
+                                        <TextBlock Text="{Binding LastSyncLabel}" FontSize="10" Foreground="{DynamicResource White80Brush}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding MirroredSizeLabel}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <Grid x:Name="SettingsScreen" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <TextBlock Text="settings" FontFamily="{DynamicResource DisplayFont}" FontSize="44" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                <Button Grid.Row="1" Content="← main menu" Click="Dashboard_Click" Style="{StaticResource BackButtonStyle}" />
+                <ScrollViewer Grid.Row="2" Margin="0,12,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly">
+                    <StackPanel>
+                        <TextBlock Text="1. Appearance" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" />
+                        <CheckBox x:Name="ThemeToggle" Margin="0,6,0,4" Content="Light theme" Checked="Theme_Changed" Unchecked="Theme_Changed" />
+                        <CheckBox x:Name="SaturnPaletteToggle" Margin="0,0,0,4" Content="Synchronize colors with Saturn" Checked="SaturnPalette_Changed" Unchecked="SaturnPalette_Changed" />
+                        <TextBlock Margin="30,0,0,14" Text="Use Saturn's accent, white and black colors in either theme." Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" />
+
+                        <TextBlock Text="2. Startup" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" />
+                        <CheckBox x:Name="AutostartToggle" Margin="0,6,0,14" Content="Start with Windows" Checked="Autostart_Changed" Unchecked="Autostart_Changed" />
+
+                        <TextBlock Text="3. Saturn connection" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" />
+                        <Button Margin="0,6,0,14" Content="Configure connection" Click="Connection_Click" />
+
+                        <TextBlock Text="4. Application update" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" />
+                        <Button x:Name="UpdateButton" Margin="0,6,0,14" Content="Check updates" Click="Update_Click" />
+
+                        <TextBlock Text="5. Background behavior" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" />
+                        <TextBlock Margin="0,6,0,14" Text="Closing the window keeps Neptune in the system tray. Automatic reconciliation runs every five minutes while synchronization is enabled." Foreground="{DynamicResource White80Brush}" TextWrapping="Wrap" LineHeight="20" />
+
+                        <TextBlock Text="Client identity" Foreground="{DynamicResource White80Brush}" />
+                        <TextBlock x:Name="ClientLabel" Margin="0,4,0,0" FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
         </Grid>
 
         <Border Grid.Row="2" BorderBrush="{DynamicResource WhiteBrush}" BorderThickness="0,1,0,0" Padding="20,0">
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
-                <TextBlock x:Name="FooterStatus" Text="Ready" VerticalAlignment="Center" Foreground="{DynamicResource White80Brush}" TextTrimming="CharacterEllipsis" />
-                <TextBlock x:Name="ClientLabel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="10" Foreground="#999999" TextTrimming="CharacterEllipsis" />
-            </Grid>
+            <TextBlock x:Name="FooterStatus" Text="Ready" VerticalAlignment="Center" Foreground="{DynamicResource White80Brush}" TextTrimming="CharacterEllipsis" />
         </Border>
     </Grid>
 </Window>

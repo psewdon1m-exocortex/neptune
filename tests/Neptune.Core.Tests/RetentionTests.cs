@@ -45,8 +45,16 @@ public sealed class RetentionTests
             await state.InitializeAsync(cancellation);
             await state.AddMappingAsync(new SyncMapping("mapping", "client", root, true, DateTimeOffset.UtcNow), cancellation);
             await state.UpsertSyncFileAsync(new SyncFileRecord("mapping", "file.txt", 1, DateTimeOffset.UtcNow, "sha", "etag", "complete", DateTimeOffset.UtcNow, null), cancellation);
+            await state.SetMappingEnabledAsync("mapping", "client", false, cancellation);
+            Assert.False(Assert.Single(await state.ListMappingsAsync(cancellation)).Enabled);
+            var mirroredAt = DateTimeOffset.UtcNow;
+            await state.UpsertSyncMappingStatsAsync(new SyncMappingMirrorState("mapping", 4096, 3, mirroredAt), cancellation);
+            var stats = Assert.Single(await state.ListSyncMappingStatsAsync("client", cancellation));
+            Assert.Equal(4096, stats.MirroredBytes);
+            Assert.Equal(3, stats.MirroredFiles);
             await state.RemoveMappingAsync("mapping", "client", cancellation);
             Assert.Null(await state.GetSyncFileAsync("mapping", "file.txt", cancellation));
+            Assert.Empty(await state.ListSyncMappingStatsAsync("client", cancellation));
             await state.SaveRemoteCommandAsync("command", "volt", "archive.run", "synthetic-sensitive-payload", "succeeded", null, cancellation);
             await using var connection = new SqliteConnection($"Data Source={filename}"); await connection.OpenAsync(cancellation);
             await using var query = connection.CreateCommand(); query.CommandText = "SELECT payload FROM remote_commands WHERE command_id='command'";

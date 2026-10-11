@@ -60,6 +60,13 @@ public sealed class NeptuneStateStore(string databasePath)
                 PRIMARY KEY(mapping_id, relative_path),
                 FOREIGN KEY(mapping_id) REFERENCES sync_mappings(mapping_id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS sync_mapping_stats (
+                mapping_id TEXT PRIMARY KEY,
+                mirrored_bytes INTEGER NOT NULL,
+                mirrored_files INTEGER NOT NULL,
+                last_success_at TEXT NOT NULL,
+                FOREIGN KEY(mapping_id) REFERENCES sync_mappings(mapping_id) ON DELETE CASCADE
+            );
             CREATE TABLE IF NOT EXISTS remote_commands (
                 command_id TEXT PRIMARY KEY,
                 project_id TEXT NOT NULL,
@@ -370,6 +377,60 @@ public sealed class NeptuneStateStore(string databasePath)
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
             result.Add(new SyncMapping(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetBoolean(3), DateTimeOffset.Parse(reader.GetString(4))));
+        return result;
+    }
+
+    public async Task SetMappingEnabledAsync(string mappingId, string clientInstanceId, bool enabled, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE sync_mappings SET enabled=$enabled WHERE mapping_id=$mappingId AND client_instance_id=$clientId";
+        command.Parameters.AddWithValue("$mappingId", mappingId);
+        command.Parameters.AddWithValue("$clientId", clientInstanceId);
+        command.Parameters.AddWithValue("$enabled", enabled ? 1 : 0);
+        if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
+            throw new InvalidOperationException("The synchronized folder no longer exists.");
+    }
+
+    public async Task UpsertSyncMappingStatsAsync(SyncMappingMirrorState stats, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO sync_mapping_stats(mapping_id, mirrored_bytes, mirrored_files, last_success_at)
+            SELECT $mappingId,$bytes,$files,$lastSuccessAt
+            WHERE EXISTS (SELECT 1 FROM sync_mappings WHERE mapping_id=$mappingId)
+            ON CONFLICT(mapping_id) DO UPDATE SET
+                mirrored_bytes=excluded.mirrored_bytes,
+                mirrored_files=excluded.mirrored_files,
+                last_success_at=excluded.last_success_at;
+            """;
+        command.Parameters.AddWithValue("$mappingId", stats.MappingId);
+        command.Parameters.AddWithValue("$bytes", stats.MirroredBytes);
+        command.Parameters.AddWithValue("$files", stats.MirroredFiles);
+        command.Parameters.AddWithValue("$lastSuccessAt", stats.LastSuccessfulSyncAt.ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SyncMappingMirrorState>> ListSyncMappingStatsAsync(string clientInstanceId, CancellationToken cancellationToken = default)
+    {
+        var result = new List<SyncMappingMirrorState>();
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT stats.mapping_id, stats.mirrored_bytes, stats.mirrored_files, stats.last_success_at
+            FROM sync_mapping_stats stats
+            INNER JOIN sync_mappings mappings ON mappings.mapping_id=stats.mapping_id
+            WHERE mappings.client_instance_id=$clientId
+            ORDER BY mappings.created_at;
+            """;
+        command.Parameters.AddWithValue("$clientId", clientInstanceId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new SyncMappingMirrorState(reader.GetString(0), reader.GetInt64(1), reader.GetInt32(2), DateTimeOffset.Parse(reader.GetString(3))));
         return result;
     }
 

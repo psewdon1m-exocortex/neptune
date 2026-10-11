@@ -6,7 +6,16 @@ The current release workflow publishes a self-contained Windows x64 portable
 ZIP plus a SHA-256 file and machine-readable manifest. It requires no signing
 certificate: extract the archive and run `Neptune.Windows.exe`. The checked-in
 MSIX manifest and assets are retained for a future publisher-signed installer.
-The executable, taskbar and window use the Neptune planet icon family.
+The executable, Task Manager, taskbar, tray and window use the same
+multi-resolution, full-bleed square Neptune portrait icon family without a
+decorative outline.
+
+The checked-in icon family is derived from `assets/windows/neptune-master.png`:
+
+```powershell
+python .src/generate-windows-icons.py
+python scripts/test-windows-icons.py
+```
 
 Run independent local clients with separate protected state and identities:
 

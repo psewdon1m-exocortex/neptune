@@ -9,6 +9,7 @@ public partial class ConnectionWindow : Window
     public ConnectionWindow(WindowsConnection? existing)
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => WindowsTitleBar.Apply(this);
         if (existing is null) return;
         _existingFolder = existing.RemoteFolder;
         KernelOrigin.Text = existing.KernelOrigin.AbsoluteUri;

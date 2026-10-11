@@ -161,7 +161,7 @@ public sealed class CoreTests
     }
 
     [Fact]
-    public async Task WebDavNamespaceIsClaimedAndAccentComesFromSaturn()
+    public async Task WebDavNamespaceIsClaimedAndPaletteComesFromSaturn()
     {
         var handler = new NamespaceProtocolHandler();
         var client = new WebDavSyncClient(new HttpClient(handler));
@@ -169,12 +169,12 @@ public sealed class CoreTests
 
         var root = await client.ClaimNamespaceAsync(
             new Uri("https://saturn.example/dav/sync/"), "token", "User PC", "client-a", cancellationToken);
-        var accent = await client.ReadAccentAsync(
+        var palette = await client.ReadPaletteAsync(
             new Uri("https://saturn.example/api/v1/sync/preferences"), "token", cancellationToken);
 
         Assert.Equal("https://saturn.example/dav/sync/User%20PC/", root.AbsoluteUri);
         Assert.Equal("client-a", handler.Owner);
-        Assert.Equal("#7357FF", accent);
+        Assert.Equal(new SaturnPalette("#7357FF", "#101010", "#F7F7F7"), palette);
     }
 
     [Fact]
@@ -291,7 +291,7 @@ public sealed class CoreTests
                 return new HttpResponseMessage(HttpStatusCode.Created);
             }
             if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/api/v1/sync/preferences", StringComparison.Ordinal))
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { accentColor = "#7357FF" }) };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { accentColor = "#7357FF", blackColor = "#101010", whiteColor = "#F7F7F7" }) };
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }
     }

@@ -8,8 +8,8 @@ using Neptune.Core;
 
 namespace Neptune.Windows;
 
-public sealed record WindowsSyncResult(int UploadedFiles, string AccentColor);
-public sealed record WindowsConnectionResult(string AccentColor, WindowsConnection Connection);
+public sealed record WindowsSyncResult(int UploadedFiles, SaturnPalette Palette, IReadOnlyList<SyncMappingMirrorState> Mirrors);
+public sealed record WindowsConnectionResult(SaturnPalette Palette, WindowsConnection Connection);
 
 public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient? httpClient = null)
 {
@@ -18,7 +18,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
     public async Task<WindowsConnectionResult> ConnectAsync(string clientInstanceId, WindowsConnection connection, CancellationToken cancellationToken = default)
     {
         var prepared = await PrepareAsync(clientInstanceId, connection, cancellationToken);
-        return new WindowsConnectionResult(prepared.AccentColor, connection with { SaturnToken = prepared.SaturnToken, RemoteFolder = prepared.RemoteFolder });
+        return new WindowsConnectionResult(prepared.Palette, connection with { SaturnToken = prepared.SaturnToken, RemoteFolder = prepared.RemoteFolder });
     }
 
     public async Task<WindowsSyncResult> SyncAsync(
@@ -50,6 +50,9 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
                 var mappingRoot = new Uri(canonicalMapping.AbsoluteUri.TrimEnd('/') + "/");
                 var localFiles = entries.Where(value => !value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
                 var localDirectories = entries.Where(value => value.IsDirectory).Select(value => value.RelativePath).ToHashSet(StringComparer.Ordinal);
+                var mirroredBytes = entries.Where(value => !value.IsDirectory)
+                    .Aggregate(0L, (total, value) => checked(total + new FileInfo(value.FullPath).Length));
+                var failuresBeforeMapping = failures;
                 await client.CancelMissingUploadsAsync(mappingRoot, prepared.SaturnToken, localFiles, cancellationToken);
                 foreach (var directory in localDirectories.OrderBy(value => value.Count(character => character == '/')))
                     await client.EnsureDirectoryAsync(mappingRoot, prepared.SaturnToken, directory, cancellationToken);
@@ -98,7 +101,12 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
                         await state.UpsertSyncFileAsync(new SyncFileRecord(mapping.MappingId, relative, info.Length, modifiedAt, hash, previous?.RemoteEtag, "retry-wait", DateTimeOffset.UtcNow, error.Message), cancellationToken);
                     }
                 }
-                try { await client.MirrorAsync(mappingRoot, prepared.SaturnToken, localFiles, localDirectories, protectMassDeletion: true, cancellationToken: cancellationToken); }
+                try
+                {
+                    await client.MirrorAsync(mappingRoot, prepared.SaturnToken, localFiles, localDirectories, protectMassDeletion: true, cancellationToken: cancellationToken);
+                    if (failures == failuresBeforeMapping)
+                        await state.UpsertSyncMappingStatsAsync(new SyncMappingMirrorState(mapping.MappingId, mirroredBytes, localFiles.Count, DateTimeOffset.UtcNow), cancellationToken);
+                }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
                     failures++;
@@ -106,7 +114,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
                 }
             }
             if (failures > 0) throw new IOException($"{failures} file(s) could not be synchronized and remain queued for retry.");
-            return new WindowsSyncResult(uploaded, prepared.AccentColor);
+            return new WindowsSyncResult(uploaded, prepared.Palette, await state.ListSyncMappingStatsAsync(clientInstanceId, cancellationToken));
         }
     }
 
@@ -132,14 +140,14 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
                 throw new InvalidDataException("Saturn setup code or stored device credential is invalid.");
             var remoteFolder = await SendHeartbeatAsync(saturnOrigin, saturnToken, cancellationToken);
             var namespaceRoot = new Uri(syncRoot, Uri.EscapeDataString(remoteFolder) + "/");
-            var accent = "#00A8FF";
-            try { accent = await client.ReadAccentAsync(new Uri(saturnOrigin, preferencesPath), saturnToken, cancellationToken); }
+            var palette = SaturnPalette.Default;
+            try { palette = await client.ReadPaletteAsync(new Uri(saturnOrigin, preferencesPath), saturnToken, cancellationToken); }
             catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 // Older Saturn deployments have no preferences endpoint. The next
                 // successful connection after Saturn is upgraded replaces this fallback.
             }
-            return new PreparedConnection(namespaceRoot, accent, saturnToken, remoteFolder);
+            return new PreparedConnection(namespaceRoot, palette, saturnToken, remoteFolder);
         }
     }
 
@@ -208,7 +216,7 @@ public sealed class WindowsSyncService(WindowsProfileContext profile, HttpClient
         }
     }
 
-    private sealed record PreparedConnection(Uri NamespaceRoot, string AccentColor, string SaturnToken, string RemoteFolder);
+    private sealed record PreparedConnection(Uri NamespaceRoot, SaturnPalette Palette, string SaturnToken, string RemoteFolder);
     private sealed record DeviceAssignment(string? SyncRootId, string? SyncFolderName);
     private sealed record DeviceEnrollmentResponse(string Token);
     private sealed record LocalEntry(string FullPath, string RelativePath, bool IsDirectory);

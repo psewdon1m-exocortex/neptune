@@ -18,6 +18,7 @@
     <Compile Include="../../src/Neptune.Windows/WindowsConnection.cs" Link="Windows/WindowsConnection.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsConnectionStore.cs" Link="Windows/WindowsConnectionStore.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsProfileContext.cs" Link="Windows/WindowsProfileContext.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsPreferencesStore.cs" Link="Windows/WindowsPreferencesStore.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsSyncService.cs" Link="Windows/WindowsSyncService.cs" />
     <Compile Include="../../src/Neptune.Windows/UpdateApplyMode.cs" Link="Windows/UpdateApplyMode.cs" />
   </ItemGroup>
