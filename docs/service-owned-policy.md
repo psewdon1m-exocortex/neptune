@@ -6,9 +6,10 @@ The authenticated application backend calls the local Unix socket using its own 
 
 - `GET /v1/projects/{deployment}/policy`
 - `PUT /v1/projects/{deployment}/policy`
-- `GET /v1/projects/{deployment}/policy/runs` for run history; the daemon's
-  legacy `POST` remains for already integrated producers, while current
-  service-facing APIs reject new manual run requests.
+- `GET /v1/projects/{deployment}/policy/runs` for run history.
+- The registered `POST /v1/projects/{deployment}/policy/runs` route forwards to
+  Saturn. Its authenticated upstream returns 410; manual remote runs are
+  unsupported. Current service-facing APIs also reject manual run requests.
 
 Writes carry a stable `requestId` and `expectedRevision`. Neptune resolves Saturn through Kernel and relays the command with the enrolled producer credential. The returned schema is `exocortex.backup.policy.v1`. A successful authoritative write and a locally applied revision are separate observations. Retrying an uncertain response preserves the operation ID; a conflict requires review of the newer policy. Changing an interval does not issue a manual run.
 

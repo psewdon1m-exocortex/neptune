@@ -51,3 +51,37 @@ Part 01's `250px` browser sidebar and `80px` page heading describe a full deskto
 - Empty, configured, paused, synchronizing, cancelled and failed states retain explicit text; color is never the only state signal.
 - Switching theme, Saturn palette synchronization, global synchronization or an entity switch persists across restart for the selected profile.
 - `dotnet build Neptune.slnx` and the complete Core test suite must pass.
+
+## Synchronization progress (2026-10-16)
+
+The synchronization window shows stage, mirror name and ordinal, completed/total operations, progress bar, ETA and elapsed time. Preparing, scanning and verification use an indeterminate bar when the total is unknown. ETA estimates the current mirror only; it resets when the mirror changes. It is not a prediction for all configured mirrors.
+
+`Waiting to retry` shows `ETA ∞`: no finite completion estimate is possible while the transfer is interrupted or awaits retry. The elapsed clock continues for the current run. `Synchronized`, `Stopped` and `Needs attention` stop the clock and clear the active estimate; a new run resets elapsed time and estimates. `Synchronized` for the overall run identifies all enabled mirrors. Accessibility help text includes the stage, counts, elapsed time and ETA. Taskbar progress/error overlays are not part of this implementation.
+
+Implementation: `MainWindow.Progress.cs`, `WindowsSyncProgressDisplay.cs`, Core `SyncProgressEstimator`. Display contracts are covered by tests; interactive UI and OS-trusted MSI upgrade are separate acceptance gates.
+
+## Excluded folders (2026-10-28)
+
+Each mirror has an **Exclude…** button. **Add folder…** selects one or more
+subfolders of that mirror; **Remove exclusion** includes a folder again, and
+**Save** persists the list in the current profile. This is available before the
+first synchronization. Paths are relative to the selected mirror, recursive,
+and matched by whole segments without Windows case distinctions: excluding
+`project-2` does not exclude `project-20`. There are no implicit exclusions.
+
+Exclusions take priority over selection of their parent. Existing local and
+server data is preserved, including when an excluded folder disappears locally.
+Deleting or moving an ancestor cannot delete an excluded remote subtree.
+Removing an exclusion queues ordinary reconciliation; it does not discard
+conflicts or overwrite foreign server content. Native journal/namespace metadata
+is still observed for continuity, but excluded content is not captured or sent.
+
+Settings are root/client/mapping-bound, atomically replaced and included in the
+ordinary profile backup. Previously configured Review policies are imported
+read-only. Invalid settings stop synchronization before recovery/data requests;
+they never default to synchronizing everything. Guarded policy changes use the
+existing reviewed transition and preserve all original operations. A still-active
+original can delay application: the dialog says **Saved, but synchronization is
+paused**. Restore the previous list, finish recovery, then change it again.
+Saving waits for a currently running sync cycle; it does not cancel an in-flight
+request or change its immutable intent. No server migration is required.

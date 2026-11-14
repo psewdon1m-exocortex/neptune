@@ -4,6 +4,8 @@ namespace Neptune.Windows;
 
 public sealed record WindowsPreferences(string Theme, bool SynchronizationEnabled, bool SynchronizeSaturnPalette)
 {
+    // Explicit per-mapping opt-in; automatic benefit qualification remains OFF.
+    public string[] SmallBatchMappings { get; init; } = [];
     public static WindowsPreferences Default { get; } = new("dark", true, true);
 }
 
@@ -19,6 +21,7 @@ public sealed class WindowsPreferencesStore(string stateDirectory)
             var json = File.ReadAllText(_path);
             var value = JsonSerializer.Deserialize<WindowsPreferences>(json);
             if (value is null || value.Theme is not ("dark" or "light")) return WindowsPreferences.Default;
+            if(value.SmallBatchMappings is null||value.SmallBatchMappings.Length>16||value.SmallBatchMappings.Any(x=>string.IsNullOrWhiteSpace(x)||x.Length>128))value=value with{SmallBatchMappings=[]};
             using var document = JsonDocument.Parse(json);
             if (!document.RootElement.TryGetProperty(nameof(WindowsPreferences.SynchronizeSaturnPalette), out _))
                 value = value with { SynchronizeSaturnPalette = true };

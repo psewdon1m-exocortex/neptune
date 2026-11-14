@@ -1,5 +1,6 @@
 """Exercise the published release contract with a disposable signing key."""
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -8,16 +9,29 @@ import sys
 import tempfile
 import unittest
 import zipfile
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
 TAG = "neptune-v0.1.9"
 REPOSITORY = "psewdon1m-exocortex/neptune"
+REVISION = "a" * 40
+
+
+def windows_module():
+    spec = importlib.util.spec_from_file_location("windows_release", ROOT / "packaging/windows/windows_release.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def create_signed_fixture(directory):
     subprocess.run(["node", "scripts/create-release-key.mjs", "neptune", str(directory)], cwd=ROOT, check=True, capture_output=True)
     manifests = []
+    payload = directory / ".fixture-payload"
+    (payload / "release-trust").mkdir(parents=True)
+    (payload / "Neptune.Windows.exe").write_bytes(b"synthetic Windows payload; not executable")
+    (payload / "release-trust/neptune.pem").write_bytes((directory / "neptune.pem").read_bytes())
     for product, runtime, suffix, manifest_name in [
         ("neptune-linux", "linux-x64", "tar.gz", "neptune-linux-release-linux-x64.json"),
         ("neptune-linux", "linux-arm64", "tar.gz", "neptune-linux-release-linux-arm64.json"),
@@ -28,6 +42,7 @@ def create_signed_fixture(directory):
         if runtime == "win-x64":
             with zipfile.ZipFile(artifact, "w") as bundle:
                 bundle.write(directory / "neptune.pem", "release-trust/neptune.pem")
+                bundle.write(payload / "Neptune.Windows.exe", "Neptune.Windows.exe")
         else:
             artifact.write_bytes(f"synthetic {runtime} package".encode("ascii"))
         checksum = hashlib.sha256(artifact.read_bytes()).hexdigest()
@@ -40,8 +55,20 @@ def create_signed_fixture(directory):
             "url": f"https://github.com/{REPOSITORY}/releases/download/{TAG}/{name}",
         }), encoding="utf-8")
         manifests.append(manifest)
+    windows = windows_module()
+    inventory = windows.make_inventory(payload, "0.1.9", REVISION, 1)
+    windows.write_json(directory / windows.PAYLOAD_MANIFEST, inventory)
+    # Contract fixture only: the native packaging test compiles and extracts a real MSI.
+    (directory / "neptune-windows-0.1.9-win-x64.msi").write_bytes(bytes.fromhex("d0cf11e0a1b11ae1") + b"synthetic MSI contract fixture")
+    decompiled = directory / ".fixture-decompiled.wxs"
+    wix = ET.Element(f"{{{windows.WIX}}}Wix")
+    for item in inventory["files"]:
+        ET.SubElement(wix, f"{{{windows.WIX}}}File", {"Id": windows.file_id(item["path"]), "Source": str(payload / item["path"])})
+    ET.ElementTree(wix).write(decompiled)
+    windows.finalize(directory, inventory, REPOSITORY, TAG, decompiled)
+    manifests.append(directory / windows.BUNDLE_MANIFEST)
     environment = {**os.environ, "RELEASE_SIGNING_KEY_FILE": str(directory / "neptune.private.pem"),
-                   "GITHUB_REF_NAME": TAG, "GITHUB_REPOSITORY": REPOSITORY}
+                   "GITHUB_REF_NAME": TAG, "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_SHA": REVISION}
     subprocess.run(["node", "scripts/sign-release.mjs", *map(str, manifests)], cwd=ROOT, env=environment, check=True, capture_output=True)
     return environment
 

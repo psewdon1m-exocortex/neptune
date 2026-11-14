@@ -154,33 +154,18 @@ jobs:
           if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
           node scripts/sign-release.mjs --export-public-key artifacts/win-x64/release-trust/neptune.pem
           if ($LASTEXITCODE -ne 0) { throw 'Release trust key could not be exported.' }
-          $artifactName = "neptune-windows-$version-win-x64.zip"
-          $artifact = "artifacts/$artifactName"
-          Compress-Archive -Path artifacts/win-x64/* -DestinationPath $artifact -CompressionLevel Optimal
-          $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
-          $size = (Get-Item $artifact).Length
-          "$hash  $artifactName" | Set-Content "${artifact}.sha256"
-          $manifest = @{
-            schema = 'exocortex.neptune.release.v1'
-            product = 'neptune-windows'
-            protocol_version = 1
-            version = $version
-            runtime = 'win-x64'
-            packaging = 'portable-zip'
-            artifact = $artifactName
-            sha256 = $hash
-            size = $size
-            minimum_os = 'Windows 10'
-            url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME/$artifactName"
-          } | ConvertTo-Json -Compress
-          $manifest | Set-Content artifacts/neptune-windows-release.json
-          node scripts/sign-release.mjs artifacts/neptune-windows-release.json
-          if ($LASTEXITCODE -ne 0) { throw 'Windows release manifest could not be signed.' }
+          # Fail closed until native install, installed update/migration and signing are accepted.
+          ./scripts/build-windows-packages.ps1 -PayloadDirectory artifacts/win-x64 -OutputDirectory artifacts/windows-packages `
+            -Version $version -SourceRevision $env:GITHUB_SHA -Repository $env:GITHUB_REPOSITORY -ForRelease
+          Get-ChildItem artifacts/windows-packages/neptune-* -File | Copy-Item -Destination artifacts
+          node scripts/sign-release.mjs artifacts/neptune-windows-release.json artifacts/neptune-windows-bundle.json
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release manifests could not be signed.' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: neptune-release-win-x64-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             artifacts/*.zip
+            artifacts/*.msi
             artifacts/*.sha256
             artifacts/*.json
           if-no-files-found: error

@@ -14,9 +14,11 @@ public sealed class WindowsPreferencesTests
             var store = new WindowsPreferencesStore(directory);
             Assert.Equal(WindowsPreferences.Default, store.Read());
 
-            var expected = new WindowsPreferences("light", false, false);
+            var expected = new WindowsPreferences("light", false, false) { SmallBatchMappings = ["mapping-one", "mapping-two"] };
             store.Write(expected);
-            Assert.Equal(expected, store.Read());
+            var actual = store.Read();
+            Assert.Equal(expected with { SmallBatchMappings = actual.SmallBatchMappings }, actual);
+            Assert.Equal(expected.SmallBatchMappings, actual.SmallBatchMappings);
         }
         finally
         {

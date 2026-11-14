@@ -1,0 +1,105 @@
+{
+  "schema": "sync-golden.candidate.v1",
+  "qualification": "TS shape/semantics only; C#/Go consumption and runtime adapter gates OPEN",
+  "binding": {
+    "protocol": "neptune-sync/1",
+    "descriptor_schema": "saturn.current-namespace.v1",
+    "server_identity": "server-1",
+    "root_id": "root-1",
+    "server_epoch": "epoch-1",
+    "policy_version": "policy-1",
+    "binding_version": "00000000-0000-0000-0000-000000000003"
+  },
+  "descriptor": {
+    "node_id": "node-1",
+    "parent_id": "root-1",
+    "name": "данные 😀.bin",
+    "type": "file",
+    "size_bytes": "9007199254740993",
+    "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "content_version_id": "content-1",
+    "version": "00000000-0000-0000-0000-000000000001",
+    "availability": "AVAILABLE"
+  },
+  "expected": [
+    {
+      "kind": "absent"
+    },
+    {
+      "kind": "version",
+      "node_id": "node-1",
+      "version": "00000000-0000-0000-0000-000000000001"
+    }
+  ],
+  "snapshot": {
+    "protocol": "neptune-sync/1",
+    "descriptor_schema": "saturn.current-namespace.v1",
+    "server_identity": "server-1",
+    "root_id": "root-1",
+    "server_epoch": "epoch-1",
+    "policy_version": "policy-1",
+    "snapshot_id": "snapshot-1",
+    "state": "READY",
+    "cut_seq": "9007199254740993",
+    "entries_cursor": "opaque-entries",
+    "changes_cursor": "opaque-changes",
+    "lease_seconds": 7200,
+    "absolute_lifetime_seconds": 86400,
+    "binding_version": "00000000-0000-0000-0000-000000000003"
+  },
+  "feed": {
+    "protocol": "neptune-sync/1",
+    "descriptor_schema": "saturn.current-namespace.v1",
+    "server_identity": "server-1",
+    "root_id": "root-1",
+    "server_epoch": "epoch-1",
+    "policy_version": "policy-1",
+    "from_exclusive": "9007199254740993",
+    "to_inclusive": "9007199254740995",
+    "items": [
+      {
+        "node_id": "node-1",
+        "parent_id": "root-1",
+        "name": "данные 😀.bin",
+        "type": "file",
+        "size_bytes": "9007199254740993",
+        "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "content_version_id": "content-1",
+        "version": "00000000-0000-0000-0000-000000000001",
+        "availability": "AVAILABLE",
+        "seq": "9007199254740994",
+        "kind": "upsert",
+        "operation_id": "operation-1"
+      },
+      {
+        "node_id": "node-1",
+        "parent_id": "root-1",
+        "name": "данные 😀.bin",
+        "type": "file",
+        "size_bytes": "9007199254740993",
+        "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "content_version_id": "content-1",
+        "version": "00000000-0000-0000-0000-000000000002",
+        "availability": "AVAILABLE",
+        "before_version": "00000000-0000-0000-0000-000000000001",
+        "seq": "9007199254740995",
+        "kind": "tombstone",
+        "operation_id": "operation-2"
+      }
+    ],
+    "next_cursor": "opaque-feed-2",
+    "has_more": false,
+    "binding_version": "00000000-0000-0000-0000-000000000003"
+  },
+  "integer64Valid": [
+    "0",
+    "9007199254740993",
+    "9223372036854775807"
+  ],
+  "integer64Invalid": [
+    "01",
+    "-1",
+    "1e3",
+    "9223372036854775808"
+  ]
+}

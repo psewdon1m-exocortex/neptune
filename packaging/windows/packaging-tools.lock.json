@@ -1,0 +1,13 @@
+{
+  "schema": "exocortex.neptune.windows-packaging-tools.v1",
+  "builder": "WiX Toolset",
+  "version": "4.0.6",
+  "package_url": "https://api.nuget.org/v3-flatcontainer/wix/4.0.6/wix.4.0.6.nupkg",
+  "package_sha256": "a94dd42ae1fb56b32da180e2173ceda4f0d10b4c8871c5ee59ecb502131a1eb6",
+  "entrypoint": "tools/net6.0/any/wix.dll",
+  "license": "MS-RL",
+  "license_url": "https://raw.githubusercontent.com/wixtoolset/wix/v4.0.6/LICENSE.TXT",
+  "source_revision": "73c897383236ddbbbc6ba257634013c1269ceec2",
+  "runtime_policy": "Official WiX 4.0.6 runtimeconfig rollForward=Major; use the supported runtime supplied by the pinned .NET SDK.",
+  "scope": "Build-only dependency. No Burn bootstrapper or WiX custom action binaries are included. Requalify the builder and license before changing this lock."
+}

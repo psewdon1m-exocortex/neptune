@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj" />
+    <Project Path="tests/Neptune.Stage3.NativeHelper/Neptune.Stage3.NativeHelper.csproj" />
   </Folder>
 </Solution>
 

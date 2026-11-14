@@ -1,0 +1,8 @@
+{
+  "schema": "exocortex.neptune.windows-release-readiness.v1",
+  "installed_update_accepted": false,
+  "profile_migration_accepted": false,
+  "native_install_accepted": false,
+  "production_signing_accepted": false,
+  "reason": "PERF-01 packaging increment only. W02-W10 and installed update/migration acceptance are outstanding; MSI publication is blocked."
+}

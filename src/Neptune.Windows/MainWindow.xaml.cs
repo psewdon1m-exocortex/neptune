@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Net.NetworkInformation;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
     private readonly WindowsProfileContext _profile;
     private readonly WindowsConnectionStore _connections;
     private readonly Func<WindowsSyncService> _syncServiceFactory;
+    private readonly WindowsSyncService? _ownedSyncService;
     private readonly WindowsAutostartService _autostart;
     private readonly WindowsUpdateService _updates;
     private readonly WindowsPreferencesStore _preferencesStore;
@@ -74,12 +76,23 @@ public partial class MainWindow : Window
     private DateTimeOffset? _lastRunAt;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly DispatcherTimer _reconciliationTimer = new() { Interval = TimeSpan.FromMinutes(5) };
-    private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromSeconds(5) };
+    private readonly DispatcherTimer _watchDebounce = new() { Interval = TimeSpan.FromMilliseconds(750) };
+    private DateTimeOffset? _hintFirstAt;
+    private bool _hintPending;
+    private bool _applyingUpdate;
 
     public MainWindow(WindowsProfileContext profile, Func<WindowsSyncService>? syncServiceFactory = null)
     {
         _profile = profile;
-        _syncServiceFactory = syncServiceFactory ?? (() => new WindowsSyncService(profile));
+        // The window owns one service for the profile lifetime, including when
+        // a test supplies its transport. Wakeups and shutdown use that instance.
+        _ownedSyncService = syncServiceFactory is null ? new WindowsSyncService(profile) : syncServiceFactory();
+        if (_ownedSyncService is not null) _ownedSyncService.MappingWorkAvailable += _ => Dispatcher.BeginInvoke(new Action(() =>
+        { _hintPending=true; _watchDebounce.Interval=TimeSpan.FromMilliseconds(1); _watchDebounce.Start(); }));
+        _syncServiceFactory = () => _ownedSyncService!;
+        NetworkChange.NetworkAddressChanged += NetworkAddressChanged;
+        NetworkChange.NetworkAvailabilityChanged += NetworkAvailabilityChanged;
+        SystemEvents.PowerModeChanged += PowerModeChanged;
         _connections = new WindowsConnectionStore(profile.StateDirectory);
         _autostart = new WindowsAutostartService(profile);
         _updates = new WindowsUpdateService(profile);
@@ -87,6 +100,7 @@ public partial class MainWindow : Window
         _preferences = _preferencesStore.Read();
         _state = new NeptuneStateStore(Path.Combine(profile.StateDirectory, "neptune.db"));
         InitializeComponent();
+        InitializeProgress();
         ApplyAppearance();
         _tray = new WindowsTrayIcon(profile.ProfileId, RestoreFromTray, SyncFromTrayAsync, CheckForUpdatesAsync, ExitFromTray);
         MappingsList.ItemsSource = _mappings;
@@ -101,16 +115,21 @@ public partial class MainWindow : Window
         Closing += Window_Closing;
         StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) HideToTray(showHint: false); };
         Application.Current.SessionEnding += (_, _) => _allowExit = true;
-        Closed += (_, _) =>
+        Closed += async (_, _) =>
         {
             _reconciliationTimer.Stop();
+            _progressTimer.Stop();++_progressGeneration;
+            NetworkChange.NetworkAddressChanged -= NetworkAddressChanged;
+            NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged;
+            SystemEvents.PowerModeChanged -= PowerModeChanged;
             _watchDebounce.Stop();
             _syncCancellation?.Cancel();
             DisposeWatchers();
             _tray.Dispose();
+            if (_ownedSyncService is not null) await _ownedSyncService.DisposeAsync();
         };
         _reconciliationTimer.Tick += async (_, _) => await StartSyncAsync(interactive: false);
-        _watchDebounce.Tick += async (_, _) => { _watchDebounce.Stop(); await StartSyncAsync(interactive: false); };
+        _watchDebounce.Tick += async (_, _) => { _watchDebounce.Stop(); _hintFirstAt=null; _hintPending=true; await StartSyncAsync(interactive: false); };
     }
 
     private async Task LoadAsync()
@@ -264,6 +283,9 @@ public partial class MainWindow : Window
             RefreshWatchers();
             UpdateSummary();
             FooterStatus.Text = enabled ? "Synchronization enabled" : "Synchronization paused for this profile";
+            // Watchers were detached while paused, so changes in that interval
+            // need a reconciliation as soon as the user resumes this profile.
+            if (enabled) ScheduleHintSync();
         }
         catch (Exception error)
         {
@@ -362,12 +384,17 @@ public partial class MainWindow : Window
             var progress = new Progress<int>(value => { UpdateButton.Content = $"Downloading {value}%"; FooterStatus.Text = $"Downloading update · {value}%"; });
             var staging = await _updates.DownloadAsync(release, progress);
             FooterStatus.Text = "Applying update…";
+            _applyingUpdate=true;IsEnabled=false;_syncCancellation?.Cancel();
+            if(_ownedSyncService is not null)await _ownedSyncService.PauseAndCheckpointAsync();
+            else if(_syncCancellation is not null)throw new InvalidOperationException("The current sync owner must drain before update.");
+            await WindowsProfileCommands.BackupAsync(_profile,Path.Combine(Path.GetDirectoryName(_profile.StateDirectory)!,".update-backups",_profile.ProfileId+"-"+Guid.NewGuid().ToString("N")));
             _updates.BeginApply(staging);
             _allowExit = true;
             Application.Current.Shutdown();
         }
         catch (Exception error)
         {
+            _applyingUpdate=false;IsEnabled=true;_ownedSyncService?.ResumeAdmission();
             RestoreFromTray();
             MessageBox.Show(this, error.Message, "Neptune update failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -440,6 +467,7 @@ public partial class MainWindow : Window
 
     private async Task StartSyncAsync(bool interactive)
     {
+        if(_applyingUpdate)return;
         if (_syncCancellation is not null || _mappings.Count == 0) return;
         if (!_preferences.SynchronizationEnabled)
         {
@@ -459,30 +487,43 @@ public partial class MainWindow : Window
             if (connection is null) return;
         }
         _syncCancellation = new CancellationTokenSource();
+        _hintPending=false;
         SyncButton.Content = "Cancel";
         DashboardSyncButton.Content = "Cancel  →";
-        FooterStatus.Text = "Starting synchronization…";
+        FooterStatus.Text = _ownedSyncService?.NetworkState == "Recovering operations" ? "Recovering operations…" : "Starting synchronization…";
+        var progressGeneration=BeginProgress();
         try
         {
-            var progress = new Progress<string>(value => FooterStatus.Text = "Uploading · " + value);
-            var result = await _syncServiceFactory().SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token);
+            var progress = new Progress<string>(value => {if(progressGeneration==_progressGeneration)FooterStatus.Text = value;});
+            var detailed = new Progress<WindowsSyncProgress>(value => {if(progressGeneration==_progressGeneration)RenderProgress(value);});
+            var result = await _syncServiceFactory().SyncAsync(_clientInstanceId, _mappings.Select(item => item.Mapping).ToArray(), connection, progress, _syncCancellation.Token,detailed);
+            _syncCancellation.Token.ThrowIfCancellationRequested();
+            EndProgress(result.DeferredFiles==0?SyncProgressStage.Completed:SyncProgressStage.Waiting);
             _saturnPalette = result.Palette;
             ApplyAppearance();
             ApplyMirrorStats(result.Mirrors);
+            RefreshWatchers();
             _lastRunAt = DateTimeOffset.Now;
-            FooterStatus.Text = $"Up to date · {result.UploadedFiles} file(s) uploaded · {DateTime.Now:t}";
+            FooterStatus.Text = result.DeferredFiles == 0
+                ? $"{(result.Guarded ? "Verified at observed changes" : "Up to date")} · {result.UploadedFiles} file(s) uploaded · {DateTime.Now:t}"
+                : $"Retry scheduled · {result.DeferredFiles} file(s) or folder(s) deferred · {DateTime.Now:t}";
         }
-        catch (OperationCanceledException) { FooterStatus.Text = "Synchronization cancelled"; }
+        catch (OperationCanceledException) when (_syncCancellation.IsCancellationRequested) { EndProgress(SyncProgressStage.Cancelled);FooterStatus.Text = "Synchronization cancelled"; }
+        catch (Exception error) when (NetworkFailure.State(error) is { } state)
+        { EndProgress(SyncProgressStage.Waiting);FooterStatus.Text = _ownedSyncService?.NetworkState is { } current && current != "Online" ? current : state; }
         catch (Exception error)
         {
+            EndProgress(SyncProgressStage.Failed);
             FooterStatus.Text = "Synchronization failed";
-            MessageBox.Show(this, error.Message, "Neptune sync failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            if (interactive) MessageBox.Show(this, error.Message, "Neptune sync failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
+            _progressTimer.Stop();++_progressGeneration;
             await RefreshMirrorStatsAsync();
             _syncCancellation.Dispose();
             _syncCancellation = null;
+            if (_hintPending && _preferences.SynchronizationEnabled) { _watchDebounce.Interval=TimeSpan.FromMilliseconds(750); _watchDebounce.Start(); }
             SyncButton.Content = "Sync now";
             DashboardSyncButton.Content = "Sync now  →";
             UpdateSummary();
@@ -495,14 +536,20 @@ public partial class MainWindow : Window
         if (!_preferences.SynchronizationEnabled) return;
         foreach (var mapping in _mappings.Where(item => item.IsEnabled && Directory.Exists(item.LocalPath)))
         {
+            if (_ownedSyncService?.HasGuardedMapping(mapping.Mapping.MappingId)==true) continue;
+            MappingSyncPolicy policy;
+            try { policy = new("legacy", new WindowsFolderExclusions(_profile.StateDirectory).Read(mapping.Mapping) ?? []); }
+            catch (Exception settingsError) when (settingsError is IOException or InvalidDataException or System.Text.Json.JsonException or UnauthorizedAccessException)
+            { FooterStatus.Text = "Folder exclusions need attention: " + settingsError.Message; continue; }
+            bool Included(string path) => !policy.Excludes(Path.GetRelativePath(mapping.LocalPath, path).Replace('\\', '/'));
             var watcher = new FileSystemWatcher(mapping.LocalPath)
             {
                 IncludeSubdirectories = true,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
                 EnableRaisingEvents = true
             };
-            FileSystemEventHandler changed = (_, _) => Dispatcher.Invoke(ScheduleHintSync);
-            RenamedEventHandler renamed = (_, _) => Dispatcher.Invoke(ScheduleHintSync);
+            FileSystemEventHandler changed = (_, change) => { if (Included(change.FullPath)) Dispatcher.Invoke(ScheduleHintSync); };
+            RenamedEventHandler renamed = (_, change) => { if (Included(change.FullPath) || Included(change.OldFullPath)) Dispatcher.Invoke(ScheduleHintSync); };
             ErrorEventHandler error = (_, _) => Dispatcher.Invoke(ScheduleHintSync);
             watcher.Changed += changed;
             watcher.Created += changed;
@@ -515,9 +562,19 @@ public partial class MainWindow : Window
 
     private void ScheduleHintSync()
     {
+        _hintPending=true;
+        var now=DateTimeOffset.UtcNow; _hintFirstAt??=now;
+        _watchDebounce.Interval=TimeSpan.FromMilliseconds(Math.Max(1,Math.Min(750,5000-(now-_hintFirstAt.Value).TotalMilliseconds)));
         _watchDebounce.Stop();
         _watchDebounce.Start();
     }
+
+    private void NetworkAddressChanged(object? sender, EventArgs e) => SignalNetworkChange();
+    private void NetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) => SignalNetworkChange();
+    private void PowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    { if (e.Mode == PowerModes.Resume) SignalNetworkChange(); }
+    private void SignalNetworkChange() => Dispatcher.BeginInvoke(new Action(() =>
+    { if (!_allowExit && _preferences.SynchronizationEnabled) _ownedSyncService?.NotifyNetworkChanged(); }));
 
     private void DisposeWatchers()
     {

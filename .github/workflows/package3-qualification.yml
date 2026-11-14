@@ -1,0 +1,90 @@
+name: Package 3 candidate qualification
+
+on:
+  push:
+    branches: ["release-qualification/package3-*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package3-neptune-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/ci.yml
+    with:
+      qualification_source_manifest: .release/package3-qualification/source-inputs.json
+
+  sign-exact-candidate-manifests:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Restore and verify exact qualified source bytes
+        run: python3 scripts/verify-package3-source.py .release/package3-qualification/source-inputs.json --report "$RUNNER_TEMP/package3-signing-source.json"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - name: Prepare frozen public candidate metadata
+        run: |
+          mkdir "$RUNNER_TEMP/package3-neptune-signed"
+          cp .release/package3-qualification/manifests/*.json "$RUNNER_TEMP/package3-neptune-signed/"
+      - name: Export public identity from existing protected publisher key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: node scripts/sign-release.mjs --export-public-key "$RUNNER_TEMP/package3-neptune-signed/neptune.pem"
+      - name: Verify expected publisher identity and frozen descriptor bytes before signing
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createHash,createPublicKey} from 'node:crypto';
+          const req=JSON.parse(fs.readFileSync('.release/package3-qualification/request.json'));
+          const out=process.env.RUNNER_TEMP+'/package3-neptune-signed/';
+          const sha=b=>createHash('sha256').update(b).digest('hex');
+          assert.equal(req.expectedKeyId,'dbd1ce8bd7d1074c8c5e896cad42571e99a71752be967518f771d42f48296c1b');
+          assert.equal(sha(createPublicKey(fs.readFileSync(out+'neptune.pem')).export({type:'spki',format:'der'})),req.expectedKeyId);
+          for(const f of req.metadataFiles){assert(/^neptune-[a-z0-9-]+\.json$/.test(f.name));const b=fs.readFileSync(out+f.name);assert.equal(b.length,f.bytes);assert.equal(sha(b),f.sha256);}
+          assert.equal(req.version,'0.1.19');
+          console.log('Expected publisher public identity and all frozen metadata bytes verified.');
+          NODE
+      - name: Sign the four exact candidate manifests
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          node scripts/sign-release.mjs \
+            "$RUNNER_TEMP/package3-neptune-signed/neptune-linux-release-linux-x64.json" \
+            "$RUNNER_TEMP/package3-neptune-signed/neptune-linux-release-linux-arm64.json" \
+            "$RUNNER_TEMP/package3-neptune-signed/neptune-windows-release.json" \
+            "$RUNNER_TEMP/package3-neptune-signed/neptune-windows-bundle.json"
+      - name: Independently verify every signature using OpenSSL
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'package3-neptune-signed'
+          req=json.loads(pathlib.Path('.release/package3-qualification/request.json').read_bytes())
+          rows=[]
+          for name in req['manifestsToSign']:
+              envelope=json.loads((root/(name+'.sig.json')).read_bytes())
+              assert envelope['schema']=='exocortex.release-signature.v1'
+              assert envelope['algorithm']=='RSA-PSS-SHA256' and envelope['key_id']==req['expectedKeyId']
+              signature=base64.b64decode(envelope['signature'],validate=True)
+              sigfile=root/(name+'.signature.bin');sigfile.write_bytes(signature)
+              subprocess.run(['openssl','dgst','-sha256','-verify',str(root/'neptune.pem'),'-signature',str(sigfile),'-sigopt','rsa_padding_mode:pss','-sigopt','rsa_pss_saltlen:32',str(root/name)],check=True)
+              sigfile.unlink()
+              rows.append({'name':name,'manifest_sha256':hashlib.sha256((root/name).read_bytes()).hexdigest(),'signature_sha256':hashlib.sha256((root/(name+'.sig.json')).read_bytes()).hexdigest(),'openssl_actual_exit':0})
+          (root/'verification-report.json').write_text(json.dumps({'status':'PASS_SCOPED_ACTUAL_CI_FOUR_FROZEN_NEPTUNE_MANIFEST_SIGNATURES','expected_key_id':req['expectedKeyId'],'signatures':rows,'release_created':False,'assets_published':False},indent=2)+'\n')
+          PY
+      - name: Preserve signed public metadata and independent proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package3-neptune-publisher-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/package3-neptune-signed/*.json
+            ${{ runner.temp }}/package3-neptune-signed/neptune.pem
+            ${{ runner.temp }}/package3-signing-source.json
+          if-no-files-found: error
+          retention-days: 30

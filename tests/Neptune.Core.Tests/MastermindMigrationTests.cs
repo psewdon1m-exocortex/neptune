@@ -20,12 +20,15 @@ public sealed class MastermindMigrationTests
                 var path = Path.Combine(directory, iteration + ".db");
                 if (legacy)
                 {
-                    await new NeptuneStateStore(path).InitializeAsync(cancellation);
                     await using var seed = new SqliteConnection("Data Source=" + path);
                     await seed.OpenAsync(cancellation);
                     await using var command = seed.CreateCommand();
                     command.CommandText = """
-                        ALTER TABLE backup_runs DROP COLUMN export_generation;
+                        CREATE TABLE backup_runs (
+                            run_id TEXT PRIMARY KEY,project_id TEXT NOT NULL,client_instance_id TEXT NOT NULL,state TEXT NOT NULL,
+                            spool_path TEXT,size INTEGER,sha256 TEXT,saturn_run_id TEXT,uploaded_bytes INTEGER NOT NULL DEFAULT 0,
+                            attempt INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,error TEXT
+                        );
                         INSERT INTO backup_runs(run_id,project_id,client_instance_id,state,created_at,updated_at)
                         VALUES('preserved','mastermind','existing-client','complete','2026-01-01','2026-01-01');
                         """;

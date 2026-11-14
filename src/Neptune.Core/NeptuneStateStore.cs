@@ -2,26 +2,60 @@ using Microsoft.Data.Sqlite;
 
 namespace Neptune.Core;
 
-public sealed class NeptuneStateStore(string databasePath)
+public sealed partial class NeptuneStateStore(string databasePath, TimeProvider? timeProvider = null)
 {
+    internal TimeProvider Clock { get; } = timeProvider ?? TimeProvider.System;
+    // Production mappings share the process budget. Native fixtures may own a
+    // scheduler so pressure from another fixture cannot alter their barriers.
+    internal SyncResourceScheduler ResourceScheduler { get; init; } = SyncResourceScheduler.Shared;
     private string ConnectionString => new SqliteConnectionStringBuilder
     {
-        DataSource = databasePath,
+        DataSource = NativeDatabasePath(databasePath),
         Mode = SqliteOpenMode.ReadWriteCreate,
-        Cache = SqliteCacheMode.Shared,
+        Cache = SqliteCacheMode.Private,
         ForeignKeys = true,
         DefaultTimeout = 30
     }.ToString();
 
+    // Preserve ordinary paths in manifests and identity hashes. Only native
+    // SQLite opens need the extended spelling, including their WAL/journal.
+    internal static string NativeDatabasePath(string path) => WindowsNativePath.ForFile(path);
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        await PreflightSyncStateAsync(verifyLegacyIntegrity: false, cancellationToken);
+        await ValidateOptionalBootstrapBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalBootstrapWorkBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalSourceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalNamespaceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalProjectionBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalCoherenceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalCycleBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalParentReconcileBeforeInitializeAsync(cancellationToken);
         Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+        await using var migrationLock = await AcquireSyncMigrationLockAsync(cancellationToken);
+        await ValidateOptionalBootstrapBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalBootstrapWorkBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalSourceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalNamespaceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalProjectionBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalCoherenceBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalLocalCycleBeforeInitializeAsync(cancellationToken);
+        await ValidateOptionalParentReconcileBeforeInitializeAsync(cancellationToken);
+        if (await PreflightSyncStateAsync(verifyLegacyIntegrity: true, cancellationToken)) await BackupLegacySyncStateAsync(cancellationToken);
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync(cancellationToken);
+        await using (var options = connection.CreateCommand())
+        {
+            options.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;";
+            await options.ExecuteNonQueryAsync(cancellationToken);
+        }
+        // Reserve the writer before any DDL: a failed migration leaves the old
+        // schema/data intact and can use the separately verified backup.
+        using var transaction = connection.BeginTransaction(deferred: false);
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
-            PRAGMA journal_mode=WAL;
-            PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS backup_runs (
                 run_id TEXT PRIMARY KEY,
                 project_id TEXT NOT NULL,
@@ -103,7 +137,6 @@ public sealed class NeptuneStateStore(string databasePath)
         // Additive migration keeps pre-contract backups and client identities intact.
         // Both workers may initialize this database concurrently. Acquire the
         // write reservation before inspecting the schema, across processes too.
-        using var transaction = connection.BeginTransaction(deferred: false);
         await using var columns = connection.CreateCommand();
         columns.Transaction = transaction;
         columns.CommandText = "SELECT COUNT(*) FROM pragma_table_info('backup_runs') WHERE name='export_generation'";
@@ -114,6 +147,7 @@ public sealed class NeptuneStateStore(string databasePath)
             migration.CommandText = "ALTER TABLE backup_runs ADD COLUMN export_generation INTEGER";
             await migration.ExecuteNonQueryAsync(cancellationToken);
         }
+        await InitializeSyncStateAsync(connection, transaction, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -459,6 +493,20 @@ public sealed class NeptuneStateStore(string databasePath)
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         if (!await reader.ReadAsync(cancellationToken)) return null;
         return new SyncFileRecord(reader.GetString(0), reader.GetString(1), reader.GetInt64(2), DateTimeOffset.Parse(reader.GetString(3)), reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetString(5), reader.GetString(6), DateTimeOffset.Parse(reader.GetString(7)), reader.IsDBNull(8) ? null : reader.GetString(8));
+    }
+
+    public async Task<IReadOnlyList<SyncFileRecord>> ListSyncFilesAsync(string mappingId, CancellationToken cancellationToken = default)
+    {
+        var result = new List<SyncFileRecord>();
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT mapping_id,relative_path,local_size,local_mtime_utc,sha256,remote_etag,state,updated_at,error FROM sync_files WHERE mapping_id=$mappingId ORDER BY relative_path";
+        command.Parameters.AddWithValue("$mappingId", mappingId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new(reader.GetString(0),reader.GetString(1),reader.GetInt64(2),DateTimeOffset.Parse(reader.GetString(3)),reader.GetString(4),reader.IsDBNull(5)?null:reader.GetString(5),reader.GetString(6),DateTimeOffset.Parse(reader.GetString(7)),reader.IsDBNull(8)?null:reader.GetString(8)));
+        return result;
     }
 
     public async Task UpsertSyncFileAsync(SyncFileRecord record, CancellationToken cancellationToken = default)

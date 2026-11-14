@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Neptune.Core/Neptune.Core.csproj" />
     <ProjectReference Include="../../src/Neptune.Linux/Neptune.Linux.csproj" />
+    <ProjectReference Include="../Neptune.Stage3.NativeHelper/Neptune.Stage3.NativeHelper.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup><None Update="TestData/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup>
@@ -20,6 +21,23 @@
     <Compile Include="../../src/Neptune.Windows/WindowsProfileContext.cs" Link="Windows/WindowsProfileContext.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsPreferencesStore.cs" Link="Windows/WindowsPreferencesStore.cs" />
     <Compile Include="../../src/Neptune.Windows/WindowsSyncService.cs" Link="Windows/WindowsSyncService.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsSyncProgress.cs" Link="Windows/WindowsSyncProgress.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsSyncProgressDisplay.cs" Link="Windows/WindowsSyncProgressDisplay.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsSyncService.Exclusions.cs" Link="Windows/WindowsSyncService.Exclusions.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsFolderExclusions.cs" Link="Windows/WindowsFolderExclusions.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsSyncService.Review.cs" Link="Windows/WindowsSyncService.Review.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsProfileCommands.cs" Link="Windows/WindowsProfileCommands.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsProfileCommands.JournalRecovery.cs" Link="Windows/WindowsProfileCommands.JournalRecovery.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsUpdateTransaction.cs" Link="Windows/WindowsUpdateTransaction.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsUpdateTransaction.Startup.cs" Link="Windows/WindowsUpdateTransaction.Startup.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsInstallerTrust.cs" Link="Windows/WindowsInstallerTrust.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsLocalSnapshot.cs" Link="Windows/WindowsLocalSnapshot.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsGuardedCapabilities.cs" Link="Windows/WindowsGuardedCapabilities.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsGuardedMappingSession.cs" Link="Windows/WindowsGuardedMappingSession.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsGuardedSourceEligibility.cs" Link="Windows/WindowsGuardedSourceEligibility.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsMappingAnchorRemote.cs" Link="Windows/WindowsMappingAnchorRemote.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsGuardedStateLease.cs" Link="Windows/WindowsGuardedStateLease.cs" />
     <Compile Include="../../src/Neptune.Windows/UpdateApplyMode.cs" Link="Windows/UpdateApplyMode.cs" />
+    <Compile Include="../../src/Neptune.Windows/WindowsPackagingPolicy.cs" Link="Windows/WindowsPackagingPolicy.cs" />
   </ItemGroup>
 </Project>

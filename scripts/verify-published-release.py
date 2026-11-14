@@ -40,6 +40,9 @@ def asset_names(tag):
     ]:
         artifact = f"{product}-{version}-{runtime}.{extension}"
         names.extend([artifact, artifact + ".sha256", manifest, manifest + ".sig.json"])
+    installer = f"neptune-windows-{version}-win-x64.msi"
+    names.extend([installer, installer + ".sha256", "neptune-windows-bundle.json", "neptune-windows-bundle.json.sig.json",
+                  "neptune-windows-payload.json", "neptune-windows-package-evidence.json"])
     return names
 
 
@@ -152,7 +155,7 @@ def verify(directory, fetch=download):
                 fetch(base + name, output, size)
             if destination.stat().st_size != size or digest(destination) != digest(candidate):
                 raise ValueError(f"Published bytes differ from candidate: {name}")
-        # Includes Windows's embedded trust root, checksums and three real signatures.
+        # Includes Windows's embedded trust root, both variants and four real signatures.
         unified.verify(published)
     print(f"PASS anonymous Neptune candidate: {tag}, revision {revision}, {len(names)} exact assets")
 

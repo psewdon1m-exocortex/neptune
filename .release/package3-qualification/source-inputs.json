@@ -1,0 +1,4705 @@
+{
+  "schema": "exocortex.package3.frozen-source.v1",
+  "component": "neptune",
+  "version": "0.1.19",
+  "baseGitCommit": "9eebcfebdc77e7b05605194092928457b8d81579",
+  "scope": "Exact qualified working-source bytes plus reviewed CI-only qualification changes; complete Git file set except this self-referential manifest. CI source results are distinct from native prebuilt-artifact evidence.",
+  "sourceSetSHA256": "f426a268f9d8b95571d353181ea9f801566068448f152524953d54d31dc01cf7",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 186,
+      "sha256": "ba120b8ab772c723dad205b1334e0d441ae60fb80a5dd23446e3b5ba8941cf25",
+      "canonical_sha256": "ba120b8ab772c723dad205b1334e0d441ae60fb80a5dd23446e3b5ba8941cf25",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".github/pre-push-gate.json",
+      "bytes": 1650,
+      "sha256": "9f20514b12a00bbca416621c2de397fbcfd77800dac11be1e9db78cfe36dec0d",
+      "canonical_sha256": "9f20514b12a00bbca416621c2de397fbcfd77800dac11be1e9db78cfe36dec0d",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 6645,
+      "sha256": "edf1db20e3ba4d91a53d8c533834025740acc6931cd2b7ed3da9b4329cb9d66e",
+      "canonical_sha256": "c98f8d12dff95d31449c26f7cc18aeb8dc231b284ef8db1dadafdd805a3292e1",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": ".github/workflows/package3-qualification.yml",
+      "bytes": 5199,
+      "sha256": "24da06570d3e490f1c27f5729f467bcbda7c302e414c484b4aba9c04aa23c96b",
+      "canonical_sha256": "24da06570d3e490f1c27f5729f467bcbda7c302e414c484b4aba9c04aa23c96b",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "bytes": 12617,
+      "sha256": "905fd1d7012f22dd6158c3bd23f3f796e3832427c5783e98e6380cefa969678c",
+      "canonical_sha256": "905fd1d7012f22dd6158c3bd23f3f796e3832427c5783e98e6380cefa969678c",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 481,
+      "sha256": "290792898f90b4d2ff804221d8089cbbc013fd2f5e0301b6104c263bc9030e69",
+      "canonical_sha256": "290792898f90b4d2ff804221d8089cbbc013fd2f5e0301b6104c263bc9030e69",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/known-problems-policy.json",
+      "bytes": 3853,
+      "sha256": "2952f5d38ab4dd6b543295baf46ba8821f9468787a8a3cbb5595c0c1f04c8962",
+      "canonical_sha256": "2952f5d38ab4dd6b543295baf46ba8821f9468787a8a3cbb5595c0c1f04c8962",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/known-problems-supplement.json",
+      "bytes": 1790,
+      "sha256": "8e749f7b58c8a052de934850f1fb2f2e427dbe996b40d44539e2a265b64fb796",
+      "canonical_sha256": "8e749f7b58c8a052de934850f1fb2f2e427dbe996b40d44539e2a265b64fb796",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-linux-release-linux-arm64.json",
+      "bytes": 428,
+      "sha256": "d6bb3f3d258cf5374f63e3de517e2f354fe57b40a362a2f2fddc18dfd143703d",
+      "canonical_sha256": "56a71640549b97cce88bc22e7c75aa94df927468e3fd0776cadd21c981b3b96b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-linux-release-linux-x64.json",
+      "bytes": 422,
+      "sha256": "70348364712dfa2caff7148eb3b3a8fae0150c575386194589abb14220031e0c",
+      "canonical_sha256": "01720ee87d168bd55e1ae8a2965a67aecc5d4970cfbbdfef9ca5def8b1c26cf9",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-windows-bundle.json",
+      "bytes": 1431,
+      "sha256": "4bae74e52419543306cee754c4009fa29d0df619a1f3fef3cbfe4d17c662d6f1",
+      "canonical_sha256": "4bae74e52419543306cee754c4009fa29d0df619a1f3fef3cbfe4d17c662d6f1",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-windows-package-evidence.json",
+      "bytes": 1483,
+      "sha256": "ef71010cbf863363eef4b37a5e5aea9a5b7b92984bb30b14f2e19e0061d5cb92",
+      "canonical_sha256": "ef71010cbf863363eef4b37a5e5aea9a5b7b92984bb30b14f2e19e0061d5cb92",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-windows-payload.json",
+      "bytes": 747,
+      "sha256": "7dcb5b26fa90c3149dae357f15f83f17f510f9ea6a26eb6e489b9c9ce3cd2977",
+      "canonical_sha256": "7dcb5b26fa90c3149dae357f15f83f17f510f9ea6a26eb6e489b9c9ce3cd2977",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/manifests/neptune-windows-release.json",
+      "bytes": 447,
+      "sha256": "f41c7f404b095e4cce977b5e7bd33cf1e99fd31a774c0164a409b06bb42edbf1",
+      "canonical_sha256": "f41c7f404b095e4cce977b5e7bd33cf1e99fd31a774c0164a409b06bb42edbf1",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/neptune.pem",
+      "bytes": 625,
+      "sha256": "2b8ce9f326e98158883c95aa57cc898c6ad1fe6ffd4125d0a471471881ea3b2a",
+      "canonical_sha256": "2b8ce9f326e98158883c95aa57cc898c6ad1fe6ffd4125d0a471471881ea3b2a",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/request.json",
+      "bytes": 3024,
+      "sha256": "a11c32787a0b8803ca6fafdad37e7b3d9cb19e4977d00da165196c2c4138ba66",
+      "canonical_sha256": "a11c32787a0b8803ca6fafdad37e7b3d9cb19e4977d00da165196c2c4138ba66",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/package3-qualification/windows-owner-self-signed.cer",
+      "bytes": 1080,
+      "sha256": "b664b9e406083372765d9703d1c1e21d0a3b1eb4f6abbbc2cd99d1f4f16982e5",
+      "canonical_sha256": "b664b9e406083372765d9703d1c1e21d0a3b1eb4f6abbbc2cd99d1f4f16982e5",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": ".release/updater-bootstrap.sha256",
+      "bytes": 65,
+      "sha256": "c8b48fc12c2e5c3a7ca81463492a699ceb9e231484fcbc44843c5a878b6ed2f2",
+      "canonical_sha256": "c8b48fc12c2e5c3a7ca81463492a699ceb9e231484fcbc44843c5a878b6ed2f2",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/updater.sha256",
+      "bytes": 65,
+      "sha256": "0d3d8d6d73e106cdc6d2265206bde88852eeaa469b777132e0862130f32d9f17",
+      "canonical_sha256": "0d3d8d6d73e106cdc6d2265206bde88852eeaa469b777132e0862130f32d9f17",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".release/updater.version",
+      "bytes": 7,
+      "sha256": "910c4d9611201a96af6fa2be688c9ce937a67a0f571586e3d2a4df47b07a8121",
+      "canonical_sha256": "910c4d9611201a96af6fa2be688c9ce937a67a0f571586e3d2a4df47b07a8121",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".src/generate-windows-icons.py",
+      "bytes": 2107,
+      "sha256": "141b7f826b107a923b429a346f3ac29fab8f41b3a63c34c19beb7d9c2208d942",
+      "canonical_sha256": "141b7f826b107a923b429a346f3ac29fab8f41b3a63c34c19beb7d9c2208d942",
+      "line_endings": "LF"
+    },
+    {
+      "path": ".src/saturn-devouring-his-son-2.png",
+      "bytes": 1390168,
+      "sha256": "66052f8063c5140ba47e5df2142c36f43514bac26367f8faf6460cf821a4ef6a",
+      "canonical_sha256": "66052f8063c5140ba47e5df2142c36f43514bac26367f8faf6460cf821a4ef6a",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "DEPLOYMENT_READINESS.md",
+      "bytes": 7779,
+      "sha256": "7e578442b58a5137f4717ddfc7a69b866ea7f0a1a6f3e9ed400dd06d1adbe2f8",
+      "canonical_sha256": "7e578442b58a5137f4717ddfc7a69b866ea7f0a1a6f3e9ed400dd06d1adbe2f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "Directory.Build.props",
+      "bytes": 570,
+      "sha256": "4e505d7ff04b03bee86bc8da5e24b681e20652f6bfacd948033f949fdfe18554",
+      "canonical_sha256": "4e505d7ff04b03bee86bc8da5e24b681e20652f6bfacd948033f949fdfe18554",
+      "line_endings": "LF"
+    },
+    {
+      "path": "Neptune.slnx",
+      "bytes": 452,
+      "sha256": "9573e845136933c567252da7ea9f27884a153af890711ce0f8dda845ddf99ebd",
+      "canonical_sha256": "9573e845136933c567252da7ea9f27884a153af890711ce0f8dda845ddf99ebd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "README.md",
+      "bytes": 30220,
+      "sha256": "cfce7b221b42a7bbcc771d951cf4e0a7e7f3a9003111c9afdf1a450cade9e1bb",
+      "canonical_sha256": "f6829ac5ac228e8f5b87ea74a580936b898dfac1092ef42d449d4cb513c97e24",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "assets/windows/neptune-master.png",
+      "bytes": 3059544,
+      "sha256": "c841bbd120d30e8a875d254074e3e55891576c2f1c22823cf4ef5959b0f7c378",
+      "canonical_sha256": "c841bbd120d30e8a875d254074e3e55891576c2f1c22823cf4ef5959b0f7c378",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "assets/windows/neptune.ico",
+      "bytes": 221826,
+      "sha256": "117c98b686741b997e62c77daf6e58341ffd5894f313e040527259b2193e30a3",
+      "canonical_sha256": "117c98b686741b997e62c77daf6e58341ffd5894f313e040527259b2193e30a3",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "bootstrap.sh",
+      "bytes": 4380,
+      "sha256": "18581deecaceb11fe68d20ab745f2d64094288a13be1cc1f130435703bb16ea1",
+      "canonical_sha256": "18581deecaceb11fe68d20ab745f2d64094288a13be1cc1f130435703bb16ea1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/CHAT_B_IMPLEMENTATION_HANDOFF_2026-10-14.md",
+      "bytes": 18618,
+      "sha256": "2f4f03d6b3265c3cecc97fd5c0578346ac0e2764fc8aa6f10c1abcaa316cf4f9",
+      "canonical_sha256": "2f4f03d6b3265c3cecc97fd5c0578346ac0e2764fc8aa6f10c1abcaa316cf4f9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/CHAT_B_TARGETED_TEST_REPORT_2026-10-14.md",
+      "bytes": 20602,
+      "sha256": "b6579b3ba636f1b85ed7a6c756819a6ad20eae6777698f77421f8beb1c08b72d",
+      "canonical_sha256": "b6579b3ba636f1b85ed7a6c756819a6ad20eae6777698f77421f8beb1c08b72d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/PACKAGE3_QUALIFICATION.md",
+      "bytes": 1776,
+      "sha256": "75875998a7473c72e8955e328ba84cd966d8c810f819c3d1cc191212019ed776",
+      "canonical_sha256": "75875998a7473c72e8955e328ba84cd966d8c810f819c3d1cc191212019ed776",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/PROJECT_INTEGRATION.md",
+      "bytes": 10177,
+      "sha256": "8432b74f69bf98254fa6d9f769154c9c037ae7e970bc4b581f7e504478e3f032",
+      "canonical_sha256": "8432b74f69bf98254fa6d9f769154c9c037ae7e970bc4b581f7e504478e3f032",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/TEST_LANES.md",
+      "bytes": 7744,
+      "sha256": "6bf63918f767504d6c0faddb7a651a78fcf9a9b61fef7af314fd15844dcb8a26",
+      "canonical_sha256": "6bf63918f767504d6c0faddb7a651a78fcf9a9b61fef7af314fd15844dcb8a26",
+      "line_endings": "LF"
+    },
+    {
+      "path": "docs/WINDOWS_UI.md",
+      "bytes": 6853,
+      "sha256": "89ef08db1a63bc4be3b15ce78f09cad1e4e0d80a44ba2a565e8c0150690a4def",
+      "canonical_sha256": "b4d3f2adc7d52b190b88a0fbab82a471ab9bd5582c00caefd48cec872b2c9777",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "docs/service-owned-policy.md",
+      "bytes": 4961,
+      "sha256": "d4a29201e41fab57a0ef14aac8188677ed5d29b27199df42b20850b41794af10",
+      "canonical_sha256": "d4a29201e41fab57a0ef14aac8188677ed5d29b27199df42b20850b41794af10",
+      "line_endings": "LF"
+    },
+    {
+      "path": "global.json",
+      "bytes": 80,
+      "sha256": "fc40ff46a8cfec89c801e2eda359fffddc5225a5547615404626bf5c1b406818",
+      "canonical_sha256": "fc40ff46a8cfec89c801e2eda359fffddc5225a5547615404626bf5c1b406818",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/linux/install.sh",
+      "bytes": 2979,
+      "sha256": "eda3986de37f470090836e42db6e0cb44050ea4631f3548a80ca2606f25f8501",
+      "canonical_sha256": "eda3986de37f470090836e42db6e0cb44050ea4631f3548a80ca2606f25f8501",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/linux/neptune.service",
+      "bytes": 780,
+      "sha256": "760052524fc55b6218b96f90aee2ce8440ab7256efeb97ddc28a71da0e2a83b9",
+      "canonical_sha256": "760052524fc55b6218b96f90aee2ce8440ab7256efeb97ddc28a71da0e2a83b9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/linux/neptunectl",
+      "bytes": 1558,
+      "sha256": "8322fa500725d37dbe7f5287351cc06057e8d3ff1d8ea74283c148c6aa11db7a",
+      "canonical_sha256": "8322fa500725d37dbe7f5287351cc06057e8d3ff1d8ea74283c148c6aa11db7a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/windows/AppxManifest.xml",
+      "bytes": 1689,
+      "sha256": "e0e24b849b9aeb0d3265c55d3f17d1b1d885f4c05535dfefd8e58f00302a4cdd",
+      "canonical_sha256": "e0e24b849b9aeb0d3265c55d3f17d1b1d885f4c05535dfefd8e58f00302a4cdd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/windows/Assets/SplashScreen.png",
+      "bytes": 115261,
+      "sha256": "3052180afe24bde2c7df66260a980ece3fdb8d759cde62b84ec0d07cd65adf28",
+      "canonical_sha256": "3052180afe24bde2c7df66260a980ece3fdb8d759cde62b84ec0d07cd65adf28",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square150x150Logo.png",
+      "bytes": 49504,
+      "sha256": "68e9487af6999343c74c47dde1976376add8f076e3c4505d6f0083943cf75c3a",
+      "canonical_sha256": "68e9487af6999343c74c47dde1976376add8f076e3c4505d6f0083943cf75c3a",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.png",
+      "bytes": 5691,
+      "sha256": "28c2deff7be662445c0a147d25dcbaf1045b44f60891b0522f0da0e9f0d1e87c",
+      "canonical_sha256": "28c2deff7be662445c0a147d25dcbaf1045b44f60891b0522f0da0e9f0d1e87c",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-16.png",
+      "bytes": 936,
+      "sha256": "ef00231f94f43f706b245fee692b9c3dad01edd7efe2757f0736229f32811c98",
+      "canonical_sha256": "ef00231f94f43f706b245fee692b9c3dad01edd7efe2757f0736229f32811c98",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-16_altform-unplated.png",
+      "bytes": 936,
+      "sha256": "ef00231f94f43f706b245fee692b9c3dad01edd7efe2757f0736229f32811c98",
+      "canonical_sha256": "ef00231f94f43f706b245fee692b9c3dad01edd7efe2757f0736229f32811c98",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-24.png",
+      "bytes": 1877,
+      "sha256": "68e6ff6e3c52bfc71a787191ffd489c9f9fcb94bb9456b942d2cab38cd36b385",
+      "canonical_sha256": "68e6ff6e3c52bfc71a787191ffd489c9f9fcb94bb9456b942d2cab38cd36b385",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-24_altform-unplated.png",
+      "bytes": 1877,
+      "sha256": "68e6ff6e3c52bfc71a787191ffd489c9f9fcb94bb9456b942d2cab38cd36b385",
+      "canonical_sha256": "68e6ff6e3c52bfc71a787191ffd489c9f9fcb94bb9456b942d2cab38cd36b385",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-256.png",
+      "bytes": 136068,
+      "sha256": "a0ef1aca772614d56500a7775451a38acbccc935e6049acd2246b3b7060dc267",
+      "canonical_sha256": "a0ef1aca772614d56500a7775451a38acbccc935e6049acd2246b3b7060dc267",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-256_altform-unplated.png",
+      "bytes": 136068,
+      "sha256": "a0ef1aca772614d56500a7775451a38acbccc935e6049acd2246b3b7060dc267",
+      "canonical_sha256": "a0ef1aca772614d56500a7775451a38acbccc935e6049acd2246b3b7060dc267",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-32.png",
+      "bytes": 3181,
+      "sha256": "931307d41c55a075859237c1ad603793491bed6e345aac27f178dd9fbaa3f48f",
+      "canonical_sha256": "931307d41c55a075859237c1ad603793491bed6e345aac27f178dd9fbaa3f48f",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-32_altform-unplated.png",
+      "bytes": 3181,
+      "sha256": "931307d41c55a075859237c1ad603793491bed6e345aac27f178dd9fbaa3f48f",
+      "canonical_sha256": "931307d41c55a075859237c1ad603793491bed6e345aac27f178dd9fbaa3f48f",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-48.png",
+      "bytes": 6680,
+      "sha256": "73df6e70d0bfe126e2ee48ddbeb1b7efdbf351884d20dd29c529ac213f24b80d",
+      "canonical_sha256": "73df6e70d0bfe126e2ee48ddbeb1b7efdbf351884d20dd29c529ac213f24b80d",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Square44x44Logo.targetsize-48_altform-unplated.png",
+      "bytes": 6680,
+      "sha256": "73df6e70d0bfe126e2ee48ddbeb1b7efdbf351884d20dd29c529ac213f24b80d",
+      "canonical_sha256": "73df6e70d0bfe126e2ee48ddbeb1b7efdbf351884d20dd29c529ac213f24b80d",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/StoreLogo.png",
+      "bytes": 6508,
+      "sha256": "f5afe58bbc8969ec9c0232d7ab90f9f976cace83a3a8860a0b7f06f16565ba48",
+      "canonical_sha256": "f5afe58bbc8969ec9c0232d7ab90f9f976cace83a3a8860a0b7f06f16565ba48",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/Assets/Wide310x150Logo.png",
+      "bytes": 41476,
+      "sha256": "b1e65535bd966ddd860bea9efb523f566d84a3430db4538a431730358bc1627a",
+      "canonical_sha256": "b1e65535bd966ddd860bea9efb523f566d84a3430db4538a431730358bc1627a",
+      "line_endings": "BINARY"
+    },
+    {
+      "path": "packaging/windows/README.md",
+      "bytes": 7999,
+      "sha256": "850ea9fda728dbabe156a01ec838bbb69834813b527d56fe2b690078af304506",
+      "canonical_sha256": "850ea9fda728dbabe156a01ec838bbb69834813b527d56fe2b690078af304506",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/windows/packaging-tools.lock.json",
+      "bytes": 802,
+      "sha256": "a4ad6334eff9f9cd8bbef5981f4868d2d3e1dce5419aa6ce64e355d04466418f",
+      "canonical_sha256": "a4ad6334eff9f9cd8bbef5981f4868d2d3e1dce5419aa6ce64e355d04466418f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/windows/release-readiness.json",
+      "bytes": 362,
+      "sha256": "b5e8ebec3ddef02fe1b166452ab6b1da94854bbfb484af7f93edbbec4b81ca7f",
+      "canonical_sha256": "b5e8ebec3ddef02fe1b166452ab6b1da94854bbfb484af7f93edbbec4b81ca7f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "packaging/windows/windows_release.py",
+      "bytes": 21851,
+      "sha256": "61e7f761e9ef1145afccf86531563fd4334572c5c7a2cec061cd69f8822703d8",
+      "canonical_sha256": "61e7f761e9ef1145afccf86531563fd4334572c5c7a2cec061cd69f8822703d8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/build-host-bootstrap.py",
+      "bytes": 1148,
+      "sha256": "3883184c48645c66544d52984929dc7d3f1224f3ec97e9f65ce892523b64d307",
+      "canonical_sha256": "3883184c48645c66544d52984929dc7d3f1224f3ec97e9f65ce892523b64d307",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/build-windows-packages.ps1",
+      "bytes": 2961,
+      "sha256": "0c73c9b5fc4e659dbc9105ff141af1ed26a435773a093005a69bead4daebd48e",
+      "canonical_sha256": "0c73c9b5fc4e659dbc9105ff141af1ed26a435773a093005a69bead4daebd48e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/create-release-key.mjs",
+      "bytes": 1193,
+      "sha256": "6f3545ba128eabbe15433ee6f4bce111f71ed0f2c77e0c9f576d16998730f4d1",
+      "canonical_sha256": "6f3545ba128eabbe15433ee6f4bce111f71ed0f2c77e0c9f576d16998730f4d1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/known-problems-gate.py",
+      "bytes": 11728,
+      "sha256": "5fa3a3cd79da086bc7389ca1e2e7eb259bb16b6f7ce25134a65ccd8dce7438fb",
+      "canonical_sha256": "5fa3a3cd79da086bc7389ca1e2e7eb259bb16b6f7ce25134a65ccd8dce7438fb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/pre-push-gate.py",
+      "bytes": 9572,
+      "sha256": "d914954248fa1e8f658d9b714d5b363d6e16ea6cdcaef8f892ae3b599cdefef7",
+      "canonical_sha256": "d914954248fa1e8f658d9b714d5b363d6e16ea6cdcaef8f892ae3b599cdefef7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/restore-windows-packaging-tools.ps1",
+      "bytes": 1960,
+      "sha256": "fdb45430514acdc5b8ae00b9a082762e27e86a3e769aeaaef09498ea2e6d6bcc",
+      "canonical_sha256": "fdb45430514acdc5b8ae00b9a082762e27e86a3e769aeaaef09498ea2e6d6bcc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/sign-release.mjs",
+      "bytes": 2025,
+      "sha256": "0b2203d8259fbb0793973a6e5a5b40105f3c33919ff6708b31754b9f087267bd",
+      "canonical_sha256": "0b2203d8259fbb0793973a6e5a5b40105f3c33919ff6708b31754b9f087267bd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/test-known-problems-gate.py",
+      "bytes": 5876,
+      "sha256": "4d84923deb0aa04c6537674b54317316b3c915ff669de373bcceeff66c30be3d",
+      "canonical_sha256": "4d84923deb0aa04c6537674b54317316b3c915ff669de373bcceeff66c30be3d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/test-verify-published-release.py",
+      "bytes": 8731,
+      "sha256": "cd3a454a290e450b6025a073e87aef594b8428f9988e55a96b6ca07e8270a864",
+      "canonical_sha256": "cd3a454a290e450b6025a073e87aef594b8428f9988e55a96b6ca07e8270a864",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/test-verify-unified-release.py",
+      "bytes": 4672,
+      "sha256": "5712eb74b3c0a03c1f5828c0563ef1fb09bffdd0b666cf52ce443fb880439f5b",
+      "canonical_sha256": "5712eb74b3c0a03c1f5828c0563ef1fb09bffdd0b666cf52ce443fb880439f5b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/test-windows-icons.py",
+      "bytes": 2702,
+      "sha256": "bec17bce6f9c5f3db018bd070f5e7e0af77ea9c7d82c939a64a4e3c5b30ebcd8",
+      "canonical_sha256": "bec17bce6f9c5f3db018bd070f5e7e0af77ea9c7d82c939a64a4e3c5b30ebcd8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/test-windows-packaging.py",
+      "bytes": 7069,
+      "sha256": "91a1fbcc9bfdf812ae59d6baec46a373636c93097bca1cd5fa15723643940f33",
+      "canonical_sha256": "91a1fbcc9bfdf812ae59d6baec46a373636c93097bca1cd5fa15723643940f33",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-linux-package.sh",
+      "bytes": 592,
+      "sha256": "9ebdca4a4e85ef052ea1e52d5d3cb5a1bba50209550410e67677aa97ad3f9ab8",
+      "canonical_sha256": "9ebdca4a4e85ef052ea1e52d5d3cb5a1bba50209550410e67677aa97ad3f9ab8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-package3-source.py",
+      "bytes": 4165,
+      "sha256": "9f7cbebfc7a04b6dd2ecdfbe7dba8e27c2929a6723811d455740fe9b9e92bae6",
+      "canonical_sha256": "9f7cbebfc7a04b6dd2ecdfbe7dba8e27c2929a6723811d455740fe9b9e92bae6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-published-release.py",
+      "bytes": 8562,
+      "sha256": "7c126e21ee79946413030879b73be6fddae5097d8e2bf985d740da67d067e37f",
+      "canonical_sha256": "7c126e21ee79946413030879b73be6fddae5097d8e2bf985d740da67d067e37f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-release-manifest.py",
+      "bytes": 1620,
+      "sha256": "ffa13a7b01c300960fc6af762c8de8b9d087d64898abdcd9c3b7ee6c325feb05",
+      "canonical_sha256": "ffa13a7b01c300960fc6af762c8de8b9d087d64898abdcd9c3b7ee6c325feb05",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-unified-release.py",
+      "bytes": 3997,
+      "sha256": "ec89a460909610d8ca75156ff86d5b0410473a3c3ee8d7b607863069a7aa57ee",
+      "canonical_sha256": "ec89a460909610d8ca75156ff86d5b0410473a3c3ee8d7b607863069a7aa57ee",
+      "line_endings": "LF"
+    },
+    {
+      "path": "scripts/verify-windows-msi.ps1",
+      "bytes": 3659,
+      "sha256": "3bd3cabbafe00bd107bd58f53034874c4422ba32abf0d1c04ad4571a5b3e977b",
+      "canonical_sha256": "3bd3cabbafe00bd107bd58f53034874c4422ba32abf0d1c04ad4571a5b3e977b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/BackupCoordinator.cs",
+      "bytes": 4257,
+      "sha256": "609a86e073b766325d52dfafe84e7af7e7802f89d4dc0e182801a283e49459ec",
+      "canonical_sha256": "609a86e073b766325d52dfafe84e7af7e7802f89d4dc0e182801a283e49459ec",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/BootstrapExecutionModels.cs",
+      "bytes": 5341,
+      "sha256": "ea476fad7aab3e106ef295c8b1c172d2881cb123f8dacd35fbc94cdb149b5bd0",
+      "canonical_sha256": "ea476fad7aab3e106ef295c8b1c172d2881cb123f8dacd35fbc94cdb149b5bd0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/BootstrapScanModels.cs",
+      "bytes": 2267,
+      "sha256": "8140d1e44aeab0b9f6b8cf530f5ce6279cec88ab86da4958814c3f253ae5d31c",
+      "canonical_sha256": "8140d1e44aeab0b9f6b8cf530f5ce6279cec88ab86da4958814c3f253ae5d31c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/BootstrapUploadReceiptParser.cs",
+      "bytes": 9894,
+      "sha256": "d61a72089729c6cf39ccc34d1fcf4b7a67025e88e54f98d38affa3d8cbe65d6f",
+      "canonical_sha256": "d61a72089729c6cf39ccc34d1fcf4b7a67025e88e54f98d38affa3d8cbe65d6f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/BoundedJson.cs",
+      "bytes": 1277,
+      "sha256": "fdcd515d98821ea00f29e6d61b8a9537b8e9051d62d7e42bde5128afd29cfd4e",
+      "canonical_sha256": "fdcd515d98821ea00f29e6d61b8a9537b8e9051d62d7e42bde5128afd29cfd4e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/CanonicalJson.cs",
+      "bytes": 2140,
+      "sha256": "ea4caa93258a473db82c935938fae79bd5e1c8317150eea08257961ff863802b",
+      "canonical_sha256": "ea4caa93258a473db82c935938fae79bd5e1c8317150eea08257961ff863802b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/ClientIdentityStore.cs",
+      "bytes": 2356,
+      "sha256": "b881e5f00834b2d6ba4b6e5e5648df2c2668b289e0ce38c9a13eef03deb7e783",
+      "canonical_sha256": "b881e5f00834b2d6ba4b6e5e5648df2c2668b289e0ce38c9a13eef03deb7e783",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/CredentialFile.cs",
+      "bytes": 1497,
+      "sha256": "3cce3d7cd554ea7e035617c7835bf660d1774ab0a9a6b3abed9d7aa3f09ab826",
+      "canonical_sha256": "3cce3d7cd554ea7e035617c7835bf660d1774ab0a9a6b3abed9d7aa3f09ab826",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/KernelRegisterClient.cs",
+      "bytes": 13792,
+      "sha256": "1859b1c601a939456ab355250dbf8ead7864debef5e83654eeca159cc1dbd82f",
+      "canonical_sha256": "1859b1c601a939456ab355250dbf8ead7864debef5e83654eeca159cc1dbd82f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalCoherenceModels.cs",
+      "bytes": 2655,
+      "sha256": "4dd0e532b11ee246b858cac105eb9f9050a062c794d943df576b9619463e3bf6",
+      "canonical_sha256": "4dd0e532b11ee246b858cac105eb9f9050a062c794d943df576b9619463e3bf6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalCycleModels.cs",
+      "bytes": 6530,
+      "sha256": "aa5d6692aed1706b70f014bb31500939b95bababaea0d8b826ca3d4199044546",
+      "canonical_sha256": "aa5d6692aed1706b70f014bb31500939b95bababaea0d8b826ca3d4199044546",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalCycleResources.cs",
+      "bytes": 8598,
+      "sha256": "bb96a90ec0a6100dae5fa65b7c6f2cf1cfe098d4277cdeb6fb5ea2aa43c20704",
+      "canonical_sha256": "bb96a90ec0a6100dae5fa65b7c6f2cf1cfe098d4277cdeb6fb5ea2aa43c20704",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalCycleWire.cs",
+      "bytes": 16296,
+      "sha256": "2cb34877f6ca172c7be363c8e09aeaaaef1bc85d851894893a47c647bd7a4dff",
+      "canonical_sha256": "2cb34877f6ca172c7be363c8e09aeaaaef1bc85d851894893a47c647bd7a4dff",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalJournalReplacementModels.cs",
+      "bytes": 898,
+      "sha256": "a063f44092a14ec77e2bc57563b2600c489b7a0a4e38db081e809d5cbd5b7f92",
+      "canonical_sha256": "a063f44092a14ec77e2bc57563b2600c489b7a0a4e38db081e809d5cbd5b7f92",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalNamespaceModels.cs",
+      "bytes": 2817,
+      "sha256": "d5505dd565616e283bebaff4115a339aebe3fed110ed9457301d9e5bfdc694a1",
+      "canonical_sha256": "d5505dd565616e283bebaff4115a339aebe3fed110ed9457301d9e5bfdc694a1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalNamespaceScanner.cs",
+      "bytes": 2751,
+      "sha256": "6be1666433abd11d6545da4e517b8caad3d8a71bd7f3048e6a434ab4bd9f48d5",
+      "canonical_sha256": "6be1666433abd11d6545da4e517b8caad3d8a71bd7f3048e6a434ab4bd9f48d5",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalParentReconciliationModels.cs",
+      "bytes": 1103,
+      "sha256": "6978e86d1687506c51bdf705ded6ace60bd1a1ba8c313841b474f1251d4691c6",
+      "canonical_sha256": "6978e86d1687506c51bdf705ded6ace60bd1a1ba8c313841b474f1251d4691c6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalProjectionModels.cs",
+      "bytes": 2643,
+      "sha256": "f916425db1bde7b5d0e15a6214b9d52126d8254e8570a9b2cfe4c56ad90b145b",
+      "canonical_sha256": "f916425db1bde7b5d0e15a6214b9d52126d8254e8570a9b2cfe4c56ad90b145b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalSmallBatchSpool.cs",
+      "bytes": 9403,
+      "sha256": "be0515b109db7362d2814af477ea123da513f3d8baf0a976aa2284fbad65c3ea",
+      "canonical_sha256": "be0515b109db7362d2814af477ea123da513f3d8baf0a976aa2284fbad65c3ea",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalSourceContinuityModels.cs",
+      "bytes": 3921,
+      "sha256": "3562fa01e9660cdbc313132af3deddd2105eb253e9ecd2777ac9e3a524721576",
+      "canonical_sha256": "3562fa01e9660cdbc313132af3deddd2105eb253e9ecd2777ac9e3a524721576",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/LocalUploadSnapshot.cs",
+      "bytes": 3213,
+      "sha256": "75f1711d44385ee0d67e2576a8d418191e6c3985c0363e9c9e86715bd2ea4d4a",
+      "canonical_sha256": "75f1711d44385ee0d67e2576a8d418191e6c3985c0363e9c9e86715bd2ea4d4a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/MappingSyncPolicy.cs",
+      "bytes": 2268,
+      "sha256": "cf465eab2d45cfca2970d4a2cb4b7ceba1d2daf983d92a14b4e3bc9dff139428",
+      "canonical_sha256": "cf465eab2d45cfca2970d4a2cb4b7ceba1d2daf983d92a14b4e3bc9dff139428",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/MirrorArchive.cs",
+      "bytes": 4243,
+      "sha256": "f38bf4f64bdcd8f385093f0840bf24530a877909358b5c2fb31768c432bd96ef",
+      "canonical_sha256": "f38bf4f64bdcd8f385093f0840bf24530a877909358b5c2fb31768c432bd96ef",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Models.cs",
+      "bytes": 6613,
+      "sha256": "0577da7b812637d574883ef5251a8d2a6de18bf750a7538036ba271bf6782ae0",
+      "canonical_sha256": "8216d13f113e290610ada4445604f2069e32007215764a99862661a9eb951f82",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        148,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NativeBootstrapCaptureModels.cs",
+      "bytes": 7801,
+      "sha256": "836dc6e582aa591191cc2fc3f51bfa9d8961e234683b54886eb6d6a96d245e06",
+      "canonical_sha256": "836dc6e582aa591191cc2fc3f51bfa9d8961e234683b54886eb6d6a96d245e06",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Neptune.Core.csproj",
+      "bytes": 339,
+      "sha256": "eadfadc50055b390469202d9a8122dec02a426fc4ff4926627e0745c9cb4a887",
+      "canonical_sha256": "f25353204f26fccfb8663c04d119633b5a75f585e6f783ecbaa0ddaf977683f4",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        2
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneBootstrapExecutor.cs",
+      "bytes": 28788,
+      "sha256": "6e1b6023dcf526abb18237e19faf311fe1def9f8ea4af95668dafe836ab9291b",
+      "canonical_sha256": "6e1b6023dcf526abb18237e19faf311fe1def9f8ea4af95668dafe836ab9291b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneBootstrapScanner.cs",
+      "bytes": 6690,
+      "sha256": "ba940d1f2b5d277aad28ce93e1b95ef7f677b6d17caa45ec7166dd601cc2a2f8",
+      "canonical_sha256": "ba940d1f2b5d277aad28ce93e1b95ef7f677b6d17caa45ec7166dd601cc2a2f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.AuthorizationRecovery.cs",
+      "bytes": 2449,
+      "sha256": "ca84dc4af1e7328cd366ca4715239746a57d4126b2e17af6fae70ed71de410a4",
+      "canonical_sha256": "ca84dc4af1e7328cd366ca4715239746a57d4126b2e17af6fae70ed71de410a4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.BindingAdoption.cs",
+      "bytes": 21060,
+      "sha256": "eafd88d8b2470cb0efdd585750fab2ac2a60936b6ae9eaaec353f3fc91e3b132",
+      "canonical_sha256": "eafd88d8b2470cb0efdd585750fab2ac2a60936b6ae9eaaec353f3fc91e3b132",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.Bootstrap.cs",
+      "bytes": 39260,
+      "sha256": "8e028a3191e9097077c160a1cf193addecc5646ad4bf9ab20bfd0a1b95982990",
+      "canonical_sha256": "8e028a3191e9097077c160a1cf193addecc5646ad4bf9ab20bfd0a1b95982990",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.BootstrapMigration.cs",
+      "bytes": 6994,
+      "sha256": "b8069309c31f5afec276f7e698d869540b31488839b0ffd1a24977021d71dbf2",
+      "canonical_sha256": "b8069309c31f5afec276f7e698d869540b31488839b0ffd1a24977021d71dbf2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.BootstrapQueue.cs",
+      "bytes": 11278,
+      "sha256": "a39497cb47a6bce9e65bdc1128f22883e5a492dd379269a2e181f8c5a5f52de9",
+      "canonical_sha256": "a39497cb47a6bce9e65bdc1128f22883e5a492dd379269a2e181f8c5a5f52de9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.BootstrapWork.cs",
+      "bytes": 24761,
+      "sha256": "ba684c3a798a5ddb82d2ff1bb83670cd99647b2156dac06d65d6e3dca88d4f64",
+      "canonical_sha256": "ba684c3a798a5ddb82d2ff1bb83670cd99647b2156dac06d65d6e3dca88d4f64",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.BootstrapWorkMigration.cs",
+      "bytes": 6765,
+      "sha256": "8cd3a1813d62f71f102ad3bca34f07c241906d28f465582a84c52aba099e99a3",
+      "canonical_sha256": "8cd3a1813d62f71f102ad3bca34f07c241906d28f465582a84c52aba099e99a3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ClientEvolutionMigration.cs",
+      "bytes": 9537,
+      "sha256": "b116118b02a0b52c9ba0bd05963f9be8be1bfbf76f217065c38570966acea03f",
+      "canonical_sha256": "b116118b02a0b52c9ba0bd05963f9be8be1bfbf76f217065c38570966acea03f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.CoherenceParentLookup.cs",
+      "bytes": 1452,
+      "sha256": "f42dcb634666b1e47da738455c53fef10815dc5c0c817f9b50152f226e3229ba",
+      "canonical_sha256": "f42dcb634666b1e47da738455c53fef10815dc5c0c817f9b50152f226e3229ba",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.Compatibility.cs",
+      "bytes": 1043,
+      "sha256": "c160026d79efdbefcd1ba0c8003231e558ecefd80447295a7e0e4146d0d40af2",
+      "canonical_sha256": "c160026d79efdbefcd1ba0c8003231e558ecefd80447295a7e0e4146d0d40af2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ContentMutation.cs",
+      "bytes": 4462,
+      "sha256": "07bd6b6bb6a64888f9bbe1583bd13ce8bcfa215a799203b5fb9a8fbf86b1c217",
+      "canonical_sha256": "07bd6b6bb6a64888f9bbe1583bd13ce8bcfa215a799203b5fb9a8fbf86b1c217",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.CycleReplacementMigration.cs",
+      "bytes": 5771,
+      "sha256": "20180c680050e606097ad4872feb07fcb7242da5958a8259ac5182b32ccdea8e",
+      "canonical_sha256": "20180c680050e606097ad4872feb07fcb7242da5958a8259ac5182b32ccdea8e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.CycleSupersessionMigration.cs",
+      "bytes": 4234,
+      "sha256": "e386ba78d4ac36ff854c467dfc5026782132d5327c51b5af53af3c3318aa8ddb",
+      "canonical_sha256": "e386ba78d4ac36ff854c467dfc5026782132d5327c51b5af53af3c3318aa8ddb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.DeletePlan.cs",
+      "bytes": 2921,
+      "sha256": "662b381da2568dfcf39f6d0f0e228ec5c83a95281007084169c3e139c4ee872e",
+      "canonical_sha256": "662b381da2568dfcf39f6d0f0e228ec5c83a95281007084169c3e139c4ee872e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.EventInbox.cs",
+      "bytes": 8774,
+      "sha256": "a0e785ca21fefd655bf3c0b10ea7d8e44a89d700d9b8e0e7ba736048f0adc3b8",
+      "canonical_sha256": "a0e785ca21fefd655bf3c0b10ea7d8e44a89d700d9b8e0e7ba736048f0adc3b8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ExtendedRecovery.cs",
+      "bytes": 12294,
+      "sha256": "605051d66fa3b2175729e5d01028250ed2b8b1c706b6678d962165de87f4f368",
+      "canonical_sha256": "605051d66fa3b2175729e5d01028250ed2b8b1c706b6678d962165de87f4f368",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.FullParentProof.cs",
+      "bytes": 4195,
+      "sha256": "bf8683c1660758f4e4673b2fd26d70448cb4a642eb4458c6e21275e864220e2c",
+      "canonical_sha256": "bf8683c1660758f4e4673b2fd26d70448cb4a642eb4458c6e21275e864220e2c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.JournalInstalledLineage.cs",
+      "bytes": 3529,
+      "sha256": "48bf05b90e75a215b40cb88a642a2df4d340c2c58f030accf6d7f2d37ee9f8eb",
+      "canonical_sha256": "48bf05b90e75a215b40cb88a642a2df4d340c2c58f030accf6d7f2d37ee9f8eb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.JournalReplacement.cs",
+      "bytes": 25338,
+      "sha256": "36aaaa8405d150601acaad2bf95f04dce6f61b6aa8f43a9dd5ce8c2880711e66",
+      "canonical_sha256": "36aaaa8405d150601acaad2bf95f04dce6f61b6aa8f43a9dd5ce8c2880711e66",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.JournalReplacementOriginals.cs",
+      "bytes": 6636,
+      "sha256": "1343277ce6f54c667bae0d65b07bf550b891658eb6b840a60c7737992b989444",
+      "canonical_sha256": "1343277ce6f54c667bae0d65b07bf550b891658eb6b840a60c7737992b989444",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.JournalReplacementStages.cs",
+      "bytes": 16172,
+      "sha256": "4617f88617da513e8a04aacba982f7e8f9fd348ff6364f5acdfa65be99e71424",
+      "canonical_sha256": "4617f88617da513e8a04aacba982f7e8f9fd348ff6364f5acdfa65be99e71424",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.JournalSupersession.cs",
+      "bytes": 6345,
+      "sha256": "dd45021b6c9d9aa03c5ca3affcbdfb19e4d8feb017a48d658511bc7b1728fec0",
+      "canonical_sha256": "dd45021b6c9d9aa03c5ca3affcbdfb19e4d8feb017a48d658511bc7b1728fec0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCoherence.cs",
+      "bytes": 21520,
+      "sha256": "d64f7fa2aa689b402c1ed1f7ec3d97c7bd2180e40cc88f1b466bc35c96eb4654",
+      "canonical_sha256": "d64f7fa2aa689b402c1ed1f7ec3d97c7bd2180e40cc88f1b466bc35c96eb4654",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCoherenceHistorical.cs",
+      "bytes": 3964,
+      "sha256": "8c08bb316530490bc770fa9860545d8d24541de9003e51706b3b5baf28baf955",
+      "canonical_sha256": "8c08bb316530490bc770fa9860545d8d24541de9003e51706b3b5baf28baf955",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCoherenceMigration.cs",
+      "bytes": 10853,
+      "sha256": "fd4981060759f9115f4d270bac61864a5bd0b98c2c17632ea0da1b6cd1a77cbc",
+      "canonical_sha256": "fd4981060759f9115f4d270bac61864a5bd0b98c2c17632ea0da1b6cd1a77cbc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCoherenceReplay.cs",
+      "bytes": 17243,
+      "sha256": "7c1cfe740ff39469b9dd3aed539351b42564ea94f056f355062b122808cc3042",
+      "canonical_sha256": "7c1cfe740ff39469b9dd3aed539351b42564ea94f056f355062b122808cc3042",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCoherenceRetirement.cs",
+      "bytes": 15308,
+      "sha256": "28ac1be979050b6988951d5df419ab6b9b00184b538be3a5f3adce03a462018f",
+      "canonical_sha256": "28ac1be979050b6988951d5df419ab6b9b00184b538be3a5f3adce03a462018f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycle.cs",
+      "bytes": 19339,
+      "sha256": "1bcef3d3acf6d8fa1011f59ec7c225b191bb9d861feb0361d2b8d692cde2c807",
+      "canonical_sha256": "54f095494cdd2585fc3569e353062639001f7b1799474689f7d73538ea293748",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        152
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleLifecycle.cs",
+      "bytes": 10859,
+      "sha256": "9569cb51e18e0bf927c4672b7a3ad0eed7b2d025e182b7c859661c0f6b5365af",
+      "canonical_sha256": "79fc104917d783b128cc3a6d592488318d8ef1afb6f1a6746dcfd58de4a5afff",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleMigration.cs",
+      "bytes": 15493,
+      "sha256": "b2b21f826c4376614bca03fbeabd6908cc9e40eb6f020983bfc327bf8874e5fb",
+      "canonical_sha256": "5e8b47c67f3c29baf7c5be8337161822dff1c0b2e61d1a1af425ed4576c88705",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        58,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        83,
+        84,
+        85,
+        86,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleRecovery.cs",
+      "bytes": 9541,
+      "sha256": "efd360fa8014e30f96732018422bc57e3b65b8397aa31bc9afb988e8eb4c8be3",
+      "canonical_sha256": "efd360fa8014e30f96732018422bc57e3b65b8397aa31bc9afb988e8eb4c8be3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleRefresh.cs",
+      "bytes": 18855,
+      "sha256": "17bff0ea6f941dc04fcaa623e1a6603d7ed7f0681151af169115f4d645e71598",
+      "canonical_sha256": "c327371966537f294fb0c03f6e51bafc0dcadf48c8ac4401ffbd1a529e82373d",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleRemote.cs",
+      "bytes": 20346,
+      "sha256": "a381f2356ac8b032546c715ef00944520bc443ae0cc9c3fd00f1049b0ff35f7c",
+      "canonical_sha256": "11f66905452e77e180216fe2e216c2e8403b819e1f4aa8224bd597a4b2e7b097",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        81,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleResume.cs",
+      "bytes": 10265,
+      "sha256": "14530568711f289c065f95f5b7dbe005fc956d4ba34b903c09ac91ce031a4cde",
+      "canonical_sha256": "14530568711f289c065f95f5b7dbe005fc956d4ba34b903c09ac91ce031a4cde",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleRetirement.cs",
+      "bytes": 13089,
+      "sha256": "18c84803da41ee21ad8f798459c39172a0ae3557793c013af5b9cd49a2715473",
+      "canonical_sha256": "e4f089b5a27fe623c48eb19454339bd89ecc50ad008343e944798f0b6527b2f2",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        47,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleStats.cs",
+      "bytes": 5695,
+      "sha256": "999725483271335ea54a3b6745a33b60108776e506ad4fb7ee442e92ec4aaf40",
+      "canonical_sha256": "999725483271335ea54a3b6745a33b60108776e506ad4fb7ee442e92ec4aaf40",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleWork.cs",
+      "bytes": 37722,
+      "sha256": "fb8bc0339523998946a3a1ad7131af630c06618a9b8fa4b18108c599bdc9aec0",
+      "canonical_sha256": "a9cee2445d8cb36a653c837cebec0e2a50c82b507d77a3c6420dc71bdad5a48f",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalNamespace.cs",
+      "bytes": 35365,
+      "sha256": "fc90a09007c478b81ac7ca952390752d8e3c5005d2a60a33dda4bd3f085ebab5",
+      "canonical_sha256": "fc90a09007c478b81ac7ca952390752d8e3c5005d2a60a33dda4bd3f085ebab5",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalNamespaceMigration.cs",
+      "bytes": 11338,
+      "sha256": "927ae7cf21aa7aa1ab1413f19c7c513e65a34a73cb2da85edc6c05531298c4ea",
+      "canonical_sha256": "927ae7cf21aa7aa1ab1413f19c7c513e65a34a73cb2da85edc6c05531298c4ea",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalProjection.cs",
+      "bytes": 28455,
+      "sha256": "11349a25922a2c108a632909cb262a3640e9145b69d33e55797cae17a1e6ac23",
+      "canonical_sha256": "11349a25922a2c108a632909cb262a3640e9145b69d33e55797cae17a1e6ac23",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalProjectionMigration.cs",
+      "bytes": 11955,
+      "sha256": "be2af31395cded5f6b1857b129f0bd1ba7998ca138075a49a20ada3c1c6f3f0a",
+      "canonical_sha256": "be2af31395cded5f6b1857b129f0bd1ba7998ca138075a49a20ada3c1c6f3f0a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalProjectionWork.cs",
+      "bytes": 24051,
+      "sha256": "150de5bc021d32d193522919646fc74e4d319be3e34c8aa300a612d82fe8c5f7",
+      "canonical_sha256": "150de5bc021d32d193522919646fc74e4d319be3e34c8aa300a612d82fe8c5f7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalSource.cs",
+      "bytes": 42934,
+      "sha256": "17d78a63455675734067cf8434dd479d07f7b5055b75c5683508516be2483e06",
+      "canonical_sha256": "17d78a63455675734067cf8434dd479d07f7b5055b75c5683508516be2483e06",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalSourceLifetime.cs",
+      "bytes": 2361,
+      "sha256": "7210a6269fc181f14fd8774122f6acdc69364830823274510f680643e85a8fd0",
+      "canonical_sha256": "7210a6269fc181f14fd8774122f6acdc69364830823274510f680643e85a8fd0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.LocalSourceMigration.cs",
+      "bytes": 11982,
+      "sha256": "3ccd76a703e089f758c288750f08c2e16a7a2426ec80f985dee9d63febd998ce",
+      "canonical_sha256": "3ccd76a703e089f758c288750f08c2e16a7a2426ec80f985dee9d63febd998ce",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.MappingPolicy.cs",
+      "bytes": 12408,
+      "sha256": "3384cf9296f3cfd949b68ce6def042e43ee7d97c4d284605f46360cb844996cb",
+      "canonical_sha256": "3384cf9296f3cfd949b68ce6def042e43ee7d97c4d284605f46360cb844996cb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.MetadataOnly.cs",
+      "bytes": 4066,
+      "sha256": "fce35ed112d96b8bb08d7000fc37564b982e835516970336fd25b7070e3a5eda",
+      "canonical_sha256": "fce35ed112d96b8bb08d7000fc37564b982e835516970336fd25b7070e3a5eda",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.NamespaceDeleteRecheck.cs",
+      "bytes": 10074,
+      "sha256": "21316341e00adfd158f938f42d0766730530991a910fd793c5e8bcefdda42053",
+      "canonical_sha256": "be859b874dc34e506f3d7f2a3c81683abb84bcc0f32e4cac3c9e5fcf6223d134",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.NamespaceOperations.cs",
+      "bytes": 26943,
+      "sha256": "90ea78e7a367fa75a8a047a64dee7868fde65f072fdf63b337683d431c65fd8d",
+      "canonical_sha256": "7c50c84f7c2d13b2cbbaf36214f6492ca26549dae63b01110ba32b63f1595f7e",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.NativeBootstrapCapture.cs",
+      "bytes": 3890,
+      "sha256": "4d84ac276ba9b0da3cd4121942bcd91656bfe88cceb8f1d0b12a2654a02430c8",
+      "canonical_sha256": "4d84ac276ba9b0da3cd4121942bcd91656bfe88cceb8f1d0b12a2654a02430c8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.OperationSchedule.cs",
+      "bytes": 10963,
+      "sha256": "56dff72fce5ef4ba7dbbdb31b98cc6049cd44c9683f429110a21ea79766ffd47",
+      "canonical_sha256": "56dff72fce5ef4ba7dbbdb31b98cc6049cd44c9683f429110a21ea79766ffd47",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentAliasBatch.cs",
+      "bytes": 2835,
+      "sha256": "9df77fc43ef30c4253a0fa80329d3e99f6fe1495cc404a1c978a84a98b334a27",
+      "canonical_sha256": "9df77fc43ef30c4253a0fa80329d3e99f6fe1495cc404a1c978a84a98b334a27",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentExternalCut.cs",
+      "bytes": 12517,
+      "sha256": "9df72729af7d03c838567810184d70068201e2f3734983c3e2ceca34ab76d530",
+      "canonical_sha256": "9df72729af7d03c838567810184d70068201e2f3734983c3e2ceca34ab76d530",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentImportBatch.cs",
+      "bytes": 2925,
+      "sha256": "d7d22bf6b3f2e41aac8c1ceb662d326506248ed1b504b6bc79eab89375393ed7",
+      "canonical_sha256": "d7d22bf6b3f2e41aac8c1ceb662d326506248ed1b504b6bc79eab89375393ed7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentIncarnation.cs",
+      "bytes": 8001,
+      "sha256": "a1e9f8351089522a42e555a9f2f6e5b7dc139654f4143031130a0cf2ff9a968d",
+      "canonical_sha256": "a1e9f8351089522a42e555a9f2f6e5b7dc139654f4143031130a0cf2ff9a968d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentIncarnationMigration.cs",
+      "bytes": 3431,
+      "sha256": "a5a94f8957a63b352ac3874876d4d0a179061da9a8813fefebeecc2fc78b79b9",
+      "canonical_sha256": "a5a94f8957a63b352ac3874876d4d0a179061da9a8813fefebeecc2fc78b79b9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentMembershipMigration.cs",
+      "bytes": 5618,
+      "sha256": "63606115977f522d863cf4295b1561abecd09006da4bd255f09f85df1811848a",
+      "canonical_sha256": "63606115977f522d863cf4295b1561abecd09006da4bd255f09f85df1811848a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentNativeLookup.cs",
+      "bytes": 811,
+      "sha256": "b2825c329f4d769467231bf21b794c34bad0ffdfce93162d9f39100bc0be4eb0",
+      "canonical_sha256": "b2825c329f4d769467231bf21b794c34bad0ffdfce93162d9f39100bc0be4eb0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentOrphanClose.cs",
+      "bytes": 6248,
+      "sha256": "c7cf0d223af482ee12c25c219900a3b64fff6c462ad6d2b5b9418f8fb59639bf",
+      "canonical_sha256": "c7cf0d223af482ee12c25c219900a3b64fff6c462ad6d2b5b9418f8fb59639bf",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentOrphanCloseMigration.cs",
+      "bytes": 3023,
+      "sha256": "3a08b2f09f12bdc866ba089f438e18706736edfec900893bfa48c83c2976fc24",
+      "canonical_sha256": "3a08b2f09f12bdc866ba089f438e18706736edfec900893bfa48c83c2976fc24",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcile.cs",
+      "bytes": 18134,
+      "sha256": "d2ff4365bfcce296f2b5216425fc704423cfc00b576ce397ecd473daf66e0978",
+      "canonical_sha256": "f70a73a2993eeee26d4ffe3d43d8317d99fddce89d94c4d7e4a5e0dfb630cd29",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        26,
+        27,
+        28,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        49,
+        50,
+        51,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        83,
+        84,
+        85,
+        86,
+        88,
+        90,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileInstall.cs",
+      "bytes": 19577,
+      "sha256": "7a52f45baa22e710cb007c9e2001218c28074b650dabd2a617749bbf3934b9ec",
+      "canonical_sha256": "774bccc3b43753ebd1e3b0a220c3098462da421974c524d56e5831c01c49b24b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileMigration.cs",
+      "bytes": 12471,
+      "sha256": "0206793cc8cba5d27658a7475e5c9e7fb8e0063b368e0c33b504d8b71bcb3571",
+      "canonical_sha256": "afa0f09516c31c1d72925632fea33fa13b6950a4bf252b85510c3f6805f80ccb",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        13,
+        15,
+        16,
+        17,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        41,
+        44,
+        45,
+        46,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        78,
+        79,
+        80,
+        81,
+        83,
+        84,
+        85,
+        86,
+        88,
+        90,
+        92,
+        93,
+        94,
+        95
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileRecovery.cs",
+      "bytes": 7761,
+      "sha256": "21f3e877d31a2597840476440e0d73a3e18584ff40edbc90258fa268f3b3520f",
+      "canonical_sha256": "21f3e877d31a2597840476440e0d73a3e18584ff40edbc90258fa268f3b3520f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileRename.cs",
+      "bytes": 6330,
+      "sha256": "abd24094adccf3f638049a2041cb8d043765fdc5ff1f82448e61d9d14ff09e7b",
+      "canonical_sha256": "abd24094adccf3f638049a2041cb8d043765fdc5ff1f82448e61d9d14ff09e7b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileRetirement.cs",
+      "bytes": 4361,
+      "sha256": "769ec5865debaabbf78c9b78b9d713b205f3e64b8e43b3c2f2b6092ee57aebec",
+      "canonical_sha256": "769ec5865debaabbf78c9b78b9d713b205f3e64b8e43b3c2f2b6092ee57aebec",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentReconcileScan.cs",
+      "bytes": 12703,
+      "sha256": "a199f488864d4ee5a084be2e8d41f6fee5684c70d4e8a33f561b61efe379e05b",
+      "canonical_sha256": "8f9131d4b2d683f8115d3faf9c1ba40520d22a516f8054357d96c48b3e810dd6",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.ParentRenameCut.cs",
+      "bytes": 5074,
+      "sha256": "64973e4606adaf24b2cff90e007596c26b0e94ffcf5e4c5ef26f85f23201a7b5",
+      "canonical_sha256": "64973e4606adaf24b2cff90e007596c26b0e94ffcf5e4c5ef26f85f23201a7b5",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.RemoteBatch.cs",
+      "bytes": 4670,
+      "sha256": "63273eba7fa3ceb34c8529417e64abb55222585709b239d61cd25a7ec9fceaf1",
+      "canonical_sha256": "63273eba7fa3ceb34c8529417e64abb55222585709b239d61cd25a7ec9fceaf1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.RetainedCycleHistory.cs",
+      "bytes": 7188,
+      "sha256": "5dccfe22f4517bd1683c653ca6a1b17deca01f7e07fcd979cfeca0a8b1e9fdff",
+      "canonical_sha256": "5dccfe22f4517bd1683c653ca6a1b17deca01f7e07fcd979cfeca0a8b1e9fdff",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.SmallBatchMigration.cs",
+      "bytes": 9411,
+      "sha256": "1c7700e1a6951a10ff12162c4dd2d4c2f2dada3d5628a91082b4ce471fe75d6d",
+      "canonical_sha256": "1c7700e1a6951a10ff12162c4dd2d4c2f2dada3d5628a91082b4ce471fe75d6d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.SmallBatchRecovery.cs",
+      "bytes": 2465,
+      "sha256": "ee07d0aa1c47e9f87afb1307e5a326c047fafe9709c62eebfef877353941eed3",
+      "canonical_sha256": "ee07d0aa1c47e9f87afb1307e5a326c047fafe9709c62eebfef877353941eed3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.SmallBatches.cs",
+      "bytes": 24171,
+      "sha256": "cff943b45bcca13c0f512cae4180df19994ab0ca2d664a75cdbb8dcf23293528",
+      "canonical_sha256": "cff943b45bcca13c0f512cae4180df19994ab0ca2d664a75cdbb8dcf23293528",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.Stream.cs",
+      "bytes": 7209,
+      "sha256": "43b33b96be2bd0141df8735a30d62c71717d82f76d89682d83199409bbf363b1",
+      "canonical_sha256": "43b33b96be2bd0141df8735a30d62c71717d82f76d89682d83199409bbf363b1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.StreamParts.cs",
+      "bytes": 4222,
+      "sha256": "b3b33668c95338721946e4f4f80ac0b38ac22ddf7205d4305ec8e6da493ca62f",
+      "canonical_sha256": "b3b33668c95338721946e4f4f80ac0b38ac22ddf7205d4305ec8e6da493ca62f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.Sync.cs",
+      "bytes": 63449,
+      "sha256": "318523c000b8814acb46f52d30f89df8af8ed4ec637716e95d34fdb18d7e1bc1",
+      "canonical_sha256": "318523c000b8814acb46f52d30f89df8af8ed4ec637716e95d34fdb18d7e1bc1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.SyncMigration.cs",
+      "bytes": 14680,
+      "sha256": "ad2e113d411e51add36f0cd24254282712c58e63761280467073a9f3db4b0050",
+      "canonical_sha256": "ad2e113d411e51add36f0cd24254282712c58e63761280467073a9f3db4b0050",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NeptuneStateStore.cs",
+      "bytes": 39635,
+      "sha256": "41ef6f11c3ec8b47565347ffbc79b91a0fbdbd7bb18e73566a15b21fc6eee866",
+      "canonical_sha256": "1a98f4195117b0f9a9905a4d1e2e79a94892cc8693679fe606226eb418585b61",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        21,
+        22
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/NetworkFailure.cs",
+      "bytes": 3559,
+      "sha256": "f6b24fb53c3f8cf3c8c311ff8ac7ed7d3f5ba06acfd122e085c7f138b430de3c",
+      "canonical_sha256": "f6b24fb53c3f8cf3c8c311ff8ac7ed7d3f5ba06acfd122e085c7f138b430de3c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/NetworkRecoveryCoordinator.cs",
+      "bytes": 5268,
+      "sha256": "a48d008bb5777f1180e7fd4782aa8a5ac1f043e53c0f80cc97fb794e271f7c00",
+      "canonical_sha256": "a48d008bb5777f1180e7fd4782aa8a5ac1f043e53c0f80cc97fb794e271f7c00",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/ProjectBackupExporter.cs",
+      "bytes": 6400,
+      "sha256": "b5867f3eed6f2ad058c6f0ad33549d36b3488c3aa9544a079ba094d5d8a2f148",
+      "canonical_sha256": "b5867f3eed6f2ad058c6f0ad33549d36b3488c3aa9544a079ba094d5d8a2f148",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/RegisterFallback.cs",
+      "bytes": 337,
+      "sha256": "8ff7a1a318180f3dda4eefaf73c05a264b03f666e52c652e8827409ee53da137",
+      "canonical_sha256": "8ff7a1a318180f3dda4eefaf73c05a264b03f666e52c652e8827409ee53da137",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/RegisterValues.cs",
+      "bytes": 1182,
+      "sha256": "ce9c212d426c121875b8be8109cc82b72260d7104be8802a6aa6d09aae85a4af",
+      "canonical_sha256": "ce9c212d426c121875b8be8109cc82b72260d7104be8802a6aa6d09aae85a4af",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/ReleaseSignature.cs",
+      "bytes": 3359,
+      "sha256": "4e843ec09fe97c0d979ff202f0d5311e8b89a71c81cce105bd1760b81324bf13",
+      "canonical_sha256": "4e843ec09fe97c0d979ff202f0d5311e8b89a71c81cce105bd1760b81324bf13",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/ResourceReaderContract.cs",
+      "bytes": 2552,
+      "sha256": "0268faaf0e8420e105d0e7e3a58e80be4bd822a72245ec645432a72f529dfd70",
+      "canonical_sha256": "0268faaf0e8420e105d0e7e3a58e80be4bd822a72245ec645432a72f529dfd70",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/RetainedLegacyUpload.cs",
+      "bytes": 6523,
+      "sha256": "c887c8ca18920b0915e5a3a2bf4d1f1198d4051ccfea0228070acdfb9c2f7093",
+      "canonical_sha256": "c887c8ca18920b0915e5a3a2bf4d1f1198d4051ccfea0228070acdfb9c2f7093",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/RootMutationAdmission.cs",
+      "bytes": 3885,
+      "sha256": "c6226936b6d35eb8f004b58f104dbbd0bbc467d25297bdb169e01639b1f88f03",
+      "canonical_sha256": "c6226936b6d35eb8f004b58f104dbbd0bbc467d25297bdb169e01639b1f88f03",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnBackupClient.cs",
+      "bytes": 7680,
+      "sha256": "1ddd9bc00ba8f5b7e6ce753e2c4cd9e30d0907c5e2f499e682867e488b3c4a47",
+      "canonical_sha256": "1ddd9bc00ba8f5b7e6ce753e2c4cd9e30d0907c5e2f499e682867e488b3c4a47",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.Extensions.cs",
+      "bytes": 6567,
+      "sha256": "30ffae8e4c84e384f848efa0fc8f2f2bae48606eab3d9f12f98d24ff1c3bc550",
+      "canonical_sha256": "30ffae8e4c84e384f848efa0fc8f2f2bae48606eab3d9f12f98d24ff1c3bc550",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.Folders.cs",
+      "bytes": 6930,
+      "sha256": "f4feb75e5942fd7a14c079ec963ecda9779dab1286b8c2bc8618b0e0dee4ccfd",
+      "canonical_sha256": "f4feb75e5942fd7a14c079ec963ecda9779dab1286b8c2bc8618b0e0dee4ccfd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.MetadataBatch.cs",
+      "bytes": 4573,
+      "sha256": "bd499cf21ee274401dafe4f4069e47d21df11081cda3bdd96a54c9245618c7f4",
+      "canonical_sha256": "bd499cf21ee274401dafe4f4069e47d21df11081cda3bdd96a54c9245618c7f4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.ParallelStream.cs",
+      "bytes": 4478,
+      "sha256": "62f3fd2b62f4525f9e87d2a85380ea384cdce2c543abc0d59adbf55205fe1c9b",
+      "canonical_sha256": "62f3fd2b62f4525f9e87d2a85380ea384cdce2c543abc0d59adbf55205fe1c9b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.Stream.cs",
+      "bytes": 7212,
+      "sha256": "0acb58de84924a335d7a31d8fd1c05ae0878cb4b0771396add1918bc7bd1bd44",
+      "canonical_sha256": "0acb58de84924a335d7a31d8fd1c05ae0878cb4b0771396add1918bc7bd1bd44",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnGuardedCycleTransport.cs",
+      "bytes": 15310,
+      "sha256": "ae191087574cc4381be7632f0e2b491c2700cb25996dc8b57955f1361a72c566",
+      "canonical_sha256": "ae191087574cc4381be7632f0e2b491c2700cb25996dc8b57955f1361a72c566",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SaturnSmallBatchTransport.cs",
+      "bytes": 9669,
+      "sha256": "39466eec7546bfc4d508b7277a488612629e64d47e07c989d598f0ac02def967",
+      "canonical_sha256": "39466eec7546bfc4d508b7277a488612629e64d47e07c989d598f0ac02def967",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SmallFileBatchCapabilities.cs",
+      "bytes": 4142,
+      "sha256": "9e258e273a06905fe3856b6cf168842a7671b26fa466722f85ea186d57ee5b2e",
+      "canonical_sha256": "9e258e273a06905fe3856b6cf168842a7671b26fa466722f85ea186d57ee5b2e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SmallFileBatchProtocol.cs",
+      "bytes": 16820,
+      "sha256": "f542f132adee589e3bae939448dc284eb2ba0720063df97dfd9b48d624720e24",
+      "canonical_sha256": "f542f132adee589e3bae939448dc284eb2ba0720063df97dfd9b48d624720e24",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SmallFileBatchScheduler.cs",
+      "bytes": 6417,
+      "sha256": "b1d5b5acfc6321107c129b5797f3a5fcd193ff5b4172f4216cdcc00e13fc0ed9",
+      "canonical_sha256": "b1d5b5acfc6321107c129b5797f3a5fcd193ff5b4172f4216cdcc00e13fc0ed9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Sync/Protocol/README.md",
+      "bytes": 871,
+      "sha256": "794eb503d1dedb5a6514735d60694b56444550574b6a5e9f34fbfe2b5bdfefb0",
+      "canonical_sha256": "794eb503d1dedb5a6514735d60694b56444550574b6a5e9f34fbfe2b5bdfefb0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Sync/Protocol/SyncExtensions.cs",
+      "bytes": 5971,
+      "sha256": "dd5fb649fb6bd003f677f522322db3295e2d8cef28ac180138242c378acaad3a",
+      "canonical_sha256": "dd5fb649fb6bd003f677f522322db3295e2d8cef28ac180138242c378acaad3a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Sync/Protocol/SyncProtocolReader.cs",
+      "bytes": 9897,
+      "sha256": "3cc1b36d7c8d62c21b7278f7e667d549ac3efc9f9532bc303e7cc6251a4796a1",
+      "canonical_sha256": "3cc1b36d7c8d62c21b7278f7e667d549ac3efc9f9532bc303e7cc6251a4796a1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Sync/Protocol/SyncSnapshotEntriesReader.cs",
+      "bytes": 3500,
+      "sha256": "2e1a66ad05dd8c74638436d47e99c1ca82f53504c673412d0072de3d2c247408",
+      "canonical_sha256": "2e1a66ad05dd8c74638436d47e99c1ca82f53504c673412d0072de3d2c247408",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/Sync/Protocol/SyncStream.cs",
+      "bytes": 1147,
+      "sha256": "3b327f5474c1b3480bdb5dad839683e358fb9656ddf398e623ea709a4bb609a6",
+      "canonical_sha256": "3b327f5474c1b3480bdb5dad839683e358fb9656ddf398e623ea709a4bb609a6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SyncDiagnostics.cs",
+      "bytes": 8046,
+      "sha256": "ec8a142c42331d5a6b4a7a89ae6737f755ee0f394d5ff919c7133183b38816dc",
+      "canonical_sha256": "ec8a142c42331d5a6b4a7a89ae6737f755ee0f394d5ff919c7133183b38816dc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SyncHttpPolicy.cs",
+      "bytes": 9332,
+      "sha256": "301d29eb3d92152b372bbc6512c2584d0b624ff18123ae6d33ba1157f7f792e6",
+      "canonical_sha256": "301d29eb3d92152b372bbc6512c2584d0b624ff18123ae6d33ba1157f7f792e6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SyncResourceScheduler.cs",
+      "bytes": 6305,
+      "sha256": "eeb175ebe938ba86fc72cda7f38b88e4239b795a7e582984ca2c89f1a5b42956",
+      "canonical_sha256": "75ffff68565ee4124bdcf110210005c3db7f5eede2b2d5fd464e52d3e75a3b9c",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        11
+      ]
+    },
+    {
+      "path": "src/Neptune.Core/SyncRetryController.cs",
+      "bytes": 4503,
+      "sha256": "a8a7735146f2cbc1118b5f5774da8ca91578306fdeba80570d01c252cd878af3",
+      "canonical_sha256": "a8a7735146f2cbc1118b5f5774da8ca91578306fdeba80570d01c252cd878af3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SyncStateModels.cs",
+      "bytes": 3789,
+      "sha256": "5861c312af93b59f4246e991219b0cdc587c15d53123e95bf6ca873491f9f3f8",
+      "canonical_sha256": "5861c312af93b59f4246e991219b0cdc587c15d53123e95bf6ca873491f9f3f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/SyncWorkProgress.cs",
+      "bytes": 4767,
+      "sha256": "d6a75370181f17629bda50e33b24f05280f04d182c9afad73de23fcd6f2e1523",
+      "canonical_sha256": "d6a75370181f17629bda50e33b24f05280f04d182c9afad73de23fcd6f2e1523",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/UnicodeNames.cs",
+      "bytes": 44248,
+      "sha256": "c8ab6e3aa5b77f801cb1d8e260479f36b1ef9c4b2c917c4b2ea4e748ac3e4e1f",
+      "canonical_sha256": "c8ab6e3aa5b77f801cb1d8e260479f36b1ef9c4b2c917c4b2ea4e748ac3e4e1f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/UploadTransferProgress.cs",
+      "bytes": 198,
+      "sha256": "53018084127b7e6645eb017261c23271266ef091b2d4312f0121974f4e9c282d",
+      "canonical_sha256": "53018084127b7e6645eb017261c23271266ef091b2d4312f0121974f4e9c282d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/UsnRecordParser.cs",
+      "bytes": 8252,
+      "sha256": "291980944404653dd3c23d7ca3c802636c67dff1e75a4a07f61ace468b5fd5b8",
+      "canonical_sha256": "291980944404653dd3c23d7ca3c802636c67dff1e75a4a07f61ace468b5fd5b8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WebDavBootstrapTransport.cs",
+      "bytes": 15936,
+      "sha256": "948fc65a1ea834065454a83eac51345c9c0ded63b79504c4d34a0511debb24fc",
+      "canonical_sha256": "948fc65a1ea834065454a83eac51345c9c0ded63b79504c4d34a0511debb24fc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WebDavSyncClient.cs",
+      "bytes": 46254,
+      "sha256": "f92e0d1984825103cdbfbd56409d2bff60e1458ddcb2a8c708b28968d5fef3ad",
+      "canonical_sha256": "f4c4f041c475a8d25da5c996eee619b6a8d916914cbc781b8b1996f4647dea9b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsBootstrapSourceCapture.cs",
+      "bytes": 10364,
+      "sha256": "d8fce3b9ad868bab149031b6f1feb7d88b94ae27fa7996697254239faff41a99",
+      "canonical_sha256": "d8fce3b9ad868bab149031b6f1feb7d88b94ae27fa7996697254239faff41a99",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsCycleSharedBudget.cs",
+      "bytes": 2166,
+      "sha256": "3a2183199c4ab3e7f9132e326de830a2224167729778d80bdc146b7374d132d3",
+      "canonical_sha256": "3a2183199c4ab3e7f9132e326de830a2224167729778d80bdc146b7374d132d3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsDirectoryAliasParser.cs",
+      "bytes": 3335,
+      "sha256": "3542bfe844121bbb33152312802ecda2b4db6cc3742f7906e9f31898d8004e60",
+      "canonical_sha256": "3542bfe844121bbb33152312802ecda2b4db6cc3742f7906e9f31898d8004e60",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsDirectoryPageParser.cs",
+      "bytes": 4362,
+      "sha256": "e15446f51d7736b572e17f396f9c6d9a133c1ec028dc33317ce61116bec011c6",
+      "canonical_sha256": "e15446f51d7736b572e17f396f9c6d9a133c1ec028dc33317ce61116bec011c6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.AuthorizationRecovery.cs",
+      "bytes": 4734,
+      "sha256": "328bbc2aaaf031b86fe7aff7a91ad31942dba741f6a45426584a6b2221626b53",
+      "canonical_sha256": "328bbc2aaaf031b86fe7aff7a91ad31942dba741f6a45426584a6b2221626b53",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.ContentMutation.cs",
+      "bytes": 5718,
+      "sha256": "d9d01444141ede271de412eaad9a13534c243b5b7c54513feb23eb13599c3f6f",
+      "canonical_sha256": "d9d01444141ede271de412eaad9a13534c243b5b7c54513feb23eb13599c3f6f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.JournalReplacement.cs",
+      "bytes": 12181,
+      "sha256": "64a9f2de317b753b72ab7db06471f6b9d05e1392d6f77fb3ec9f1131bade6d24",
+      "canonical_sha256": "64a9f2de317b753b72ab7db06471f6b9d05e1392d6f77fb3ec9f1131bade6d24",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.Metadata.cs",
+      "bytes": 1986,
+      "sha256": "0b62a0a3a04847a8c96464bb500ea1972b39693ef20e3d9ab395fd6f6d9c9bf4",
+      "canonical_sha256": "0b62a0a3a04847a8c96464bb500ea1972b39693ef20e3d9ab395fd6f6d9c9bf4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.Namespace.cs",
+      "bytes": 7930,
+      "sha256": "b3381b61026db5b5422e8381245c157d6a2718e11b55560dcec329a9ba1c4c13",
+      "canonical_sha256": "b3381b61026db5b5422e8381245c157d6a2718e11b55560dcec329a9ba1c4c13",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.ParallelStream.cs",
+      "bytes": 8801,
+      "sha256": "504e8b493339c3fbc2e12039bd27cc05a545829281c69c5b9b760bceeab63bd8",
+      "canonical_sha256": "504e8b493339c3fbc2e12039bd27cc05a545829281c69c5b9b760bceeab63bd8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.Progress.cs",
+      "bytes": 499,
+      "sha256": "0b1b6991d6ebc056e1008a300f62976b1287d7d25a03a5d8ee814c2fc4ad0fde",
+      "canonical_sha256": "0b1b6991d6ebc056e1008a300f62976b1287d7d25a03a5d8ee814c2fc4ad0fde",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.Scheduling.cs",
+      "bytes": 3594,
+      "sha256": "494ef535e773fa7c4db857e692c0de3c4dd8e650e2035c6426c3e7f1208ad36b",
+      "canonical_sha256": "041a53f9fc93ec43820ae097c5943437796b3a5be790dd950f5abc6640b1b003",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.SmallBatches.cs",
+      "bytes": 19871,
+      "sha256": "8178e20d4710c746fd5960671922135fbb3dc9084625a114a27f2cacd0496ca8",
+      "canonical_sha256": "8178e20d4710c746fd5960671922135fbb3dc9084625a114a27f2cacd0496ca8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.Stream.cs",
+      "bytes": 9698,
+      "sha256": "c7d304068b986c91b606466b6903f1daab518de3823656c155c0665597ee6461",
+      "canonical_sha256": "c7d304068b986c91b606466b6903f1daab518de3823656c155c0665597ee6461",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.cs",
+      "bytes": 63624,
+      "sha256": "14b939e3e238b34733ec4a27912a28e2bfd75969d14e8fff72478dd6155046b6",
+      "canonical_sha256": "40d0aff14c6a687245e81a110d1c7732839a902d3aa4a78acb1a095d54fdd929",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalChangeWatcher.cs",
+      "bytes": 4974,
+      "sha256": "358bebe3db4a403e6e8fa7b70135d0951557fe4db204a9d5a3039e16739f552a",
+      "canonical_sha256": "358bebe3db4a403e6e8fa7b70135d0951557fe4db204a9d5a3039e16739f552a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalCoherenceCoordinator.ParentReconcile.cs",
+      "bytes": 10023,
+      "sha256": "c4da13021a8bf209c50da1fd2474bd0d976cc6d6f5e817b40e920bfe6c6a2413",
+      "canonical_sha256": "c4da13021a8bf209c50da1fd2474bd0d976cc6d6f5e817b40e920bfe6c6a2413",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalCoherenceCoordinator.cs",
+      "bytes": 12738,
+      "sha256": "71b07eb26f95c1a357c10f5403bb7424c5322773df04f42421c02d1259edf934",
+      "canonical_sha256": "71b07eb26f95c1a357c10f5403bb7424c5322773df04f42421c02d1259edf934",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalDirectoryAliasSource.cs",
+      "bytes": 6489,
+      "sha256": "af14e66d4c4f87746c0a6cd4fb3bedc43ea7396eb3b7237b60c57f14e0b80aef",
+      "canonical_sha256": "af14e66d4c4f87746c0a6cd4fb3bedc43ea7396eb3b7237b60c57f14e0b80aef",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalMetadataResolver.cs",
+      "bytes": 5423,
+      "sha256": "c68b333f3b4e4c9c71e161d1523617d79fba858c0b249a4e4fe1e86fbab1b0f8",
+      "canonical_sha256": "c68b333f3b4e4c9c71e161d1523617d79fba858c0b249a4e4fe1e86fbab1b0f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsLocalNamespaceSource.cs",
+      "bytes": 11083,
+      "sha256": "2a6bff220c482b97bad452944972bc5b079dc9a2e5081f48789427c462860f84",
+      "canonical_sha256": "2a6bff220c482b97bad452944972bc5b079dc9a2e5081f48789427c462860f84",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsNativeCycleCapture.Metadata.cs",
+      "bytes": 2646,
+      "sha256": "6e101afd49e8a82e451d69abe91624d60886150575f37793345bebfc1b1cdda8",
+      "canonical_sha256": "6e101afd49e8a82e451d69abe91624d60886150575f37793345bebfc1b1cdda8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsNativeCycleCapture.Stream.cs",
+      "bytes": 5112,
+      "sha256": "7cad74216dfdd0ba329250bb9ddb429c675eee751901997dd6f6f3b7e771d7c6",
+      "canonical_sha256": "7cad74216dfdd0ba329250bb9ddb429c675eee751901997dd6f6f3b7e771d7c6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsNativeCycleCapture.cs",
+      "bytes": 16162,
+      "sha256": "3ccb6e9e3137fa35b6df2b481a44e154d8ba1dfe8b395ac99111613224a6afbe",
+      "canonical_sha256": "3ccb6e9e3137fa35b6df2b481a44e154d8ba1dfe8b395ac99111613224a6afbe",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsNativePath.cs",
+      "bytes": 535,
+      "sha256": "32db032b9527fde28afe3b5812baf8a532e08589a1852c45e6f3414a52428e40",
+      "canonical_sha256": "32db032b9527fde28afe3b5812baf8a532e08589a1852c45e6f3414a52428e40",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsOutsideHardlinkProof.cs",
+      "bytes": 11889,
+      "sha256": "e8fc557b16c4c65f0bb6c441b6122369f0471f7dc37a350419733eccd0304dfa",
+      "canonical_sha256": "e8fc557b16c4c65f0bb6c441b6122369f0471f7dc37a350419733eccd0304dfa",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsQualifiedBootstrapCapture.cs",
+      "bytes": 15710,
+      "sha256": "8d894774d77e0c0dbf2ed88a082202d98945e26ce7c10f272aacd680097fd02a",
+      "canonical_sha256": "8d894774d77e0c0dbf2ed88a082202d98945e26ce7c10f272aacd680097fd02a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsUsnJournalReader.cs",
+      "bytes": 7950,
+      "sha256": "0adece163695fe65df37d576383f97462d82e911ff5c1fc9eeeefbdc6180e1e7",
+      "canonical_sha256": "0adece163695fe65df37d576383f97462d82e911ff5c1fc9eeeefbdc6180e1e7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsVolumeJournalCache.cs",
+      "bytes": 4478,
+      "sha256": "f3f2c4e107b6875cd3a25cbf25f27f09ed13be7616f1c07b11f31e843846d695",
+      "canonical_sha256": "f3f2c4e107b6875cd3a25cbf25f27f09ed13be7616f1c07b11f31e843846d695",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsVolumeJournalSubscription.cs",
+      "bytes": 3138,
+      "sha256": "92405d16a4addc074232c84cbf6d54f941116d69f57fd3d316260064a08391c8",
+      "canonical_sha256": "92405d16a4addc074232c84cbf6d54f941116d69f57fd3d316260064a08391c8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/BackupWorker.cs",
+      "bytes": 12453,
+      "sha256": "a9ab4dcd83750a6410b825e78ae470e8890dd45ef2ded9d69e4b3795714fa14d",
+      "canonical_sha256": "a9ab4dcd83750a6410b825e78ae470e8890dd45ef2ded9d69e4b3795714fa14d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/LinuxOptions.cs",
+      "bytes": 775,
+      "sha256": "9790bf3e0ce2a75c6b6a83918faac7c528cdeef8a7719fd744cc44ed3db19fbf",
+      "canonical_sha256": "9790bf3e0ce2a75c6b6a83918faac7c528cdeef8a7719fd744cc44ed3db19fbf",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/MirrorWorker.cs",
+      "bytes": 15134,
+      "sha256": "5acfad62ab5b6652d0eb2bf44d2f82f0bf1321aa2c2c3d2e6794c30ab58f4b5c",
+      "canonical_sha256": "6a0e78e0e16d196e0f66f4340e2d6fe55aacf3d397a59f1d777798106fa66470",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255,
+        256,
+        257,
+        258,
+        259,
+        260,
+        261,
+        262,
+        263,
+        264,
+        265,
+        266,
+        267,
+        268,
+        269,
+        270,
+        271,
+        272,
+        273
+      ]
+    },
+    {
+      "path": "src/Neptune.Linux/Neptune.Linux.csproj",
+      "bytes": 244,
+      "sha256": "ae161347682f520c86c04cac754424e40669f1adb8caebcecfb9ddb88b23b4ab",
+      "canonical_sha256": "ae161347682f520c86c04cac754424e40669f1adb8caebcecfb9ddb88b23b4ab",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/Program.cs",
+      "bytes": 15010,
+      "sha256": "09efb9b6277080d6470e92f73ebcb1effc7b0dfb9f5b11983a6cfbfd2761646e",
+      "canonical_sha256": "281750b2f8457f3454050086228aa539280f3b6e2b9879490aa8bcf2f7dc2a32",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        161,
+        162,
+        163,
+        164,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        197,
+        198,
+        199,
+        201,
+        202,
+        230,
+        231,
+        232,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255,
+        256,
+        257,
+        258,
+        259,
+        260,
+        261,
+        262,
+        263,
+        267,
+        268,
+        269,
+        270,
+        271,
+        272,
+        273
+      ]
+    },
+    {
+      "path": "src/Neptune.Linux/ProjectRegistry.cs",
+      "bytes": 11777,
+      "sha256": "e76b1bf6e6b3b4d020137e26055612a75d4df11a589d494a2d019b605de04af4",
+      "canonical_sha256": "e76b1bf6e6b3b4d020137e26055612a75d4df11a589d494a2d019b605de04af4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/RemoteControlWorker.cs",
+      "bytes": 13168,
+      "sha256": "807360c8004fd16562683ac4eb91e2c0263783fab7ae9c0f2ae5657cbc8a38ea",
+      "canonical_sha256": "807360c8004fd16562683ac4eb91e2c0263783fab7ae9c0f2ae5657cbc8a38ea",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/ResourceReader.cs",
+      "bytes": 10808,
+      "sha256": "6c3bf90866438d53c9abd15cff108736f410e1ee79acbe77831bc7fdb8373494",
+      "canonical_sha256": "6c3bf90866438d53c9abd15cff108736f410e1ee79acbe77831bc7fdb8373494",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/ServicePolicyClient.cs",
+      "bytes": 8616,
+      "sha256": "35a8fe4ebbfb4a694846bdaeded3505e5527a4f94b7f214d42cbfd1f85394050",
+      "canonical_sha256": "35a8fe4ebbfb4a694846bdaeded3505e5527a4f94b7f214d42cbfd1f85394050",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Linux/appsettings.json",
+      "bytes": 489,
+      "sha256": "a46e2924268ca07e4fd0c07d158148cbfc5ce372cc1d645b59b62cb78747cd56",
+      "canonical_sha256": "a46e2924268ca07e4fd0c07d158148cbfc5ce372cc1d645b59b62cb78747cd56",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/App.xaml",
+      "bytes": 15140,
+      "sha256": "12f334f9f56f507329ea4963248f4c928a3845e564309ab09fa207b52b1571f8",
+      "canonical_sha256": "12f334f9f56f507329ea4963248f4c928a3845e564309ab09fa207b52b1571f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/App.xaml.cs",
+      "bytes": 2974,
+      "sha256": "7f9b73083b05a60aa5dfc9a855967e15ef426ea72164ea8cab12134687eac409",
+      "canonical_sha256": "7f9b73083b05a60aa5dfc9a855967e15ef426ea72164ea8cab12134687eac409",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/ConnectionWindow.xaml",
+      "bytes": 4136,
+      "sha256": "6c37fbf2a8bfa8ed8cf1056c06a8d0ce4a562bd2e760ae2273e080165cc76eee",
+      "canonical_sha256": "6c37fbf2a8bfa8ed8cf1056c06a8d0ce4a562bd2e760ae2273e080165cc76eee",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/ConnectionWindow.xaml.cs",
+      "bytes": 1953,
+      "sha256": "8fb71fb6c774dedc32bdc5449df2e93eaf3f3e929e7add8cd2e781e52bf670fa",
+      "canonical_sha256": "8fb71fb6c774dedc32bdc5449df2e93eaf3f3e929e7add8cd2e781e52bf670fa",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/GlobalUsings.cs",
+      "bytes": 412,
+      "sha256": "78d0ce4e404b02290e4663d5cad045ae8e8fd452dcfe480dbfbb3e20b5325a73",
+      "canonical_sha256": "78d0ce4e404b02290e4663d5cad045ae8e8fd452dcfe480dbfbb3e20b5325a73",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/MainWindow.Exclusions.cs",
+      "bytes": 7022,
+      "sha256": "355c13ff362426335deff3f9b58eb7347d0f9c0f2d5e1b191a3a008d83f7d5e2",
+      "canonical_sha256": "355c13ff362426335deff3f9b58eb7347d0f9c0f2d5e1b191a3a008d83f7d5e2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/MainWindow.MappingReview.cs",
+      "bytes": 6265,
+      "sha256": "e71d0cb8eb3589046c29dddb4470e83bbe3907f4f21b169d583e3d99c7f985ce",
+      "canonical_sha256": "e2c3d7d9c58e745749a99c304c9d2203c8223a39042e0e17f4a84b29cd128e88",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Windows/MainWindow.Progress.cs",
+      "bytes": 1665,
+      "sha256": "07777f6ca67c4854f5d1519182cb21e85504398beeef987f96eb0cf58932e3d2",
+      "canonical_sha256": "07777f6ca67c4854f5d1519182cb21e85504398beeef987f96eb0cf58932e3d2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/MainWindow.xaml",
+      "bytes": 17178,
+      "sha256": "0249ffdac55e3217d19f5734b97647973ab9fde1be03d2c567ecaa254050b65e",
+      "canonical_sha256": "0249ffdac55e3217d19f5734b97647973ab9fde1be03d2c567ecaa254050b65e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/MainWindow.xaml.cs",
+      "bytes": 33730,
+      "sha256": "c0947af4e82436f08636cfa89e74633cd28d60750e01fc3d51adb5045404385a",
+      "canonical_sha256": "5db81cee038c0ba1fe1213a18bb42a6525dbc76e69730b3c83a5b58079a1e271",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Windows/Neptune.Windows.csproj",
+      "bytes": 628,
+      "sha256": "84a770f4ef8720a8d2645c500435603e7c459809dde7a05ce78f6ad8863d4205",
+      "canonical_sha256": "84a770f4ef8720a8d2645c500435603e7c459809dde7a05ce78f6ad8863d4205",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/UpdateApplyMode.cs",
+      "bytes": 2914,
+      "sha256": "8a475ee284eaf347909dbd2c936ed02bf796b8f6bb9eddd36a0bbdb7572bc152",
+      "canonical_sha256": "8a475ee284eaf347909dbd2c936ed02bf796b8f6bb9eddd36a0bbdb7572bc152",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsAutostartService.cs",
+      "bytes": 1257,
+      "sha256": "4a69d36db8339b2d01de0a8702465e277737a3e125bf9239025c651f82c0ea15",
+      "canonical_sha256": "4a69d36db8339b2d01de0a8702465e277737a3e125bf9239025c651f82c0ea15",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsConnection.cs",
+      "bytes": 369,
+      "sha256": "1f25cabbc5a0ba123f327bf366e296db3f3be56b5ca0609595da9bfedefa772a",
+      "canonical_sha256": "1f25cabbc5a0ba123f327bf366e296db3f3be56b5ca0609595da9bfedefa772a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsConnectionStore.cs",
+      "bytes": 2589,
+      "sha256": "1ea6a59383dc391967a6cee2bcf68e431f690168dc4404c1d3992a74a6dc9a4e",
+      "canonical_sha256": "1ea6a59383dc391967a6cee2bcf68e431f690168dc4404c1d3992a74a6dc9a4e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsFolderExclusions.cs",
+      "bytes": 7122,
+      "sha256": "5bd5c190b6532a3e35a6e4ad5ebeb11f7c5b37e7a74c38ba68556036ba525db2",
+      "canonical_sha256": "5d2678528b47485e47db1661756f9b5786d20b986d152775b466ab2a9db4c070",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsGuardedCapabilities.cs",
+      "bytes": 15748,
+      "sha256": "355971fbf8eb5bd5ad0b4ee9f2668867544c076fb8a72e5150d5c11567ecc0a9",
+      "canonical_sha256": "355971fbf8eb5bd5ad0b4ee9f2668867544c076fb8a72e5150d5c11567ecc0a9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsGuardedMappingSession.cs",
+      "bytes": 17224,
+      "sha256": "cf23061d6cee1c54e353b7ad0591cfc435a2ac9a4ede1222fe995ad39d48314d",
+      "canonical_sha256": "cf23061d6cee1c54e353b7ad0591cfc435a2ac9a4ede1222fe995ad39d48314d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsGuardedSourceEligibility.cs",
+      "bytes": 9796,
+      "sha256": "a0aa7d6bed5d6204e806ba4fb9ee5af6ff8a60c7b74e908cb04d6828532294ec",
+      "canonical_sha256": "a0aa7d6bed5d6204e806ba4fb9ee5af6ff8a60c7b74e908cb04d6828532294ec",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsGuardedStateLease.cs",
+      "bytes": 5353,
+      "sha256": "d9ca4da2adb9c526d60764907e07362cf1bced8c01b0a4ce058031543fbd60cb",
+      "canonical_sha256": "d9ca4da2adb9c526d60764907e07362cf1bced8c01b0a4ce058031543fbd60cb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsInstallerTrust.cs",
+      "bytes": 2004,
+      "sha256": "267ab9c9c226db286847809af2f0fe906ef1aabf218e22daa5066121dd105172",
+      "canonical_sha256": "267ab9c9c226db286847809af2f0fe906ef1aabf218e22daa5066121dd105172",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsLocalSnapshot.cs",
+      "bytes": 2200,
+      "sha256": "1b128692de6a4dc5e910500d6180427d574c1aaf7a12d75dc35b0b29d957f7b3",
+      "canonical_sha256": "1b128692de6a4dc5e910500d6180427d574c1aaf7a12d75dc35b0b29d957f7b3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsMappingAnchorRemote.cs",
+      "bytes": 5426,
+      "sha256": "51a4461b1fc010d543ba4954833c02115f9c68dec969977c9cab7cfbd3d5c46b",
+      "canonical_sha256": "51a4461b1fc010d543ba4954833c02115f9c68dec969977c9cab7cfbd3d5c46b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsPackagingPolicy.cs",
+      "bytes": 1859,
+      "sha256": "cf9a33cf5b6547b159508a39190179151acb59f41e85bc21399eb2e0b6f47f42",
+      "canonical_sha256": "cf9a33cf5b6547b159508a39190179151acb59f41e85bc21399eb2e0b6f47f42",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsPreferencesStore.cs",
+      "bytes": 2243,
+      "sha256": "5b31ab963fe487948397a4817caba8be75abf5bd082e9bd2b2fc1ce461aad1dd",
+      "canonical_sha256": "5b31ab963fe487948397a4817caba8be75abf5bd082e9bd2b2fc1ce461aad1dd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsProfileCommands.JournalRecovery.cs",
+      "bytes": 12430,
+      "sha256": "3ad5068ed4e402456ba25b2b51d4dc801a7c3f0887ef976a61f93b56d603cb8c",
+      "canonical_sha256": "3ad5068ed4e402456ba25b2b51d4dc801a7c3f0887ef976a61f93b56d603cb8c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsProfileCommands.cs",
+      "bytes": 26157,
+      "sha256": "24b7040966309b583510558ec83e574f6bc40632ec1c6e48b02314afc2b8d5e2",
+      "canonical_sha256": "24b7040966309b583510558ec83e574f6bc40632ec1c6e48b02314afc2b8d5e2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsProfileContext.cs",
+      "bytes": 1032,
+      "sha256": "701256fae275ba15ecaa32ed8ee7df607bd2f3851bbfca2d38ff64ff0be569c4",
+      "canonical_sha256": "701256fae275ba15ecaa32ed8ee7df607bd2f3851bbfca2d38ff64ff0be569c4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsSyncProgress.cs",
+      "bytes": 1814,
+      "sha256": "ef4b5211ee793c9a6e752c74238461a3269e39b29ca21874b9b048183a4e015b",
+      "canonical_sha256": "ef4b5211ee793c9a6e752c74238461a3269e39b29ca21874b9b048183a4e015b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsSyncProgressDisplay.cs",
+      "bytes": 3051,
+      "sha256": "7b0c065bba6086b684481878b5c87a2c3b79f7efd270383d01cb12ec82c15a81",
+      "canonical_sha256": "7b0c065bba6086b684481878b5c87a2c3b79f7efd270383d01cb12ec82c15a81",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsSyncService.Exclusions.cs",
+      "bytes": 3114,
+      "sha256": "94f758bd25e3cce8b6e3d30c22b0925fa201cc0b1ce86de7574a9af7911148a6",
+      "canonical_sha256": "94f758bd25e3cce8b6e3d30c22b0925fa201cc0b1ce86de7574a9af7911148a6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsSyncService.Review.cs",
+      "bytes": 2286,
+      "sha256": "4188251eb00e9f18512e1ed6a7a7f4c688acfeabd067e85bbb11e00f3e7eaacf",
+      "canonical_sha256": "7d9f2dfdb13a392924b82837cff097596b51ea8c44f043cdd034ceb3e86f5976",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsSyncService.cs",
+      "bytes": 40269,
+      "sha256": "bb76d9d30f3f9df946b87225d9abefd5445c819ecb7ac3c8dec4559e88417ff5",
+      "canonical_sha256": "2cf6ac15ea23743c24b3e4a50ccd4df4014be3040d4ffaf4a5dfb7a81169ab92",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsTitleBar.cs",
+      "bytes": 1819,
+      "sha256": "2a28fd688343da0e85e97fa0fb46b7fa35b27ed37b6297e47bd30416acbc3e7c",
+      "canonical_sha256": "2a28fd688343da0e85e97fa0fb46b7fa35b27ed37b6297e47bd30416acbc3e7c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsTrayIcon.cs",
+      "bytes": 1848,
+      "sha256": "eee6ab4ef96bd1ee21ee3a02109b4a089706555737767bb8236bd923a6050e95",
+      "canonical_sha256": "eee6ab4ef96bd1ee21ee3a02109b4a089706555737767bb8236bd923a6050e95",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsUpdateService.cs",
+      "bytes": 17769,
+      "sha256": "f3cd140b07099a0bcc6487aceb950c9036383fa75b7650b983524bc25800546c",
+      "canonical_sha256": "f3cd140b07099a0bcc6487aceb950c9036383fa75b7650b983524bc25800546c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsUpdateTransaction.Startup.cs",
+      "bytes": 12801,
+      "sha256": "31dee286c50527e17dd0636a1c544174d76856c3f08764cde7398ced412616a4",
+      "canonical_sha256": "31dee286c50527e17dd0636a1c544174d76856c3f08764cde7398ced412616a4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Windows/WindowsUpdateTransaction.cs",
+      "bytes": 17076,
+      "sha256": "45f463812465b2311892fcc1f138091f6871d0a24e6fa566dc0adc9db78ca3cb",
+      "canonical_sha256": "45f463812465b2311892fcc1f138091f6871d0a24e6fa566dc0adc9db78ca3cb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BindingAdoptionAfterReplacementTests.cs",
+      "bytes": 3190,
+      "sha256": "858797a86bffa51038f3010ea4dedfd3c3c0a9d023d36331e9d24b70f316adef",
+      "canonical_sha256": "858797a86bffa51038f3010ea4dedfd3c3c0a9d023d36331e9d24b70f316adef",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BootstrapBoundedQueueTests.cs",
+      "bytes": 22724,
+      "sha256": "ff5627a8d85119f1d1621d0c6771f6506833440c18d7c1e77a0c2330dc4c1ade",
+      "canonical_sha256": "ff5627a8d85119f1d1621d0c6771f6506833440c18d7c1e77a0c2330dc4c1ade",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BootstrapExecutorTests.cs",
+      "bytes": 44967,
+      "sha256": "0afc762c36f856a968b38566d936cdd1f82e45c96091ec9d0458fa0019afcf7a",
+      "canonical_sha256": "7c2605c9ca3d7427ec1d0bfb3ec58e226f50ce5ad6a1d887d68377b1fe25f41d",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BootstrapScannerTests.cs",
+      "bytes": 26549,
+      "sha256": "2d993867edb2cf08da33dd084d9ef7cc0f01f05fb16ef911f2cdc20d44f115a4",
+      "canonical_sha256": "2d993867edb2cf08da33dd084d9ef7cc0f01f05fb16ef911f2cdc20d44f115a4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BootstrapSnapshotConcurrencyTests.cs",
+      "bytes": 3968,
+      "sha256": "4b8410b16ac22859f63dc4ca0f6caa75750cf407d6b4b2bf26e39deb5105e1d0",
+      "canonical_sha256": "4b8410b16ac22859f63dc4ca0f6caa75750cf407d6b4b2bf26e39deb5105e1d0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/BootstrapUploadReceiptTests.cs",
+      "bytes": 35941,
+      "sha256": "693dfdd6707c6533db53999351d6f273d12e50f98dd9d571591be9588cc3d4fe",
+      "canonical_sha256": "9635dd50b20fe61730f719b420c00a163a4c498315caeb280a7977d4f312e2b6",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CoherenceParentLookupTests.cs",
+      "bytes": 6633,
+      "sha256": "afbdf69fa6c0444dc65cd7688b9eaba9dbf41234f4841996c15bd3f3d9aed6b2",
+      "canonical_sha256": "afbdf69fa6c0444dc65cd7688b9eaba9dbf41234f4841996c15bd3f3d9aed6b2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CommandCompletionTests.cs",
+      "bytes": 7720,
+      "sha256": "29ad0055bf177517ada27fe72d714e6d8a71cf4747153b4ddc31cd50ef8fa58b",
+      "canonical_sha256": "29ad0055bf177517ada27fe72d714e6d8a71cf4747153b4ddc31cd50ef8fa58b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionAdoptionTests.cs",
+      "bytes": 5664,
+      "sha256": "5cf5e55e8e04a7901c967fb56307548c437ecf8e4a0a83b1f79020cd97c59660",
+      "canonical_sha256": "997ae582f467298d1e8bd450b72f052e928f95a47afef18b01aadde29abf7ee4",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionBodyTests.cs",
+      "bytes": 4001,
+      "sha256": "dfea36c01b35972d510e3db5107eaaadf62747a248b85a5afa57ab8e63c49a69",
+      "canonical_sha256": "dfea36c01b35972d510e3db5107eaaadf62747a248b85a5afa57ab8e63c49a69",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionBulkTests.cs",
+      "bytes": 10900,
+      "sha256": "35d822ddb01f9ba2f6632103fcc5a4613df07d75520f6bf9346a1948dde3ca34",
+      "canonical_sha256": "6ca46c076578a3bc72cd863ecd86c77a4b91d4d9b8b1b9ad6de6895f94af447a",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionConflictTests.cs",
+      "bytes": 8499,
+      "sha256": "56ac001f057ca2b0bf24fdbbd9754e94108b6d6416c21d460b2ea9de336264d8",
+      "canonical_sha256": "6a562ab46735769a4644e834c01d499027d7d8f87a6bdc5c11764d547820fa88",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionCorpusObservation.cs",
+      "bytes": 3582,
+      "sha256": "a29dcaaa6914de4893d16f486f8ef289f56bcefa6be60c5b835917f8414bf50f",
+      "canonical_sha256": "a29dcaaa6914de4893d16f486f8ef289f56bcefa6be60c5b835917f8414bf50f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionCorpusObservationTests.cs",
+      "bytes": 4889,
+      "sha256": "7956d52dba40c56ceb4df6febda8416bd7702de413a7b2f53176aee2b7ecc6b1",
+      "canonical_sha256": "7956d52dba40c56ceb4df6febda8416bd7702de413a7b2f53176aee2b7ecc6b1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionHistoricalTests.cs",
+      "bytes": 5617,
+      "sha256": "01b3480387b8d41d649130bd54fa88c4cbac1a6f8fa9e307fc72d04055dc5889",
+      "canonical_sha256": "a481a6d9ab9d9555d951c8c6cd50debacdcf6af332bc68fddf59d8fa055ad2d7",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionInteropTests.cs",
+      "bytes": 10830,
+      "sha256": "c2b2c85034e610d8599ca4f4d6c9b4cd65ab9b43f920f64e65f30e13be11a78a",
+      "canonical_sha256": "896199ae3327bddb916750b6c780d34b626879fd345a23ea10b0dee70575af55",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionLargeCorpusTests.cs",
+      "bytes": 15576,
+      "sha256": "35ebcae1f8ca1f34a057332d61798d669f48b456635a66dc7a5d946c7f1f56cd",
+      "canonical_sha256": "35ebcae1f8ca1f34a057332d61798d669f48b456635a66dc7a5d946c7f1f56cd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionLegacyTests.cs",
+      "bytes": 9032,
+      "sha256": "e422dbcf5c1b1c5d6d731666826ae6d4a8e2ea9a4223d17a6bfbd7bdd011c71a",
+      "canonical_sha256": "0f526895ba8a5c5e166e19a27dc6376975bc902ce140454eecedaf57dba517e4",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionOracleReadback.cs",
+      "bytes": 5710,
+      "sha256": "0c57c209bbe106271a2c3da4b9ef797834037638438f60aaae8d272b222b6039",
+      "canonical_sha256": "0c57c209bbe106271a2c3da4b9ef797834037638438f60aaae8d272b222b6039",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionOracleReadbackTests.cs",
+      "bytes": 10623,
+      "sha256": "0935fcff261762b0f4f90c489d40ff0571ebdc4de583fa42a69a0498b7756210",
+      "canonical_sha256": "0935fcff261762b0f4f90c489d40ff0571ebdc4de583fa42a69a0498b7756210",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionRetainedParentTests.cs",
+      "bytes": 3958,
+      "sha256": "f78e9de045074d1db9354c9ca129f227f24716cf16370531516f7cddd644601c",
+      "canonical_sha256": "0d958b123ec858963291252a2a6b3d53194553c3cc9598ae70d88833f14b417b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionServiceTests.cs",
+      "bytes": 9441,
+      "sha256": "d9382e1e488c75136f8f6179db3072828ab879e589cc9656882191ead265abc4",
+      "canonical_sha256": "301d2e7367871b7e560551dd564ddcbe5e8f31d48bc800524668cb68f7104f9f",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CompletionUpgradeTests.cs",
+      "bytes": 5959,
+      "sha256": "8a48a03be76966d15008f7ecf41050e06ae431ff4c74337a5ff097742965faec",
+      "canonical_sha256": "8a48a03be76966d15008f7ecf41050e06ae431ff4c74337a5ff097742965faec",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CoreTests.cs",
+      "bytes": 18009,
+      "sha256": "d08c035d97123b995f099866fd82e542b7258e9230092804b3e2ef54d1e7b552",
+      "canonical_sha256": "d08c035d97123b995f099866fd82e542b7258e9230092804b3e2ef54d1e7b552",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/CycleClaimCandidateTests.cs",
+      "bytes": 4574,
+      "sha256": "e4d9f6df7c37b59a73d71ea7c1e234ea249464e9a59c015ccd53c904e4cdc215",
+      "canonical_sha256": "b7d77d88f7a571e9ee2095d98ad392b0030e008214cc44c39b3acbee676a0ded",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/EditingVaultStressTests.Recovery.cs",
+      "bytes": 6918,
+      "sha256": "eaae036f4d6f07a091dceb4c6bcfef2ada0672d0b1d51449b7435dd15f0a6c95",
+      "canonical_sha256": "eaae036f4d6f07a091dceb4c6bcfef2ada0672d0b1d51449b7435dd15f0a6c95",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/EditingVaultStressTests.cs",
+      "bytes": 19399,
+      "sha256": "ba56ab3aa8d21a661e6cb192bccf40ed3f6e60d4fb53d5333ca397f4e7510b88",
+      "canonical_sha256": "ba56ab3aa8d21a661e6cb192bccf40ed3f6e60d4fb53d5333ca397f4e7510b88",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/FolderExclusionTests.cs",
+      "bytes": 20405,
+      "sha256": "aefb1e4919290e8b9937b1318ab4dcc37673e4a1f482ee78d0df971d6488a376",
+      "canonical_sha256": "7c9cab321517be129f2a9384b691ea6e3f6585975b33ac4c35682e74861a28b3",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/GuardedCycleCursorWireTests.cs",
+      "bytes": 3063,
+      "sha256": "afe297102f451d514198d300c3733d120edf03b9bbbb9b730f753cb23dd0434a",
+      "canonical_sha256": "afe297102f451d514198d300c3733d120edf03b9bbbb9b730f753cb23dd0434a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/GuardedCycleRedirectTests.cs",
+      "bytes": 3748,
+      "sha256": "0fd0e9b3083c9959ae84bebd904af5f62aab2ec9a1b8fbc15b8f52e73cb46209",
+      "canonical_sha256": "0fd0e9b3083c9959ae84bebd904af5f62aab2ec9a1b8fbc15b8f52e73cb46209",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/GuardedCycleTransportTests.cs",
+      "bytes": 9395,
+      "sha256": "c926d6acc66a181ca5354b27599683b7fd23e37b7cd0eaf6896b7af55de8b4f8",
+      "canonical_sha256": "e5243615904590c7a2d558f14b3970fcbaa4e5ee7c4695a4d3fb43c57b309056",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        13
+      ]
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/IdentityOnlyFreshCycleTests.cs",
+      "bytes": 17235,
+      "sha256": "ab2e55b2cc40ab5c266a42925a66886db3263e549a219e7b112f77d1a3fd92ab",
+      "canonical_sha256": "4e70743b7149399e120eee51519fc1fd60d3d0848e043afe1555cb8f8121a154",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/IdentityOnlyJournalTests.cs",
+      "bytes": 22227,
+      "sha256": "14739d692d498c97e1822dcb6f1e4f9866c1083bc4df4e02bfe0419a3a2e3b09",
+      "canonical_sha256": "14739d692d498c97e1822dcb6f1e4f9866c1083bc4df4e02bfe0419a3a2e3b09",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/IdentityOnlyNativeEligibilityTests.cs",
+      "bytes": 18440,
+      "sha256": "2759c2cc7381b0175830612d336b9ede841df162f6d74548fb7b5625b6b06603",
+      "canonical_sha256": "2955a0563646adf44aaebf5cdccbb72828e5fa9caca0b81f0cd9556d1d98f781",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/InitialCoherenceBoundaryRegressionTests.cs",
+      "bytes": 2188,
+      "sha256": "171234d8c4556435eea77119c7b13a89932f4a0285b27aeb5f508b7bc691eec8",
+      "canonical_sha256": "171234d8c4556435eea77119c7b13a89932f4a0285b27aeb5f508b7bc691eec8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/JournalGapReplacementTests.cs",
+      "bytes": 38891,
+      "sha256": "fdfd93e62a3226598b22e1eefcf57d5dafa74759845b15d630cf6572de1c5e3b",
+      "canonical_sha256": "89da10412b14d52e1ef7991eb93f0de73ae0ae2577ccb7b75464ec2fb7a4c34e",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/JournalGapSupersessionTests.cs",
+      "bytes": 8585,
+      "sha256": "286f695685c029716417413088f7d941ff0066289e098a6993a4e810782f7e86",
+      "canonical_sha256": "ab2b5d8093a8389a9e746954cf833bb8f2695a142e90ba1066110e8797c8fcc6",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/JournalInstalledLineageTests.cs",
+      "bytes": 6179,
+      "sha256": "ceeada8d8dc28491140ebecde2ae042805abf7f2589147223f4fa7f324c34419",
+      "canonical_sha256": "1d2de679732387e4a2c91e2ce22472d5dd589dd273845b859a1567aab88192dd",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalCoherenceBudgetTests.cs",
+      "bytes": 8998,
+      "sha256": "d6d878d4a9b51e69bc89d3ded8cdd5ec7b3cd6d6ce3c7cb1d3a27d3c74cc7726",
+      "canonical_sha256": "9acef2ff5d67481aa42026da13bda4b296355bcc83890cf4d1985db4090351cf",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalCoherenceIngestCostTests.cs",
+      "bytes": 4928,
+      "sha256": "2735e55c067be9186be6a2dec4fa988189c1ac1961b56eeab14b6f43ff16100f",
+      "canonical_sha256": "e432182dda986ff27462a3e65fc24ee00e326785c6d24077e4d9d751496c1178",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalCoherenceRecoveryTests.cs",
+      "bytes": 16400,
+      "sha256": "34c464d794c2db9267691b9e056a682f2cde82840d88ec404e3f22558520a1e9",
+      "canonical_sha256": "1e9d866e6d42beab09a8674ad8dfb85b62b8b13b5b290abcfb2f6af7dc41267d",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalCoherenceRetirementProgressTests.cs",
+      "bytes": 5678,
+      "sha256": "88e02dd94bb533bfd5256410db1285595e85ff0d709aa5177624c44346eb7890",
+      "canonical_sha256": "31596d6903dfc4ab82dd3633bea94e6a5f6ef518d04c2a65eb6a2172b5fcde80",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalCoherenceTests.cs",
+      "bytes": 19749,
+      "sha256": "0a8937fdae74ea9eba32151a453fff2e8d9602f22d1a26855892af191352447b",
+      "canonical_sha256": "325ca8c527369445acf7596de43d086844ddcb54817bff63e99870de36df806b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalNamespaceTests.cs",
+      "bytes": 26632,
+      "sha256": "a9091ff34871d82f9cb7c787a06bb301585215fcb1b60d823907987d78dd3ca2",
+      "canonical_sha256": "a9091ff34871d82f9cb7c787a06bb301585215fcb1b60d823907987d78dd3ca2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalProjectionTests.cs",
+      "bytes": 28084,
+      "sha256": "18880dd542db5abb972a8d8095d16bc4e8e50bf6742cff047423df94959ca63f",
+      "canonical_sha256": "18880dd542db5abb972a8d8095d16bc4e8e50bf6742cff047423df94959ca63f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalSourceContinuityTests.cs",
+      "bytes": 34657,
+      "sha256": "dfcd11b2eb27ac2c8a624eab996605249c2a293937961f551b11d3d0f1fe342d",
+      "canonical_sha256": "dfcd11b2eb27ac2c8a624eab996605249c2a293937961f551b11d3d0f1fe342d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/LocalSqlDiagnosticsTests.cs",
+      "bytes": 1691,
+      "sha256": "9f07d4d670766e83db4c814f84aa8d9c9737851ef886ac2ee4040bc5c989779d",
+      "canonical_sha256": "78ff25d424f51b8ab21a905752ec977080660a2f8850decf206f59686f8d6484",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        11
+      ]
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/MastermindBoundaryTests.cs",
+      "bytes": 8568,
+      "sha256": "abd1adbf6825702cb9106f704adb850a5bf338ff0689161573b5453733a81716",
+      "canonical_sha256": "abd1adbf6825702cb9106f704adb850a5bf338ff0689161573b5453733a81716",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/MastermindExportTests.cs",
+      "bytes": 6607,
+      "sha256": "e651afb66824cc10034dcf54ed19f71d2613d33fc966e444549a14f27f67a81b",
+      "canonical_sha256": "e651afb66824cc10034dcf54ed19f71d2613d33fc966e444549a14f27f67a81b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/MastermindMigrationTests.cs",
+      "bytes": 3166,
+      "sha256": "df1f9aec6afb7a5f2c8e58c03082537ad2a93fd0db2276111503e8313408bafe",
+      "canonical_sha256": "df1f9aec6afb7a5f2c8e58c03082537ad2a93fd0db2276111503e8313408bafe",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Native18BatchRecoveryTests.cs",
+      "bytes": 8834,
+      "sha256": "a4661e78dbdd34aa8ddcd294e4dbcd09dc82e5e195521975264f2d46c3f8ce2b",
+      "canonical_sha256": "a4661e78dbdd34aa8ddcd294e4dbcd09dc82e5e195521975264f2d46c3f8ce2b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NativeBootstrapCaptureTests.cs",
+      "bytes": 42283,
+      "sha256": "76ee9b08f936c9c1ca907dfe2c0abcd7b496424f800a1ab15027baf8aecbbf41",
+      "canonical_sha256": "8a5d6b5150ad5b6fc28d6028b95a298a96ebe484d076b5702fe6f5403149b1e4",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NativeCycleAncestorRaceTests.cs",
+      "bytes": 3221,
+      "sha256": "d483eb9f9081fed6dee268cfada20306312760e4dcb4b0932f8bdcf7ac63897a",
+      "canonical_sha256": "4775b4bc007cb3ae2c48a5ce5a9d0706427adbbf41f275e97b2ecd4e5791fda8",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj",
+      "bytes": 3810,
+      "sha256": "dacb0ea782976dc3cea7f613b66fd01a15997d1f09f7588b124831b5fa955666",
+      "canonical_sha256": "63b419bbddf5faf3eb77a93a68eeb7ffc2144efb9cbcaf6c0be98ff16aa762f3",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkAcceptanceAuthorizationTests.cs",
+      "bytes": 11053,
+      "sha256": "6698688ec735891a43d1a8161781af00fae64e2723f16ab770d85bcc3c8f60ef",
+      "canonical_sha256": "0b70ef0a6ce16ed6cc343348e9846059a36a7518e661b42b2849f55b71ca2ca1",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkAcceptanceBodyTests.cs",
+      "bytes": 7937,
+      "sha256": "b516e875e917c134a0aa1ddf024c161e14fba75fd4bd9f7528a02596a80350fd",
+      "canonical_sha256": "b516e875e917c134a0aa1ddf024c161e14fba75fd4bd9f7528a02596a80350fd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkAcceptanceLegacyTests.cs",
+      "bytes": 4916,
+      "sha256": "2b1ed321fe5cd76bd1b3a9c126aef275b5c756a82f02199d74aefc474315c2c9",
+      "canonical_sha256": "2b1ed321fe5cd76bd1b3a9c126aef275b5c756a82f02199d74aefc474315c2c9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkAcceptanceServiceTests.cs",
+      "bytes": 3596,
+      "sha256": "ce8864983b4eebdce9fcf9e5a3803e4754121ad221dd08a55abccbf8da124d7e",
+      "canonical_sha256": "ce8864983b4eebdce9fcf9e5a3803e4754121ad221dd08a55abccbf8da124d7e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkAcceptanceTests.cs",
+      "bytes": 3517,
+      "sha256": "7320fea53d0f6e26485323f791210d0ce6d0c6b673eb66b96b719af022b7b350",
+      "canonical_sha256": "7320fea53d0f6e26485323f791210d0ce6d0c6b673eb66b96b719af022b7b350",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkDeadlineTests.cs",
+      "bytes": 5488,
+      "sha256": "bcac7b333e84264bd4c644beb5d3a96917bc891a92f7715b9c084e1bba97e453",
+      "canonical_sha256": "bcac7b333e84264bd4c644beb5d3a96917bc891a92f7715b9c084e1bba97e453",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/NetworkRecoveryTests.cs",
+      "bytes": 2726,
+      "sha256": "49e0fdaa764df0a1248b31c867be0ff37a6fe3fb905deb2a256366992eaba0f8",
+      "canonical_sha256": "49e0fdaa764df0a1248b31c867be0ff37a6fe3fb905deb2a256366992eaba0f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ObsidianSaveConcurrencyTests.cs",
+      "bytes": 18289,
+      "sha256": "4b4f065fdc14290ad91e86d74cd3d01aec0f49677e07f3278d1f562f1ccfde39",
+      "canonical_sha256": "4b4f065fdc14290ad91e86d74cd3d01aec0f49677e07f3278d1f562f1ccfde39",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParallelStreamTests.cs",
+      "bytes": 7781,
+      "sha256": "cd8b261be953a3383d34ef8a020df603f2e37c5bce64a49171bf8db1db8fbdeb",
+      "canonical_sha256": "cd8b261be953a3383d34ef8a020df603f2e37c5bce64a49171bf8db1db8fbdeb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParallelStreamWireTests.cs",
+      "bytes": 2376,
+      "sha256": "ae98dc997de47b4d62ff717d507b766b72f53ed53382d78a72f796036419d562",
+      "canonical_sha256": "ae98dc997de47b4d62ff717d507b766b72f53ed53382d78a72f796036419d562",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentCollectionTests.cs",
+      "bytes": 19449,
+      "sha256": "9decf21db21689ed45d5f7c5274c85e3e48e45df23db21b1c7065dc5c6db0b94",
+      "canonical_sha256": "9decf21db21689ed45d5f7c5274c85e3e48e45df23db21b1c7065dc5c6db0b94",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentExternalHardlinkNoScanTests.cs",
+      "bytes": 6766,
+      "sha256": "a5162aac5f777af5a768b72fd8aa768cc60d626e236396b04e8d82fdf37144a7",
+      "canonical_sha256": "a5162aac5f777af5a768b72fd8aa768cc60d626e236396b04e8d82fdf37144a7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentExternalHardlinkTests.cs",
+      "bytes": 15823,
+      "sha256": "8d713e4bc35be982bb6ecf259505ec5f83408e0989b6d60847fdc3064a4180a0",
+      "canonical_sha256": "8d713e4bc35be982bb6ecf259505ec5f83408e0989b6d60847fdc3064a4180a0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentNativeLookupTests.cs",
+      "bytes": 3749,
+      "sha256": "fa5583c7478441e88c2652b16e07cdb4e840fcc90d787816622fdd4bf45ee0f6",
+      "canonical_sha256": "fa5583c7478441e88c2652b16e07cdb4e840fcc90d787816622fdd4bf45ee0f6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentOrphanCloseTests.cs",
+      "bytes": 8122,
+      "sha256": "1e1983706a9d4bbce50dc4c5778a3638b9f48954b5eab0a1baf09da13c0c3aad",
+      "canonical_sha256": "1e1983706a9d4bbce50dc4c5778a3638b9f48954b5eab0a1baf09da13c0c3aad",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentReconciliationBudgetTests.cs",
+      "bytes": 8269,
+      "sha256": "99c3c47b9a4d827fb8a9d49679d2b50c1a442847e78e3c260a2c96558e23ddf6",
+      "canonical_sha256": "b0519a95465f03ea41531fd80c3096eceaea66bd2e2e07b5f0c8a0d6d24169fc",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentReconciliationTests.cs",
+      "bytes": 53388,
+      "sha256": "84e6861c6430976074a7c0c9eba3c0a6badfe03a6fc9eb1aee3b61aa54ea9d70",
+      "canonical_sha256": "eb3a6f46f6023fa62b91ec5b23d19b7990bc9eb731e9a123a723167a082cf416",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentRenameCutTests.cs",
+      "bytes": 9925,
+      "sha256": "7964fb42580324117349fd6683cfe54fd155b9af92d2092afc43b938bca203e1",
+      "canonical_sha256": "7964fb42580324117349fd6683cfe54fd155b9af92d2092afc43b938bca203e1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ParentRenameStateTests.cs",
+      "bytes": 2464,
+      "sha256": "4d54b043c93c469039259032c5971c54ad0b043cc3227b341f0f6af03e0746e1",
+      "canonical_sha256": "4d54b043c93c469039259032c5971c54ad0b043cc3227b341f0f6af03e0746e1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/PerformanceN01LiveTests.cs",
+      "bytes": 16146,
+      "sha256": "dd95d0357a2f98a6dc9735d088b5536b610d36e4c44a722ef14766f65b54e10e",
+      "canonical_sha256": "dd95d0357a2f98a6dc9735d088b5536b610d36e4c44a722ef14766f65b54e10e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/PerformanceN01WireTests.cs",
+      "bytes": 2489,
+      "sha256": "e03ee21bc7bd8c54294ad05a1b84437840262e94518ce10ce63e890d2f0a0e13",
+      "canonical_sha256": "e03ee21bc7bd8c54294ad05a1b84437840262e94518ce10ce63e890d2f0a0e13",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/PipelineSelectionTests.cs",
+      "bytes": 6790,
+      "sha256": "6cb6b0df28415bf80a1c50c7a7404ead46b8d623972278c11ba227a6e953f47a",
+      "canonical_sha256": "6cb6b0df28415bf80a1c50c7a7404ead46b8d623972278c11ba227a6e953f47a",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/PublicationCapabilityWaitTests.cs",
+      "bytes": 2729,
+      "sha256": "a9c22d5f858dafa2761752078bb3c735846796ef2eda05f154bf7f332b8b6778",
+      "canonical_sha256": "a9c22d5f858dafa2761752078bb3c735846796ef2eda05f154bf7f332b8b6778",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/PublishedDirectoryTargetTests.cs",
+      "bytes": 3296,
+      "sha256": "ec6ac43d1f143a392610c29956ac5e870cc15ac387359a3c6caf4f3100be48dd",
+      "canonical_sha256": "ec6ac43d1f143a392610c29956ac5e870cc15ac387359a3c6caf4f3100be48dd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RegisterContractTests.cs",
+      "bytes": 12970,
+      "sha256": "d865718b1cb1465fb740457e7e49cf03290ca9a68cd8e97a25fae339ec0942ce",
+      "canonical_sha256": "d865718b1cb1465fb740457e7e49cf03290ca9a68cd8e97a25fae339ec0942ce",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RegisterFallbackTests.cs",
+      "bytes": 874,
+      "sha256": "021f5746e7ecb6930b7e9ac94e419317cbb583953ea70dccfd07136df46ed5f6",
+      "canonical_sha256": "021f5746e7ecb6930b7e9ac94e419317cbb583953ea70dccfd07136df46ed5f6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceDeleteApprovalTests.cs",
+      "bytes": 25941,
+      "sha256": "26b0a0bbe2c4a75b2dd4544a4b4dff6fb4805108ca6a8a36346e15de0f73fedb",
+      "canonical_sha256": "26b0a0bbe2c4a75b2dd4544a4b4dff6fb4805108ca6a8a36346e15de0f73fedb",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceDiskFullTests.cs",
+      "bytes": 12231,
+      "sha256": "dfc02bd03f7e714e83c1c1ac95cd54e226145b0078970c3af95a6b9fb39b7d55",
+      "canonical_sha256": "dfc02bd03f7e714e83c1c1ac95cd54e226145b0078970c3af95a6b9fb39b7d55",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceOwnedJournalTests.cs",
+      "bytes": 11741,
+      "sha256": "2464e6a1509d84d285e03129b181c1f310a47582373326eaa1de4ae18c8b9f27",
+      "canonical_sha256": "2464e6a1509d84d285e03129b181c1f310a47582373326eaa1de4ae18c8b9f27",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceSnapshotBoundaryTests.cs",
+      "bytes": 11893,
+      "sha256": "147a92a1b243b3d6a8ba9ef42e42f887cf99af2cc82173ac0931643ecd5d21fd",
+      "canonical_sha256": "147a92a1b243b3d6a8ba9ef42e42f887cf99af2cc82173ac0931643ecd5d21fd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ReleaseSignatureTests.cs",
+      "bytes": 698,
+      "sha256": "5b37b72edcb3be3bc86567663ea52dd7ee9d0ce9735e43f75513e3307e6cd574",
+      "canonical_sha256": "5b37b72edcb3be3bc86567663ea52dd7ee9d0ce9735e43f75513e3307e6cd574",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RemoteTargetLookupTests.cs",
+      "bytes": 4109,
+      "sha256": "1f19e59c932eef48c1ffefd4d332720d227f211be5d64d859e59c53f6b8d1edf",
+      "canonical_sha256": "1f19e59c932eef48c1ffefd4d332720d227f211be5d64d859e59c53f6b8d1edf",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ResourceReaderContractTests.cs",
+      "bytes": 1887,
+      "sha256": "adaae95df5757e039245b726b8af15df01543df926505e784be8898b32480821",
+      "canonical_sha256": "adaae95df5757e039245b726b8af15df01543df926505e784be8898b32480821",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RetainedLegacyUploadTests.cs",
+      "bytes": 7950,
+      "sha256": "b5c446fd253fbc04ade3fd363728997c1aaf196fb83b661288530f8866a8cbf4",
+      "canonical_sha256": "b5c446fd253fbc04ade3fd363728997c1aaf196fb83b661288530f8866a8cbf4",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RetainedNativeLookupTests.cs",
+      "bytes": 4723,
+      "sha256": "7fe62121fcb65ff05cf7a5deb61e29f1de6f9352e5be5a94d4f1fbad34cd49be",
+      "canonical_sha256": "92cbc4b24564213e016947221d6c2a06d314a8c5eb71ff5bba42f2aa6f81a472",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RetainedParentRenameRecoveryTests.cs",
+      "bytes": 5848,
+      "sha256": "0744a3d18d5d68a98451919602b31a078d20d61577c37dddc1252c208fb147cc",
+      "canonical_sha256": "0744a3d18d5d68a98451919602b31a078d20d61577c37dddc1252c208fb147cc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RetentionTests.cs",
+      "bytes": 4634,
+      "sha256": "45e97156372672dd1fc8b636c069618185c7f089e4ef7c5dc0681aedfb1df2f9",
+      "canonical_sha256": "45e97156372672dd1fc8b636c069618185c7f089e4ef7c5dc0681aedfb1df2f9",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RootAdmissionCompatibilityTests.cs",
+      "bytes": 5592,
+      "sha256": "4a6c2d4d889f633cd54fcf7954845aaf542d8b6a30d39c59349227237b061961",
+      "canonical_sha256": "4a6c2d4d889f633cd54fcf7954845aaf542d8b6a30d39c59349227237b061961",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/RootMutationAdmissionTests.cs",
+      "bytes": 6635,
+      "sha256": "749363e15072a5475aa4ed8a065e025f269906dc782f729e0875740397556762",
+      "canonical_sha256": "749363e15072a5475aa4ed8a065e025f269906dc782f729e0875740397556762",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/ServicePolicyTests.cs",
+      "bytes": 9198,
+      "sha256": "4d20082049cdebaf794cd79cc991b577801fe2d40ff61d95e0af4faafb4883e5",
+      "canonical_sha256": "4d20082049cdebaf794cd79cc991b577801fe2d40ff61d95e0af4faafb4883e5",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchAtomicReceiptsTests.cs",
+      "bytes": 2896,
+      "sha256": "17772b5269f379cc60dfbeb9f7ecc04a1f5e6b637f3a6299f3ce76d310301927",
+      "canonical_sha256": "17772b5269f379cc60dfbeb9f7ecc04a1f5e6b637f3a6299f3ce76d310301927",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchCasFallbackTests.cs",
+      "bytes": 5784,
+      "sha256": "21c3b855a784cda9c040ef00e5e7420a85da6899990fc447f006549cba53c6c8",
+      "canonical_sha256": "21c3b855a784cda9c040ef00e5e7420a85da6899990fc447f006549cba53c6c8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchCloneEconomyTests.cs",
+      "bytes": 5479,
+      "sha256": "a2541a141348adfadea704e67f1c8ec8f6cddddb370b2f45315c5d3877c134e6",
+      "canonical_sha256": "a2541a141348adfadea704e67f1c8ec8f6cddddb370b2f45315c5d3877c134e6",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchParentPartitionTests.cs",
+      "bytes": 5821,
+      "sha256": "da9547fc1114e1ddccf819363864f6108fa5a73ca953c888b613dd42584c0d07",
+      "canonical_sha256": "da9547fc1114e1ddccf819363864f6108fa5a73ca953c888b613dd42584c0d07",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchPipelineTests.cs",
+      "bytes": 8890,
+      "sha256": "74b3c638c5f861c16fa3e623de4f81ed5b2aecbf47341aa369f5c1c2f6742c5c",
+      "canonical_sha256": "74b3c638c5f861c16fa3e623de4f81ed5b2aecbf47341aa369f5c1c2f6742c5c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchReceiptRecoveryTests.cs",
+      "bytes": 4657,
+      "sha256": "046628f6ac597d2341cc7cc0aae5c1cb14283e40c51d8f02c3dbf6cf44ae324c",
+      "canonical_sha256": "046628f6ac597d2341cc7cc0aae5c1cb14283e40c51d8f02c3dbf6cf44ae324c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchSingleRequestTests.cs",
+      "bytes": 2605,
+      "sha256": "f5b974fc81716f2a784e0ae6285def908c956e7a5d952ece55edcdce4ba40bca",
+      "canonical_sha256": "f5b974fc81716f2a784e0ae6285def908c956e7a5d952ece55edcdce4ba40bca",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallBatchWorksetTests.cs",
+      "bytes": 9302,
+      "sha256": "991949fc010de40a47c7b7c97dc5f9b3bad3a5f5dbda93808105e6c601a403c3",
+      "canonical_sha256": "991949fc010de40a47c7b7c97dc5f9b3bad3a5f5dbda93808105e6c601a403c3",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchEngineTests.cs",
+      "bytes": 22473,
+      "sha256": "b7bade9c3870fffe3460639066c18ed241ceae36eb7e0a83ec0b6d20bea4e3df",
+      "canonical_sha256": "c48baa60b8c52f5a53ab15bb3caf3435cac78d948db42dbcfef59f5e5115d99f",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchProtocolTests.cs",
+      "bytes": 18165,
+      "sha256": "5585e3b077324a3752b0671c907e0b55433edcd8d6a54f25959b8999b617a4b2",
+      "canonical_sha256": "5585e3b077324a3752b0671c907e0b55433edcd8d6a54f25959b8999b617a4b2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchRecoveryTests.cs",
+      "bytes": 3504,
+      "sha256": "3a5f4babe4d72f0f1e76066d61574007a87da438c932648e80b4c7980e55a8c2",
+      "canonical_sha256": "f1e25699b7887fd034c1ef9845b279337d1f51a6264111c480647670cc173152",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchSchedulerTests.cs",
+      "bytes": 7377,
+      "sha256": "b5ea5df7085b3f116186874c8240ed65cba47ec9cd7af055024075613e14e295",
+      "canonical_sha256": "b5ea5df7085b3f116186874c8240ed65cba47ec9cd7af055024075613e14e295",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchStateTests.cs",
+      "bytes": 24323,
+      "sha256": "4be290bb9d77a14ea7d6df99b4387f0392839552b0312f529f2b4adf04ba3da4",
+      "canonical_sha256": "61e9a21915252f3afa3306fd32ca7244287f8f91f0aa951b05bdee8b07f61859",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileBatchTransportTests.cs",
+      "bytes": 18981,
+      "sha256": "73d757e8e58f8a477d284d75a2716f562a434550d25b3b3e922eafae0de4d744",
+      "canonical_sha256": "73d757e8e58f8a477d284d75a2716f562a434550d25b3b3e922eafae0de4d744",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SmallFileThroughputLiveTests.cs",
+      "bytes": 13578,
+      "sha256": "c7a668e64b9f29497a894a1b2e8bbe31e399f025453d9ae7c7d1edbfff10f024",
+      "canonical_sha256": "c7a668e64b9f29497a894a1b2e8bbe31e399f025453d9ae7c7d1edbfff10f024",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.AcceptedBackup.cs",
+      "bytes": 6830,
+      "sha256": "2c0f5df0eb1f3a23db077b892bfe761fd5245a1013cb7a6c980a976be1ab2829",
+      "canonical_sha256": "2c0f5df0eb1f3a23db077b892bfe761fd5245a1013cb7a6c980a976be1ab2829",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Adoption.cs",
+      "bytes": 4844,
+      "sha256": "46898e14410b3f81aa57e699ee8882fe8e3be8cf4275ddc87d57719cb273461c",
+      "canonical_sha256": "46898e14410b3f81aa57e699ee8882fe8e3be8cf4275ddc87d57719cb273461c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.AtomicIncarnation.cs",
+      "bytes": 6987,
+      "sha256": "f61c7f9c307ab5201717af3ff371bd9ad963caa1f7ad6f5a4b3794e2226b1e47",
+      "canonical_sha256": "f61c7f9c307ab5201717af3ff371bd9ad963caa1f7ad6f5a4b3794e2226b1e47",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Batch.cs",
+      "bytes": 7214,
+      "sha256": "a69fe9507f0b4ea894da7358b1dbeb888a31920d4f914b0642ea10f8024c52ef",
+      "canonical_sha256": "57d36cf1c83dba8f65d247df587c378d939d60d00d9187c8285c9e337533267c",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.DelayedStructuralHint.cs",
+      "bytes": 2296,
+      "sha256": "04e99c1ad979ecb14c5660b5cb719577efca326f592e9a92f63c646abeb8154b",
+      "canonical_sha256": "04e99c1ad979ecb14c5660b5cb719577efca326f592e9a92f63c646abeb8154b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Historical.cs",
+      "bytes": 5789,
+      "sha256": "72b1d96e7ba7e19daaa6df5eb56f7eb95eaad1a7a6c458d93aa3c4ccac38936e",
+      "canonical_sha256": "edc55f3666755d5696914991c243729598f08f921c74dde2248ad3c14599d1e3",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.LocalWake.cs",
+      "bytes": 2343,
+      "sha256": "1b0d80aae3d953965a486ce3ebf04f439b6f999e86f0881b892f5f7c8d6184c5",
+      "canonical_sha256": "1b0d80aae3d953965a486ce3ebf04f439b6f999e86f0881b892f5f7c8d6184c5",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Namespace.cs",
+      "bytes": 20365,
+      "sha256": "30b4ef7d4c4624f059c1b8e3046323b6ad763fd5bfdeae9b613bd83f833c3d76",
+      "canonical_sha256": "30b4ef7d4c4624f059c1b8e3046323b6ad763fd5bfdeae9b613bd83f833c3d76",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Native.cs",
+      "bytes": 8445,
+      "sha256": "495588ea9e3b04010c1f49a11f5b30b6f60f085272be62ab4fcc85e6fcc91910",
+      "canonical_sha256": "495588ea9e3b04010c1f49a11f5b30b6f60f085272be62ab4fcc85e6fcc91910",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.NegativeProof.cs",
+      "bytes": 5046,
+      "sha256": "fb2533c8be9c66f53839f8ded8ca8aece4cefe893b2cb281453402f3f5aceb95",
+      "canonical_sha256": "342fa7cea98c0f84cdb357252cd4d884f40128cbd5e4a0eb6b8f4ff91a782589",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Review.cs",
+      "bytes": 5471,
+      "sha256": "7cc9fae4b403ba71ff65e3bdd2f93659f7f28d41493df07aa22ed5901e396645",
+      "canonical_sha256": "7cc9fae4b403ba71ff65e3bdd2f93659f7f28d41493df07aa22ed5901e396645",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Scheduler.cs",
+      "bytes": 5698,
+      "sha256": "2752a050e4e473011209d3c7c0788e2392c754b36d80a238839bf81fac74795e",
+      "canonical_sha256": "2752a050e4e473011209d3c7c0788e2392c754b36d80a238839bf81fac74795e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.State.cs",
+      "bytes": 10231,
+      "sha256": "d57085debf9e7938d1204a74c28870c980e818344469cf5f48f8ada2b2bae65b",
+      "canonical_sha256": "d57085debf9e7938d1204a74c28870c980e818344469cf5f48f8ada2b2bae65b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Stream.cs",
+      "bytes": 7427,
+      "sha256": "65faf3699176f824f87c0ee93fbf1c75bca8daac57da10fafc36425e2aac48b5",
+      "canonical_sha256": "443d6849572c61e85558061b70b7e7eafcfc5bc03baa60e86bc713bcea05cffe",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Transport.cs",
+      "bytes": 8783,
+      "sha256": "1526391d0ed28610bdd4401da681eae971a1c891931cd2b1dd2e65642323b281",
+      "canonical_sha256": "1526391d0ed28610bdd4401da681eae971a1c891931cd2b1dd2e65642323b281",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Wire.cs",
+      "bytes": 8351,
+      "sha256": "4770e109dabf21af372ecb6fdf99303ce26ad3f66ef161be1bb492489f1feac1",
+      "canonical_sha256": "a7bf23ceb4fcf49053c76d25c11a0e0518b702eb22f2d4a08cb6d2574360fa5a",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.cs",
+      "bytes": 6793,
+      "sha256": "aa14b2f101c2f22bb82de008d70533105b5dac5cda5e1684b170515f45536751",
+      "canonical_sha256": "6690d1906dcc0d5f829df339188c05285168adeb84bc8192049fc053b16a99d8",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/StreamCompletionPollingTests.cs",
+      "bytes": 5413,
+      "sha256": "2baa548b45c22f5d31dd229126d1c1ec21f2d8ce8494602fd4a686da598debb2",
+      "canonical_sha256": "2baa548b45c22f5d31dd229126d1c1ec21f2d8ce8494602fd4a686da598debb2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SyncMigrationBackupPathTests.cs",
+      "bytes": 2631,
+      "sha256": "15305c4d800f5cd0166a5a4210ce4f770b3d0311697d323078560d11169aff0c",
+      "canonical_sha256": "d8c87a317f1f3dafcf3a0b27614da9b395334bb9ae0829dbdc31cba3dc19c52c",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SyncProtocolReaderTests.cs",
+      "bytes": 5128,
+      "sha256": "0a1bf6b72c63e1490940960b7cac4118aab7e75e5b2cfb223c7baf69bda03b90",
+      "canonical_sha256": "0a1bf6b72c63e1490940960b7cac4118aab7e75e5b2cfb223c7baf69bda03b90",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SyncSnapshotEntriesReaderTests.cs",
+      "bytes": 3206,
+      "sha256": "eef2162890519c8718bd23d459d80ea125e8ab618891f47f659e5d8b4d0ad5c2",
+      "canonical_sha256": "eef2162890519c8718bd23d459d80ea125e8ab618891f47f659e5d8b4d0ad5c2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/SyncStateMigrationTests.cs",
+      "bytes": 50353,
+      "sha256": "f6a9df0555f7c2042e1e1bd9c059e4cdbc8b6d4917a6bc0da1b2c4e9baf0ec3b",
+      "canonical_sha256": "f6a9df0555f7c2042e1e1bd9c059e4cdbc8b6d4917a6bc0da1b2c4e9baf0ec3b",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/SyncWire/boundaries.v1.json",
+      "bytes": 474588,
+      "sha256": "1106ebca2c9dc2feccb814562b81a2054ee5485e85f50c25d1ee79fa4609868c",
+      "canonical_sha256": "1106ebca2c9dc2feccb814562b81a2054ee5485e85f50c25d1ee79fa4609868c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/SyncWire/golden.v1.json",
+      "bytes": 3263,
+      "sha256": "8719e08521eaad410e0bb6b1b180c559f14ad205c52b06fcbd9b33df92a2f4e0",
+      "canonical_sha256": "8719e08521eaad410e0bb6b1b180c559f14ad205c52b06fcbd9b33df92a2f4e0",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/SyncWire/snapshot-pages.v1.json",
+      "bytes": 697094,
+      "sha256": "4447c73837d7c429e00e92bafcc0e486b3b6af4e4269a75bcd307c3be7d006f8",
+      "canonical_sha256": "4447c73837d7c429e00e92bafcc0e486b3b6af4e4269a75bcd307c3be7d006f8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/manifest.json",
+      "bytes": 87,
+      "sha256": "ffc888941d09f1be499cc57c924ba558d085c582a72e20608d7ed95960e5af7f",
+      "canonical_sha256": "ffc888941d09f1be499cc57c924ba558d085c582a72e20608d7ed95960e5af7f",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/manifest.json.sig.json",
+      "bytes": 676,
+      "sha256": "4fbb27cea55aa5d746cd818e5033731d1178db4d078750411fa12258c9cfa0b1",
+      "canonical_sha256": "4fbb27cea55aa5d746cd818e5033731d1178db4d078750411fa12258c9cfa0b1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/name-codec-v1.json",
+      "bytes": 3029,
+      "sha256": "b76f70d28afb77b82cd8813fad4aeda4b94df0d4deea3b2b371756dedea07d16",
+      "canonical_sha256": "b76f70d28afb77b82cd8813fad4aeda4b94df0d4deea3b2b371756dedea07d16",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/performance-n01/README.txt",
+      "bytes": 609,
+      "sha256": "f60f4244683986e30883d269a070a8e7c3c6ea8b4f38376413cfec7fdd2531ff",
+      "canonical_sha256": "9d3724067d6239c2da7ea14d0f5f7068fb71888a25a17ce7f93a93f1733e5797",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        7
+      ]
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/performance-n01/pluto-small-job.json",
+      "bytes": 3211,
+      "sha256": "e25ae4db54b2f076e10a2ffc0bd784aab62854a1dc389c4313f5d82b228527df",
+      "canonical_sha256": "e25ae4db54b2f076e10a2ffc0bd784aab62854a1dc389c4313f5d82b228527df",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TestData/public.pem",
+      "bytes": 625,
+      "sha256": "e55c1c9aa6b0a7c529df13c70aa3ba5e14eb8761bde834e9c7c18e3408886b7c",
+      "canonical_sha256": "e55c1c9aa6b0a7c529df13c70aa3ba5e14eb8761bde834e9c7c18e3408886b7c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TransferSafetyTests.cs",
+      "bytes": 16994,
+      "sha256": "9d4438e64a85d32237de5c75f079a1f8f71a9521451bb083e51353a66221ddba",
+      "canonical_sha256": "9d4438e64a85d32237de5c75f079a1f8f71a9521451bb083e51353a66221ddba",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TransportDisposalAsyncTests.cs",
+      "bytes": 4367,
+      "sha256": "cba2e5ddd57b1583994f0494673c43d260a00ac96c0a6fc3ec88fea38f8c5502",
+      "canonical_sha256": "cba2e5ddd57b1583994f0494673c43d260a00ac96c0a6fc3ec88fea38f8c5502",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/TransportDisposalTests.cs",
+      "bytes": 5727,
+      "sha256": "279f11693ba6ce4748298b17f1a6e30e5163c37ce13efee44d4fcc32f69508c7",
+      "canonical_sha256": "279f11693ba6ce4748298b17f1a6e30e5163c37ce13efee44d4fcc32f69508c7",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsEnrollmentTests.Progress.cs",
+      "bytes": 4020,
+      "sha256": "8f50ef088428ee66fcdd054042e06e377925bb3c271d7faabc1a68cedc3c5db2",
+      "canonical_sha256": "8f50ef088428ee66fcdd054042e06e377925bb3c271d7faabc1a68cedc3c5db2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsEnrollmentTests.cs",
+      "bytes": 23217,
+      "sha256": "14863eb8e49aa970a3ea2f2db7bb5296fb9206b223181858b035a80707972d43",
+      "canonical_sha256": "4923daaa57f4d4834c8e283895859d0347a4779b23db06814a5706e369354103",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleBackpressureTests.cs",
+      "bytes": 16517,
+      "sha256": "93a820599cbfffc5f60d90b7d61297d51b6fc80570acb6311502c112c960b4e9",
+      "canonical_sha256": "ed1e87cea39d7b624c15c4811ba105771d1d84f300df66a025b858501b7c96ff",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleConfirmedTotalsTests.cs",
+      "bytes": 7751,
+      "sha256": "637153b65552d71496e0f26a67db130d17367229bc1913efc21ad28afa29f1ee",
+      "canonical_sha256": "75cbc85c7e9b46b91efb13508a378ee0d3c8270ed0151f2d7ef3c75f8524d7d7",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleCursorRecoveryTests.cs",
+      "bytes": 24257,
+      "sha256": "aed48d73239cf2ea1435cc1e00cb03a6b28c4170fb286d7e1fea7eb1758c89aa",
+      "canonical_sha256": "5b63bfd66354c6a725b5e3b2836212355a41564b1e9273eefd0afe9e592c318f",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleInterruptedCaptureTests.cs",
+      "bytes": 2515,
+      "sha256": "142979885cf3be35c39a5a760c855283061bf0404dc05b37ddb9bca5b4e145e1",
+      "canonical_sha256": "142979885cf3be35c39a5a760c855283061bf0404dc05b37ddb9bca5b4e145e1",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleJournalPumpTests.cs",
+      "bytes": 3171,
+      "sha256": "7df07d1b667510d34fe1f0300157ffe57197b2e7b71390f51b5d7022048b931d",
+      "canonical_sha256": "f0acfa639881b719b5c5354d8009da37852c859df1b11b1191e84581e5aedea7",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleManySealsTests.cs",
+      "bytes": 3410,
+      "sha256": "46356eb50bbc98ea57d207d7dc40d568cac03641156f3553d783144d5f53aa17",
+      "canonical_sha256": "46356eb50bbc98ea57d207d7dc40d568cac03641156f3553d783144d5f53aa17",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleRecoveryTests.cs",
+      "bytes": 7761,
+      "sha256": "75e2bd15c0c2d23645fb14d4c3cd8f9909ab5ab6b9d1b1cbaf85280aec8e5e0d",
+      "canonical_sha256": "86c5173d5f33ad8b7af43f51a1c5c4e6ea6b60957d00bbcbe8fb85e4f3e77b11",
+      "line_endings": "MIXED",
+      "crlf_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ]
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleResumeTests.cs",
+      "bytes": 23469,
+      "sha256": "c51f0df8f2451f61ed2b4b89cfe60fd26f84ae9327fd2b7f73a34a78fc2c2751",
+      "canonical_sha256": "f4a9e179cd8b84ed2f147f6afbfba3f51bc5d1a6f1af41ce242ebb6fa2bc9d65",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleRetryOwnershipTests.cs",
+      "bytes": 5413,
+      "sha256": "8697e1b441543d4a6aab856ff04164e9153e4cb8d74974241e8bbb4c911a607e",
+      "canonical_sha256": "8697e1b441543d4a6aab856ff04164e9153e4cb8d74974241e8bbb4c911a607e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleSafetyTests.cs",
+      "bytes": 11004,
+      "sha256": "abd671334c12d605e889fb3f4a93b29a15c5d58455575e26fc5a9bd70c1b0987",
+      "canonical_sha256": "ba48b8672660ca45966169432a2bd342dda1bded924dd9b512783adc270ba118",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleTests.Progress.cs",
+      "bytes": 7178,
+      "sha256": "a76e2cfc70b2c2bc0025608ff21313686420d917413ffb8255b6766b3cba35a8",
+      "canonical_sha256": "500665cd52a5916b3470c38acfb2d9e1c3b1410f0fee2056d352db57ef8d4a73",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsFreshCycleTests.cs",
+      "bytes": 21279,
+      "sha256": "1b377c2377845b1c2719da65e7d2bd9e93314e8eca7a68fed55b8bfd74a54ae3",
+      "canonical_sha256": "bde444b4bcb40edcb5d0faff64dfd6d4c157d419cd632102bb97967e26f2d7a1",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsGuardedBridgeTests.cs",
+      "bytes": 10184,
+      "sha256": "fa6fed49d1a191068af8a18dae902981895237cf38f9630dd2b71a3fea551fa3",
+      "canonical_sha256": "cdea175d25d0abb838c902d63f8d791786c66b0919f8c0e67f771e8347367651",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsGuardedNativeEligibilityTests.cs",
+      "bytes": 12872,
+      "sha256": "a16055ad03fcaab2efee065439a2d9528e7a50237097954aa1df2c2cf3b08d7f",
+      "canonical_sha256": "a5b2e826ec62ae6f0751c29e909ef3373f18989bdab5be66cb08be8ab175d49b",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsGuardedResumeScopeTests.cs",
+      "bytes": 5053,
+      "sha256": "3c9e7f4d9ed23e11802bdd10c553f9e38ccdde2f9dd9344e139ecf729c422dfd",
+      "canonical_sha256": "3c9e7f4d9ed23e11802bdd10c553f9e38ccdde2f9dd9344e139ecf729c422dfd",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsGuardedSupersessionEligibilityTests.cs",
+      "bytes": 4157,
+      "sha256": "df931d45bd79fce08438dbf2c55eb9ba4253d0393b57cb1e9ae0e4facacf3767",
+      "canonical_sha256": "e845058fcafaa88eebd75d7ff26c4b8ffcf4784e890a9e36c1293b5246883927",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsJournalRecoveryBoundaryTests.cs",
+      "bytes": 4545,
+      "sha256": "5da82d491a8582649c39d1484029c3ab441f30e25dbd755efd4e1bf5df2d0dbc",
+      "canonical_sha256": "5da82d491a8582649c39d1484029c3ab441f30e25dbd755efd4e1bf5df2d0dbc",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsLocalSnapshotTests.cs",
+      "bytes": 6498,
+      "sha256": "56eae6f923c06f719aaf5e6190faa3b614aa5ec2d988ae87585a3f9a1affcee2",
+      "canonical_sha256": "56eae6f923c06f719aaf5e6190faa3b614aa5ec2d988ae87585a3f9a1affcee2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsOwnedConnectionReuseTests.cs",
+      "bytes": 4218,
+      "sha256": "862e8ec3b9d3680984ce0241d6a5f5002d2b114bf2a85c0f8505e7e6dc78c7c8",
+      "canonical_sha256": "862e8ec3b9d3680984ce0241d6a5f5002d2b114bf2a85c0f8505e7e6dc78c7c8",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsPackagingPolicyTests.cs",
+      "bytes": 2052,
+      "sha256": "1011f2c7d80c6910cc390c7f38b8daf5ec4010f6091220f4de3130004951b818",
+      "canonical_sha256": "1011f2c7d80c6910cc390c7f38b8daf5ec4010f6091220f4de3130004951b818",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsPreferencesTests.cs",
+      "bytes": 2088,
+      "sha256": "b68b1dd6e7f49ced7e62dd1a38e18ac349471721e6acf7a3904372c9be42f305",
+      "canonical_sha256": "b68b1dd6e7f49ced7e62dd1a38e18ac349471721e6acf7a3904372c9be42f305",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsProfileBackupBoundaryTests.cs",
+      "bytes": 3379,
+      "sha256": "6257bc04661a8b9f870f4d5995e47f2125415e8d537dc1dd85f2b8749acf8d03",
+      "canonical_sha256": "6257bc04661a8b9f870f4d5995e47f2125415e8d537dc1dd85f2b8749acf8d03",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsReplacementResumeHistoryTests.cs",
+      "bytes": 6401,
+      "sha256": "5be5984e8980cbe0bd205018da69cf872a3e0bf6e945943bb5307c9c5b0765ec",
+      "canonical_sha256": "a4e9892ee52c15cc72d02608227a1f6278cbfb4c4c5bd5cd7943469f256d1a33",
+      "line_endings": "CRLF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsSyncProgressTests.cs",
+      "bytes": 8082,
+      "sha256": "0466ae19670d9dc8879c5ebe2e873c2f6c5bb5dd564e8aca16454edfd4447c4e",
+      "canonical_sha256": "0466ae19670d9dc8879c5ebe2e873c2f6c5bb5dd564e8aca16454edfd4447c4e",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsUiContractTests.cs",
+      "bytes": 6406,
+      "sha256": "75807f5e3320026453dbab60440b349fc23a1be68fc4c65896fb0cb1de68f64c",
+      "canonical_sha256": "75807f5e3320026453dbab60440b349fc23a1be68fc4c65896fb0cb1de68f64c",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsUpdateProcessTests.cs",
+      "bytes": 1505,
+      "sha256": "b1f0864c79a519fc4db5c2880c191c2acd86c545c0eef9233a1c58a4669527a2",
+      "canonical_sha256": "b1f0864c79a519fc4db5c2880c191c2acd86c545c0eef9233a1c58a4669527a2",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Core.Tests/WindowsUpdateProfileFingerprintTests.cs",
+      "bytes": 6330,
+      "sha256": "e31964b6bede5d5d2f4ab15bfa312f5df1d1da6ddb8104611d207b3f574d99ec",
+      "canonical_sha256": "e31964b6bede5d5d2f4ab15bfa312f5df1d1da6ddb8104611d207b3f574d99ec",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Stage3.NativeHelper/Neptune.Stage3.NativeHelper.csproj",
+      "bytes": 206,
+      "sha256": "a05f148c506c3a73a860a9e342f90ed17bdc08167f5069f36b66f78d1ebf7e5d",
+      "canonical_sha256": "a05f148c506c3a73a860a9e342f90ed17bdc08167f5069f36b66f78d1ebf7e5d",
+      "line_endings": "LF"
+    },
+    {
+      "path": "tests/Neptune.Stage3.NativeHelper/Program.cs",
+      "bytes": 7575,
+      "sha256": "3247f78494d5506f75b7e0fa83808955abb6edddb09b2f4fdb4c39cad030f0d9",
+      "canonical_sha256": "3247f78494d5506f75b7e0fa83808955abb6edddb09b2f4fdb4c39cad030f0d9",
+      "line_endings": "LF"
+    }
+  ]
+}

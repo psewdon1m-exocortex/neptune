@@ -10,7 +10,11 @@ using Neptune.Core;
 
 namespace Neptune.Windows;
 
-public sealed record WindowsRelease(Version Version, string VersionText, Uri DownloadUri, string ArtifactName, string Sha256);
+public sealed record WindowsRelease(Version Version, string VersionText, Uri DownloadUri, string ArtifactName, string Sha256)
+{
+    public string Packaging { get; init; }="portable-zip";
+    public WindowsRelease? PreviousInstaller { get; init; }
+}
 
 public sealed class WindowsUpdateService(WindowsProfileContext profile)
 {
@@ -21,6 +25,8 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
 
     public async Task<WindowsRelease?> CheckAsync(WindowsConnection connection, CancellationToken cancellationToken = default)
     {
+        var installed=WindowsPackagingPolicy.IsInstalled(AppContext.BaseDirectory);
+        var requiresClientWriter=await WindowsProfileCommands.UsesClientEvolutionAsync(profile,cancellationToken);
         var register = new KernelRegisterClient(_http, Path.Combine(profile.StateDirectory, "register-update-lkg.json"));
         using var snapshot = connection.KernelCredentialKind == WindowsKernelCredentialKind.NeptuneOutdoorToken
             ? await register.ResolveOutdoorAsync(connection.KernelOrigin, connection.KernelToken, ["repositories.neptune.url"], cancellationToken)
@@ -36,6 +42,19 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
                      .OrderByDescending(value => value.Version))
         {
             if (release.Version! <= CurrentVersion) return null;
+            if(release.Release.Assets.Any(a=>a.Name=="neptune-windows-bundle.json"))
+            {
+                var selected=await ReadBundleAsync(release.Release,release.VersionText,installed?"per-user-msi":"portable-zip",cancellationToken,requiresClientWriter);
+                if(installed)
+                {
+                    var previous=releases.SingleOrDefault(r=>!r.Draft&&!r.Prerelease&&r.TagName==ReleaseTagPrefix+CurrentVersion.ToString(3))
+                        ??throw new InvalidDataException("The previous signed MSI release is required for a recoverable installed update.");
+                    selected=selected with{PreviousInstaller=await ReadBundleAsync(previous,CurrentVersion.ToString(3),"per-user-msi",cancellationToken)};
+                }
+                return selected;
+            }
+            if(installed)throw new InvalidDataException("Installed updates require a signed Windows bundle with MSI compatibility bounds.");
+            if(requiresClientWriter)throw new InvalidDataException("This profile requires a bundle declaring client evolution compatibility.");
             var manifestAsset = release.Release.Assets.SingleOrDefault(value => value.Name == "neptune-windows-release.json")
                 ?? throw new InvalidDataException("Windows release manifest is missing.");
             var signatureAsset = release.Release.Assets.SingleOrDefault(value => value.Name == "neptune-windows-release.json.sig.json")
@@ -58,6 +77,7 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
     public async Task<string> DownloadAsync(WindowsRelease release, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         if (release.DownloadUri.Scheme != Uri.UriSchemeHttps) throw new InvalidDataException("Windows release download requires HTTPS.");
+        if(release.ArtifactName!=Path.GetFileName(release.ArtifactName)||release.ArtifactName.IndexOfAny(['/', '\\', ':'])>=0)throw new InvalidDataException("Unsafe release artifact name.");
         var updateRoot = Path.Combine(profile.StateDirectory, "updates", $"{release.VersionText}-{Guid.NewGuid():N}");
         Directory.CreateDirectory(updateRoot);
         var archivePath = Path.Combine(updateRoot, release.ArtifactName);
@@ -85,10 +105,21 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
             if (!string.Equals(hash, release.Sha256, StringComparison.Ordinal)) throw new InvalidDataException("Downloaded update SHA-256 does not match its manifest.");
         }
 
+        if(release.Packaging=="per-user-msi")
+        {
+            WindowsInstallerTrust.RequireTrusted(archivePath);
+            var previous=release.PreviousInstaller??throw new InvalidDataException("Previous MSI identity missing.");
+            var previousPath=Path.Combine(updateRoot,"previous.msi");
+            await DownloadPreviousInstallerAsync(previous,previousPath,cancellationToken);WindowsInstallerTrust.RequireTrusted(previousPath);
+            var helper=Path.Combine(updateRoot,"helper");WindowsUpdateTransaction.CopyPayload(AppContext.BaseDirectory,helper);
+            await WindowsProfileCommands.WriteJsonAsync(Path.Combine(helper,"update-package.json"),new WindowsStagedUpdate(release.Packaging,archivePath,release.Sha256,release.VersionText,previousPath,previous.Sha256),cancellationToken);
+            return helper;
+        }
         var staging = Path.Combine(updateRoot, "staging");
         Directory.CreateDirectory(staging);
         ExtractSafely(archivePath, staging);
         if (!File.Exists(Path.Combine(staging, "Neptune.Windows.exe"))) throw new InvalidDataException("Downloaded update has no Neptune executable.");
+        await WindowsProfileCommands.WriteJsonAsync(Path.Combine(staging,"update-package.json"),new WindowsStagedUpdate(release.Packaging,archivePath,release.Sha256,release.VersionText),cancellationToken);
         return staging;
     }
 
@@ -96,6 +127,7 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
     {
         var executable = Environment.ProcessPath ?? throw new InvalidOperationException("Neptune executable path is unavailable.");
         var target = Path.GetDirectoryName(executable) ?? throw new InvalidOperationException("Neptune application directory is unavailable.");
+        if(HasOtherInstances())throw new InvalidOperationException("Other profile owners must close before update apply.");
         var updater = Path.Combine(stagingDirectory, "Neptune.Windows.exe");
         var start = new ProcessStartInfo(updater) { UseShellExecute = false, WorkingDirectory = stagingDirectory };
         start.ArgumentList.Add("--apply-update");
@@ -104,6 +136,35 @@ public sealed class WindowsUpdateService(WindowsProfileContext profile)
         start.ArgumentList.Add("--wait-pid"); start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         start.ArgumentList.Add("--profile"); start.ArgumentList.Add(profile.ProfileId);
         _ = Process.Start(start) ?? throw new InvalidOperationException("Could not start the Neptune update helper.");
+    }
+
+    private async Task<WindowsRelease> ReadBundleAsync(GitHubRelease release,string version,string packaging,CancellationToken ct,bool requiresClientWriter=false)
+    {
+        var manifest=release.Assets.Single(a=>a.Name=="neptune-windows-bundle.json");
+        var signature=release.Assets.Single(a=>a.Name=="neptune-windows-bundle.json.sig.json");
+        var trust=Environment.GetEnvironmentVariable("NEPTUNE_RELEASE_TRUST_FILE")??Path.Combine(AppContext.BaseDirectory,"release-trust","neptune.pem");
+        using var json=System.Text.Json.JsonDocument.Parse(await ReleaseSignature.DownloadManifestAsync(_http,manifest.DownloadUrl,signature.DownloadUrl,trust,ct));var root=json.RootElement;
+        if(root.GetProperty("schema").GetString()!="exocortex.neptune.windows-bundle.v1"||root.GetProperty("product").GetString()!="neptune-windows"
+            ||root.GetProperty("runtime").GetString()!="win-x64"||root.GetProperty("version").GetString()!=version)throw new InvalidDataException("Windows bundle identity mismatch.");
+        var compatibility=root.GetProperty("compatibility");
+        if(requiresClientWriter&&(!compatibility.TryGetProperty("client_evolution_max",out var evolution)||evolution.GetInt32()<1))throw new InvalidDataException("Windows bundle cannot recover this profile's extended originals.");
+        if(compatibility.GetProperty("sync_protocol_min").GetInt32()>1||compatibility.GetProperty("sync_protocol_max").GetInt32()<1)throw new InvalidDataException("Windows bundle is not protocol-compatible.");
+        if(compatibility.TryGetProperty("local_cycle_max",out var max)&&max.GetInt32()<7)throw new InvalidDataException("Windows bundle cannot preserve current cycle receipts.");
+        var variant=root.GetProperty("variants").EnumerateArray().Single(v=>v.GetProperty("packaging").GetString()==packaging);
+        var artifact=variant.GetProperty("artifact").GetString()!;var sha=variant.GetProperty("sha256").GetString()!;
+        if(!IsSha256(sha)||artifact!=Path.GetFileName(artifact)||variant.GetProperty("size").GetInt64() is <1 or >2L*1024*1024*1024)throw new InvalidDataException("Windows bundle artifact is invalid.");
+        var asset=release.Assets.Single(a=>a.Name==artifact);
+        if(asset.DownloadUrl.AbsoluteUri!=variant.GetProperty("url").GetString())throw new InvalidDataException("Bundle artifact URL differs from the release.");
+        return new(Version.Parse(version),version,asset.DownloadUrl,artifact,sha.ToLowerInvariant()){Packaging=packaging};
+    }
+    private async Task DownloadPreviousInstallerAsync(WindowsRelease previous,string path,CancellationToken ct)
+    {
+        if(previous.DownloadUri.Scheme!=Uri.UriSchemeHttps)throw new InvalidDataException("MSI download requires HTTPS.");
+        using var response=await _http.GetAsync(previous.DownloadUri,HttpCompletionOption.ResponseHeadersRead,ct);response.EnsureSuccessStatusCode();
+        await using(var input=await response.Content.ReadAsStreamAsync(ct))
+        await using(var output=new FileStream(path,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+        {var buffer=new byte[128*1024];long bytes=0;int count;while((count=await input.ReadAsync(buffer,ct))>0){bytes+=count;if(bytes>2L*1024*1024*1024)throw new InvalidDataException("MSI download limit.");await output.WriteAsync(buffer.AsMemory(0,count),ct);}output.Flush(true);}
+        WindowsUpdateTransaction.RequireHash(path,previous.Sha256);
     }
 
     public static bool HasOtherInstances()

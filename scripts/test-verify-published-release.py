@@ -67,7 +67,7 @@ class PublishedReleaseTests(unittest.TestCase):
         self.objects[self.api + "/git/ref/tags/" + fixture.TAG] = {"object": {"type": "tag", "sha": annotation}}
         self.objects[self.api + "/git/tags/" + annotation] = {"object": {"type": "commit", "sha": REVISION}}
         self.verify()
-        self.assertEqual(len([url for url in self.requests if url.startswith(self.base)]), 14)
+        self.assertEqual(len([url for url in self.requests if url.startswith(self.base)]), 20)
         self.assertNotIn(self.base + "neptune.private.pem", self.requests)
 
     def test_wrong_release_state_or_tag_is_rejected(self):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify every release artifact and trust link before public publication."""
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -57,7 +58,15 @@ def verify(directory):
             [sys.executable, "scripts/verify-release-manifest.py", str(manifest_path), str(directory / f"{manifest_name}.sig.json"), str(directory / "neptune.pem")],
             check=True,
         )
-    print("PASS unified Neptune release artifacts, checksums, manifests and trust key")
+    windows_spec = importlib.util.spec_from_file_location("windows_release", Path(__file__).resolve().parents[1] / "packaging/windows/windows_release.py")
+    windows = importlib.util.module_from_spec(windows_spec)
+    windows_spec.loader.exec_module(windows)
+    windows.verify_bundle(directory, version, repository, os.environ.get("GITHUB_SHA"))
+    subprocess.run(
+        [sys.executable, "scripts/verify-release-manifest.py", str(directory / "neptune-windows-bundle.json"), str(directory / "neptune-windows-bundle.json.sig.json"), str(directory / "neptune.pem")],
+        check=True,
+    )
+    print("PASS unified Neptune release artifacts, checksums, signed Windows variants and shared payload identity")
 
 
 if __name__ == "__main__":

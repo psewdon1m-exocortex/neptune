@@ -74,6 +74,33 @@ public sealed class TransferSafetyTests
         finally { File.Delete(file); }
     }
 
+    [Fact]
+    public async Task ReusesTheWindowsScanDigestAndStillRequiresSaturnChecksumConfirmation()
+    {
+        var file = Path.GetTempFileName();
+        var content = Encoding.UTF8.GetBytes("valuable-prehashed-payload");
+        await File.WriteAllBytesAsync(file, content, TestContext.Current.CancellationToken);
+        var digest = Convert.ToHexStringLower(SHA256.HashData(content));
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if (request.Method == HttpMethod.Head) return new(HttpStatusCode.NotFound);
+            Assert.Equal(HttpMethod.Put, request.Method);
+            Assert.Equal(digest, request.Headers.GetValues("X-Content-Sha256").Single());
+            Assert.Equal(content, await request.Content!.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
+            var response = new HttpResponseMessage(HttpStatusCode.Created);
+            response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue($"\"sha256-{digest}\"");
+            return response;
+        }));
+        try
+        {
+            var receipt = await new WebDavSyncClient(http).UploadAsync(
+                new Uri("https://saturn.test/webdav/sync/Fixture/"), "fixture", "data.bin", file, digest,
+                TestContext.Current.CancellationToken);
+            Assert.Equal($"\"sha256-{digest}\"", receipt);
+        }
+        finally { File.Delete(file); }
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -166,6 +193,64 @@ public sealed class TransferSafetyTests
         {
             SqliteConnection.ClearAllPools();
             Directory.Delete(directory,true);
+        }
+    }
+
+    [Fact]
+    public async Task PayloadLimitKeepsSourceAndOneDurableRetryIdentityUntilTheFileDisappears()
+    {
+        const string token = "fixture";
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-limit-checkpoint-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var file = Path.Combine(directory, "too-large.bin");
+        var original = new byte[1024 * 1024 + 1];
+        RandomNumberGenerator.Fill(original);
+        await File.WriteAllBytesAsync(file, original, TestContext.Current.CancellationToken);
+        var database = Path.Combine(directory, "state.db");
+        var store = new NeptuneStateStore(database);
+        await store.InitializeAsync(TestContext.Current.CancellationToken);
+        var keys = new List<string>();
+        var cancels = 0;
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if (request.Method == HttpMethod.Head) return new(HttpStatusCode.NotFound);
+            if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath == "/api/v1/sync/uploads")
+            {
+                using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+                keys.Add(body.RootElement.GetProperty("idempotencyKey").GetString()!);
+                return new(HttpStatusCode.RequestEntityTooLarge) { Content = new StringContent("{\"code\":\"payload_too_large\"}", Encoding.UTF8, "application/json") };
+            }
+            if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath.EndsWith("/cancel", StringComparison.Ordinal))
+            {
+                cancels++;
+                return new(HttpStatusCode.OK) { Content = new StringContent("{\"status\":\"absent\"}", Encoding.UTF8, "application/json") };
+            }
+            throw new InvalidOperationException("Unexpected request: " + request);
+        }));
+        try
+        {
+            var root = new Uri("https://saturn.test/dav/sync/Fixture/");
+            var client = new WebDavSyncClient(http, store);
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.UploadAsync(root, token, "too-large.bin", file, TestContext.Current.CancellationToken));
+                Assert.Equal(HttpStatusCode.RequestEntityTooLarge, error.StatusCode);
+                Assert.Equal(original, await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
+            }
+            Assert.Equal(2, keys.Count);
+            Assert.Single(keys.Distinct(StringComparer.Ordinal));
+            var scope = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("https://saturn.test\n" + token)));
+            Assert.Single(await store.ListSyncUploadCheckpointsAsync(scope, TestContext.Current.CancellationToken));
+
+            File.Delete(file);
+            await client.CancelMissingUploadsAsync(root, token, new HashSet<string>(), TestContext.Current.CancellationToken);
+            Assert.Equal(1, cancels);
+            Assert.Empty(await store.ListSyncUploadCheckpointsAsync(scope, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, true);
         }
     }
 

@@ -16,3 +16,7 @@ obj/
 *.suo
 state/
 .tmp/
+
+# Public frozen candidate metadata only; private signing material stays outside this repository.
+!.release/package3-qualification/
+!.release/package3-qualification/**

@@ -2,6 +2,11 @@ name: Neptune CI
 
 on:
   workflow_call:
+    inputs:
+      qualification_source_manifest:
+        description: Frozen package 3 source-input manifest; empty for ordinary CI.
+        type: string
+        default: ''
   pull_request:
   push:
     branches: [main]
@@ -21,6 +26,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Restore and verify frozen package 3 source bytes
+        if: ${{ inputs.qualification_source_manifest != '' }}
+        run: python3 scripts/verify-package3-source.py "${{ inputs.qualification_source_manifest }}" --report "${{ runner.temp }}/package3-source-${{ github.job }}.json"
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
@@ -32,15 +40,16 @@ jobs:
           sh -n packaging/linux/install.sh
           grep -Fx 'RuntimeDirectoryPreserve=yes' packaging/linux/neptune.service
           python3 scripts/test-windows-icons.py
-      - name: Build and test
+      - name: Build and test portable/native baseline (live qualification is separate)
         run: |
           dotnet build src/Neptune.Linux/Neptune.Linux.csproj -c Release
-          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live"
       - name: Validate pinned Part 12 catalog and fail-closed gate
         run: |
           python3 scripts/test-known-problems-gate.py
           python3 scripts/test-verify-unified-release.py
           python3 scripts/test-verify-published-release.py
+          python3 scripts/test-windows-packaging.py
           python3 scripts/known-problems-gate.py --phase structure
       - name: Check vulnerable runtime dependencies
         run: dotnet list src/Neptune.Linux/Neptune.Linux.csproj package --vulnerable --include-transitive
@@ -57,14 +66,17 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Restore and verify frozen package 3 source bytes
+        if: ${{ inputs.qualification_source_manifest != '' }}
+        run: python scripts/verify-package3-source.py "${{ inputs.qualification_source_manifest }}" --report "${{ runner.temp }}/package3-source-${{ github.job }}.json"
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
-      - name: Build and test
+      - name: Build and test portable/native baseline (live qualification is separate)
         shell: pwsh
         run: |
           dotnet build Neptune.slnx -c Release
-          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --no-build
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live" --no-build
       - name: Check vulnerable runtime dependencies
         run: dotnet list src/Neptune.Windows/Neptune.Windows.csproj package --vulnerable --include-transitive
       - name: Publish smoke test
@@ -72,6 +84,25 @@ jobs:
         run: |
           dotnet publish src/Neptune.Windows/Neptune.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/win-x64
           if (!(Test-Path artifacts/win-x64/Neptune.Windows.exe)) { throw 'Windows executable was not published.' }
+      - name: Build both Windows packages from the one published payload
+        shell: pwsh
+        run: |
+          python scripts/test-windows-packaging.py
+          if ($LASTEXITCODE -ne 0) { throw 'Windows packaging contract tests failed.' }
+          node scripts/create-release-key.mjs neptune artifacts/package-test-key
+          if ($LASTEXITCODE -ne 0) { throw 'Disposable packaging key generation failed.' }
+          New-Item -ItemType Directory -Path artifacts/win-x64/release-trust -Force | Out-Null
+          Copy-Item artifacts/package-test-key/neptune.pem artifacts/win-x64/release-trust/neptune.pem
+          [xml]$props = Get-Content Directory.Build.props
+          ./scripts/build-windows-packages.ps1 -PayloadDirectory artifacts/win-x64 -OutputDirectory artifacts/windows-packages `
+            -Version $props.Project.PropertyGroup.VersionPrefix -SourceRevision $env:GITHUB_SHA
+      - name: Upload Windows package review artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: neptune-windows-packages-${{ github.sha }}
+          path: artifacts/windows-packages/neptune-*
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload Windows test build
         if: github.event_name == 'push'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

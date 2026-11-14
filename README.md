@@ -52,7 +52,8 @@ credentials and never exposes a web interface.
   reconciliation, tray operation, per-profile current-user autostart and a
   checksummed portable updater;
 - `packaging/linux` contains the hardened systemd unit and installer;
-- `packaging/windows` contains the future MSIX manifest and complete Windows icon family;
+- `packaging/windows` contains the MSI authoring and complete Windows icon family;
+  `scripts/build-windows-packages.ps1` builds MSI and portable ZIP from one published payload;
 - `.github/workflows` publishes platform-specific artifacts from one
   service-qualified release stream.
 
@@ -60,7 +61,7 @@ Build and test with the pinned .NET SDK:
 
 ```text
 dotnet build Neptune.slnx
-dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj
+dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live"
 ```
 
 Multiple clients on one Windows account use separate profiles and therefore
@@ -292,9 +293,11 @@ active run. Enabling schedules the next run; it does not silently start one.
 
 The legacy project-local facade remains for diagnostics and compatibility;
 new policy clients use `/v1/projects/{deployment}/policy` for schedules and
-`GET /v1/projects/{deployment}/policy/runs` for history. The daemon's versioned
-`POST /policy/runs` remains for already integrated producers; current service
-GUIs do not expose it. Legacy unversioned schedule/run writers return 426; service-facing
+`GET /v1/projects/{deployment}/policy/runs` for history. The versioned
+`POST /v1/projects/{deployment}/policy/runs` route forwards requests to Saturn.
+The current authenticated Saturn endpoint returns 410: manual remote runs are
+unsupported through this relay. Current service GUIs do not expose a manual-run
+action. Legacy unversioned schedule/run writers return 426; service-facing
 manual policy-run and Neptune update routes reject new requests:
 
 ```text
@@ -428,9 +431,8 @@ Version 1 behavior is deliberately one-way:
 The application, Start menu, taskbar, Task Manager, system tray, installer,
 notifications and file associations use one Neptune portrait emblem rendered at
 all required Windows sizes. The executable embeds a multi-resolution icon so
-small notification-area glyphs do not depend on a scaled taskbar bitmap. The
-taskbar icon also provides progress/error overlays where the platform supports
-them. The emblem uses a full-bleed square composition without a decorative
+small notification-area glyphs do not depend on a scaled taskbar bitmap. Progress, elapsed time and ETA are displayed in the synchronization window.
+Taskbar progress/error overlays are not implemented in this version. The emblem uses a full-bleed square composition without a decorative
 outline, while runtime controls continue to share Saturn's current accent token.
 
 The palette is not compiled into runtime controls. When enabled in Appearance,
@@ -508,3 +510,7 @@ Only after anonymous verification and the final Part 12 gate pass does CI attach
 Saturn creates `sync/<Connection name>` and returns `syncRootId` and `syncFolderName` during enrollment and heartbeat. Windows has no destination-folder input; its protected profile stores the server assignment. A missing or unsafe assignment stops the client before DAV requests. The server enforces both endpoints of MOVE/COPY, prevents removal or relocation of the assigned root and denies other clients’ folders. Reissue setup for legacy unbound devices; if the name collides with an existing folder, create a new isolated connection name instead of adopting that folder. File data is retained.
 
 Volt and Mastermind setup codes provision the selected archive/mirror capabilities. `NEPTUNE_BACKUP_AVAILABLE` defaults to true for older profiles. Mirror-only projects retain their control credential for policy and check-in but cannot run archives. See [service-owned policy](docs/service-owned-policy.md).
+
+## Test lanes and current qualification
+
+See [test lanes](docs/TEST_LANES.md) for baseline, native Windows, live and historical prerequisites. MSI signatures and Windows OS trust must be checked separately from portable payload integrity. A successful local build does not qualify a production install/update/rollback.

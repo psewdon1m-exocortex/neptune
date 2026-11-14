@@ -8,22 +8,29 @@ using Xunit;
 
 namespace Neptune.Core.Tests;
 
-public sealed class WindowsEnrollmentTests
+public sealed partial class WindowsEnrollmentTests
 {
-    [Fact]
+    [Fact, Trait("Lane", "Live")]
     public async Task InPlaceClientUpdatePreservesConnectionIdentityAndMappings()
     {
         // DPAPI is the production credential boundary and can only be exercised
         // on the Windows CI lane. The rest of the suite still compiles/runs on Linux.
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }
         var root = Path.Combine(Path.GetTempPath(),"neptune-windows-upgrade-"+Guid.NewGuid().ToString("N"));
-        var stateDirectory = Path.Combine(root,"persistent-profile");
+        var profile = WindowsProfileContext.FromArguments(["--profile", "upgrade-" + Guid.NewGuid().ToString("N")]);
+        var stateDirectory = profile.StateDirectory;
         var source = Path.Combine(root,"new-release");
         var target = Path.Combine(root,"installed-application");
         Directory.CreateDirectory(source); Directory.CreateDirectory(target);
-        await File.WriteAllTextAsync(Path.Combine(source,"Neptune.Windows.exe"),"new",TestContext.Current.CancellationToken);
+        var payload = Environment.GetEnvironmentVariable("ENDURANCE_WINDOWS_PAYLOAD");
+        Assert.True(payload is not null && File.Exists(Path.Combine(payload, "Neptune.Windows.exe")), "A published Windows payload is required in ENDURANCE_WINDOWS_PAYLOAD for the real update health process.");
+        foreach(var file in Directory.EnumerateFiles(payload!, "*", SearchOption.AllDirectories))
+        {
+            var destination = Path.Combine(source, Path.GetRelativePath(payload!, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(file, destination);
+        }
         await File.WriteAllTextAsync(Path.Combine(target,"Neptune.Windows.exe"),"old",TestContext.Current.CancellationToken);
-        var profile = new WindowsProfileContext("existing-profile",stateDirectory,false);
         var connection = new WindowsConnection(new Uri("https://kernel.test"),"kernel-token",new string('s',43),"Assigned PC");
         var connections = new WindowsConnectionStore(profile.StateDirectory);
         var state = new NeptuneStateStore(Path.Combine(profile.StateDirectory,"neptune.db"));
@@ -44,10 +51,14 @@ public sealed class WindowsEnrollmentTests
             var mapping = new SyncMapping("mapping-existing",clientId,Path.Combine(root,"Documents"),true,DateTimeOffset.UtcNow);
             await state.AddMappingAsync(mapping,TestContext.Current.CancellationToken);
 
-            UpdateApplyMode.ReplaceApplicationFiles(source,target);
+            // The updater normally runs after the application exits. Release
+            // pooled test connections to reproduce that closed-process boundary.
+            SqliteConnection.ClearAllPools();
+            WindowsUpdateTransaction.ApplyPortable(source,target,profile.ProfileId,relaunch:false);
             var relaunch = UpdateApplyMode.CreateRelaunchStartInfo(target,profile.ProfileId);
 
-            Assert.Equal("new",await File.ReadAllTextAsync(Path.Combine(target,"Neptune.Windows.exe"),TestContext.Current.CancellationToken));
+            Assert.Equal(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(source,"Neptune.Windows.exe"),TestContext.Current.CancellationToken)),
+                System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(target,"Neptune.Windows.exe"),TestContext.Current.CancellationToken)));
             Assert.Equal(["--profile",profile.ProfileId],relaunch.ArgumentList);
             Assert.Equal(connection,connections.Read());
             Assert.Equal(clientId,await new ClientIdentityStore(profile.StateDirectory).GetOrCreateAsync(TestContext.Current.CancellationToken));
@@ -58,6 +69,7 @@ public sealed class WindowsEnrollmentTests
         {
             SqliteConnection.ClearAllPools();
             if(Directory.Exists(root)) Directory.Delete(root,true);
+            if(Directory.Exists(stateDirectory)) Directory.Delete(stateDirectory,true);
         }
     }
 
@@ -86,6 +98,139 @@ public sealed class WindowsEnrollmentTests
             Assert.All(handler.DavRequests, uri => Assert.StartsWith("/webdav/sync/" + Uri.EscapeDataString(folder) + "/Documents/", uri.AbsolutePath));
         }
         finally { SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
+    }
+
+    [Theory]
+    [InlineData(50)]
+    [InlineData(-1)]
+    public async Task DefersOrRetriesAnObsidianStyleAtomicReplacementWithoutFailingTheWholeSync(int recreateAfterMilliseconds)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "neptune-windows-replace-" + Guid.NewGuid().ToString("N"));
+        var mappingDirectory = Path.Combine(directory, "obsidian");
+        Directory.CreateDirectory(mappingDirectory);
+        var file = Path.Combine(mappingDirectory, "Агентность, допуск контроля, инициативность.md");
+        const string content = "valuable markdown";
+        await File.WriteAllTextAsync(file, content, TestContext.Current.CancellationToken);
+        using var handler = new Handler("Assigned");
+        Task replacement = Task.CompletedTask;
+        var replaced = false;
+        var uploaded = false;
+        var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(content)));
+        handler.DavOverride = request =>
+        {
+            var route = request.RequestUri!.AbsolutePath;
+            if (!replaced && request.Method.Method == "MKCOL" && route.EndsWith("/obsidian/", StringComparison.Ordinal))
+            {
+                replaced = true;
+                File.Delete(file);
+                if (recreateAfterMilliseconds >= 0)
+                    replacement = Task.Run(async () =>
+                    {
+                        await Task.Delay(recreateAfterMilliseconds);
+                        await File.WriteAllTextAsync(file, content);
+                    });
+                return new(HttpStatusCode.Created);
+            }
+            if (request.Method == HttpMethod.Head && route.EndsWith(".md", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
+            if (request.Method == HttpMethod.Put && route.EndsWith(".md", StringComparison.Ordinal))
+            {
+                uploaded = true;
+                var response = new HttpResponseMessage(HttpStatusCode.Created);
+                response.Headers.ETag = new System.Net.Http.Headers.EntityTagHeaderValue($"\"sha256-{digest}\"");
+                return response;
+            }
+            return null;
+        };
+        using var http = new HttpClient(handler);
+        var service = new WindowsSyncService(new WindowsProfileContext("test", directory, false), http);
+        var connection = new WindowsConnection(new Uri("https://kernel.test"), "fixture", new string('b', 43), "Assigned");
+        try
+        {
+            var mapping = new SyncMapping("mapping-id", "client", mappingDirectory, true, DateTimeOffset.UtcNow);
+            var state = new NeptuneStateStore(Path.Combine(directory, "neptune.db"));
+            await state.InitializeAsync(TestContext.Current.CancellationToken);
+            await state.AddMappingAsync(mapping, TestContext.Current.CancellationToken);
+            var result = await service.SyncAsync("client", [mapping], connection, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.True(replaced);
+            Assert.Equal(recreateAfterMilliseconds >= 0, uploaded);
+            Assert.Equal(recreateAfterMilliseconds >= 0 ? 1 : 0, result.UploadedFiles);
+            Assert.Equal(recreateAfterMilliseconds >= 0 ? 0 : 1, result.DeferredFiles);
+            if (recreateAfterMilliseconds >= 0) Assert.Equal(content, await File.ReadAllTextAsync(file, TestContext.Current.CancellationToken));
+            else Assert.False(File.Exists(file));
+        }
+        finally
+        {
+            await replacement;
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LegacyRechecksContentAndRetainsAFileMissingAcrossScanAndRestart(bool temporarilyMissing)
+    {
+        var ct=TestContext.Current.CancellationToken;
+        var directory=Path.Combine(Path.GetTempPath(),"neptune-editor-regression-"+Guid.NewGuid().ToString("N"));
+        var source=Path.Combine(directory,"vault");Directory.CreateDirectory(source);
+        var file=Path.Combine(source,"note.md");await File.WriteAllTextAsync(file,"version1",ct);
+        string? remoteDigest=null;var puts=0;var listings=0;
+        using var handler=new Handler("Assigned");
+        handler.DavOverride=request=>
+        {
+            if(request.Method.Method=="PROPFIND")listings++;
+            if(!request.RequestUri!.AbsolutePath.EndsWith("/note.md",StringComparison.Ordinal))return null;
+            if(request.Method==HttpMethod.Put)
+            {
+                var bytes=request.Content!.ReadAsByteArrayAsync(ct).GetAwaiter().GetResult();
+                remoteDigest=Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));puts++;
+            }
+            if(request.Method==HttpMethod.Head||request.Method==HttpMethod.Put)
+            {
+                var reply=new HttpResponseMessage(remoteDigest is null?HttpStatusCode.NotFound:HttpStatusCode.OK);
+                if(remoteDigest is not null)reply.Headers.ETag=new($"\"sha256-{remoteDigest}\"");
+                return reply;
+            }
+            return null;
+        };
+        using var http=new HttpClient(handler);
+        var profile=new WindowsProfileContext("test",directory,false);
+        var service=new WindowsSyncService(profile,http);
+        var connection=new WindowsConnection(new Uri("https://kernel.test"),"fixture",new string('b',43),"Assigned");
+        var mapping=new SyncMapping("mapping-id","client",source,true,DateTimeOffset.UtcNow);
+        var state=new NeptuneStateStore(Path.Combine(directory,"neptune.db"));
+        try
+        {
+            await state.InitializeAsync(ct);await state.AddMappingAsync(mapping,ct);
+            Assert.Equal(1,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).UploadedFiles);
+            if(temporarilyMissing)
+            {
+                File.Move(file,Path.Combine(directory,"retained.md"));var previousListings=listings;
+                Assert.Equal(1,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).DeferredFiles);
+                var missing=await state.GetSyncFileAsync(mapping.MappingId,"note.md",ct);Assert.Equal("missing-local",missing!.State);
+                Assert.Equal(previousListings,listings);
+                await service.DisposeAsync();service=new(profile,http);
+                Assert.Equal(1,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).DeferredFiles);
+                Assert.Equal(missing.UpdatedAt,(await state.GetSyncFileAsync(mapping.MappingId,"note.md",ct))!.UpdatedAt);
+                Assert.Equal(previousListings,listings);
+                File.Move(Path.Combine(directory,"retained.md"),file);
+                Assert.Equal(0,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).DeferredFiles);
+                Assert.Equal("synced",(await state.GetSyncFileAsync(mapping.MappingId,"note.md",ct))!.State);
+                Assert.Equal(1,puts);
+            }
+            else
+            {
+                var before=new FileInfo(file);var modified=before.LastWriteTimeUtc;var length=before.Length;
+                await File.WriteAllTextAsync(file,"version2",ct);File.SetLastWriteTimeUtc(file,modified);
+                Assert.Equal(length,new FileInfo(file).Length);Assert.Equal(modified,File.GetLastWriteTimeUtc(file));
+                Assert.Equal(1,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).UploadedFiles);
+                Assert.Equal(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("version2"))),remoteDigest);
+                Assert.Equal(0,(await service.SyncAsync("client",[mapping],connection,cancellationToken:ct)).UploadedFiles);
+                Assert.Equal(2,puts);
+            }
+        }
+        finally{await service.DisposeAsync();SqliteConnection.ClearAllPools();Directory.Delete(directory,true);}
     }
 
     [Theory]
@@ -145,6 +290,7 @@ public sealed class WindowsEnrollmentTests
 
     private sealed class Handler(string? folder) : HttpMessageHandler
     {
+        public Func<HttpRequestMessage, HttpResponseMessage?>? DavOverride { get; set; }
         public HttpStatusCode? KernelFailure {get;set;}
         public int EnrollmentRequests {get;private set;}
         public int OutdoorRequests { get; private set; }
@@ -177,13 +323,17 @@ public sealed class WindowsEnrollmentTests
             if (route == "/api/v1/device-session/heartbeat")
             {
                 Assert.Equal(new string('b', 43), request.Headers.Authorization?.Parameter);
-                return Task.FromResult(Json(new { syncRootId = Guid.NewGuid().ToString(), syncFolderName = folder }));
+                return Task.FromResult(Json(new { id = "82b44ad9-6360-45cc-9a0c-a36cce13b559", syncRootId = "d3eeae64-79d8-492b-b4b7-3b535ebd2a48", syncFolderName = folder }));
             }
+            if (route == "/sync/v1/roots/d3eeae64-79d8-492b-b4b7-3b535ebd2a48/capabilities")
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
             if (route == "/preferences") return Task.FromResult(Json(new { accentColor = "#00A8FF" }));
             if (route.StartsWith("/webdav/", StringComparison.Ordinal))
             {
                 DavRequests.Add(request.RequestUri);
                 Assert.Equal(new string('b', 43), request.Headers.Authorization?.Parameter);
+                var selected = DavOverride?.Invoke(request);
+                if (selected is not null) return Task.FromResult(selected);
                 return Task.FromResult(request.Method.Method == "PROPFIND"
                     ? new HttpResponseMessage((HttpStatusCode)207) { Content = new StringContent("<d:multistatus xmlns:d=\"DAV:\" />") }
                     : new HttpResponseMessage(HttpStatusCode.Created));
