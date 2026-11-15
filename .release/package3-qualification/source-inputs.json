@@ -2,9 +2,9 @@
   "schema": "exocortex.package3.frozen-source.v1",
   "component": "neptune",
   "version": "0.1.19",
-  "baseGitCommit": "b672a053fde5d3d81343325fc244c0c18ab9b03c",
-  "scope": "Exact N2 runtime unchanged since A1185; qualification Windows native tests use a separate private NTFS/USN volume to evaluate shared-host volume churn. All existing native assertions and ordinary full CI remain mandatory. Final new-build/artifact/native acceptance pending.",
-  "sourceSetSHA256": "6c7864efc63a8012dbc6f7ebcf284055f8d6c55965e0ac7b22a23c7e5d39e6d0",
+  "baseGitCommit": "8ed74ab77da3a4c425c98038cb16624f13d64a01",
+  "scope": "N2 runtime unchanged; correct private Windows NTFS fixture capacity to preserve existing10GiBfree floor, with separate12GiBphysicalbacking admission. Targeted16 and full ordinary CI remain mandatory; final artifact/native acceptance pending.",
+  "sourceSetSHA256": "8d5b7d59e1d5abf0fa89faed36d88d8eeabe940fb927a291d636f1f34d51413a",
   "files": [
     {
       "path": ".gitattributes",
@@ -225,9 +225,9 @@
     },
     {
       "path": "docs/PACKAGE3_QUALIFICATION.md",
-      "bytes": 3578,
-      "sha256": "3111321e76d2184b80c8c2a37ba1e85c2eae7cb040cfb57ea69295d68ae420c2",
-      "canonical_sha256": "3111321e76d2184b80c8c2a37ba1e85c2eae7cb040cfb57ea69295d68ae420c2",
+      "bytes": 4012,
+      "sha256": "2eee0794fe7a47d5065fe8ef3130cdeca08b08f4f09b723ecb909bc25bc75180",
+      "canonical_sha256": "2eee0794fe7a47d5065fe8ef3130cdeca08b08f4f09b723ecb909bc25bc75180",
       "line_endings": "LF"
     },
     {
@@ -456,9 +456,9 @@
     },
     {
       "path": "scripts/package3-native-ci-volume.ps1",
-      "bytes": 4911,
-      "sha256": "5833e98c2927cd83edc967c595566ae00335fa308d543bd5eb4fc269f107fcbd",
-      "canonical_sha256": "5833e98c2927cd83edc967c595566ae00335fa308d543bd5eb4fc269f107fcbd",
+      "bytes": 5291,
+      "sha256": "ac6c99276cbe429949b4c087c39f949862fdf7d4d5649dbf4b9271cb00ba798d",
+      "canonical_sha256": "ac6c99276cbe429949b4c087c39f949862fdf7d4d5649dbf4b9271cb00ba798d",
       "line_endings": "LF"
     },
     {

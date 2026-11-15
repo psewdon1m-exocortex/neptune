@@ -6,11 +6,13 @@ function Save($s){[IO.File]::WriteAllText($statePath,($s|ConvertTo-Json -Depth 8
 if($Mode -eq 'Start'){
  if((Test-Path -LiteralPath $root) -or (Test-Path -LiteralPath 'R:\') -or (Get-Volume -DriveLetter R -ErrorAction SilentlyContinue)){throw 'Fresh owned directory and unused R: required'}
  $null=New-Item -ItemType Directory -Path $root
- $file=Join-Path $root 'package3-native-ntfs.vhdx';$s=@{at=(Get-Date -AsUTC -Format o);status='PREPARING';image=$file;drive='R';commit=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;job=$env:GITHUB_JOB;maximumMiB=8192;productOrTestChanges=0}
+ $backing=New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($root));$backingFree=$backing.AvailableFreeSpace
+ if($backingFree -lt 12GB){throw 'Physical backing needs the unchanged 10GiB floor plus 2GiB build/test forecast; thin VHD capacity alone is insufficient'}
+ $file=Join-Path $root 'package3-native-ntfs.vhdx';$s=@{at=(Get-Date -AsUTC -Format o);status='PREPARING';image=$file;drive='R';commit=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;job=$env:GITHUB_JOB;maximumMiB=24576;physicalBackingAdmissionFreeBytes=$backingFree;physicalBuildTestForecastBytes=2GB;unchangedTestFreeFloorBytes=10GB;productOrTestChanges=0}
  Save $s
  try{
   $commands=@(
-   ('create vdisk file="{0}" maximum=8192 type=expandable' -f $file)
+   ('create vdisk file="{0}" maximum=24576 type=expandable' -f $file)
    ('select vdisk file="{0}"' -f $file)
    'attach vdisk'
    'create partition primary'
