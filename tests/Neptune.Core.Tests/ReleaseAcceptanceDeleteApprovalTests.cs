@@ -355,11 +355,25 @@ public sealed partial class Stage3ChatBTests
         // Remote effect count can lead local receipt settlement at a bounded
         // cycle yield. Establish that precondition before dirtying all rows.
         const string settledReceipts = "SELECT COUNT(*) FROM client_namespace_operations o JOIN local_cycle_files f ON f.scope_id=o.scope_id AND f.node_id=o.node_id WHERE o.kind='quarantine-delete' AND o.state='PUBLISHED' AND o.receipt_json IS NOT NULL AND f.baseline IS NULL AND f.remote_node IS NULL AND NOT EXISTS(SELECT 1 FROM local_cycle_work w WHERE w.scope_id=f.scope_id AND w.node_id=f.node_id AND w.active=1)";
+        var settlementObservations = new List<object>();
         for (var attempt = 0; attempt < 5 && (long)(await fixture.Scalar(settledReceipts))! < names.Length; attempt++)
         {
             await fixture.WaitDueAsync();
-            Assert.Null((await engine.FreshSyncAsync(Ct)).Error);
+            var cycle = await engine.FreshSyncAsync(Ct);
+            Assert.Null(cycle.Error);
+            settlementObservations.Add(new { attempt = attempt + 1, retainedSettledReceipts = await fixture.Scalar(settledReceipts), cycle.Decision, mutations = fixture.Remote.Mutations.Count, clock = clock.GetUtcNow() });
         }
+        await fixture.Evidence("T04-receipt-settlement-before-hints", new
+        {
+            expected = names.Length,
+            retainedSettledReceipts = await fixture.Scalar(settledReceipts),
+            settledFileRows = await fixture.Scalar("SELECT COUNT(*) FROM local_cycle_files f WHERE f.kind=0 AND f.baseline IS NULL AND f.remote_node IS NULL AND NOT EXISTS(SELECT 1 FROM local_cycle_work w WHERE w.scope_id=f.scope_id AND w.node_id=f.node_id AND w.active=1)"),
+            operationStates = await fixture.Scalar("SELECT json_group_array(json_object('state',state,'rows',n,'receipts',r)) FROM(SELECT state,COUNT(*) n,SUM(receipt_json IS NOT NULL) r FROM client_namespace_operations WHERE kind='quarantine-delete' GROUP BY state)"),
+            filePhases = await fixture.Scalar("SELECT json_group_array(json_object('phase',phase,'rows',n,'baselines',b,'remoteNodes',r)) FROM(SELECT phase,COUNT(*) n,SUM(baseline IS NOT NULL) b,SUM(remote_node IS NOT NULL) r FROM local_cycle_files WHERE kind=0 GROUP BY phase)"),
+            activeWork = await fixture.Scalar("SELECT COUNT(*) FROM local_cycle_work WHERE active=1"),
+            remoteEffects = fixture.Remote.Mutations.Count,
+            attempts = settlementObservations
+        });
         Assert.Equal((long)names.Length, await fixture.Scalar(settledReceipts));
         Assert.Equal(names.Length, fixture.Remote.Mutations.Count);
         await Session(engine).MarkParentCycleHintsAsync(engine.ScopeId, names, Ct);

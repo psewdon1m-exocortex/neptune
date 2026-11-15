@@ -2,9 +2,9 @@
   "schema": "exocortex.package3.frozen-source.v1",
   "component": "neptune",
   "version": "0.1.19",
-  "baseGitCommit": "f932cb40e69fe90c44b5ac251b0ef663ed6a0f38",
-  "scope": "N2production unchanged since WALfix. All1620Windowscases retained, targeted34: freshhostvolume fixtures for cursor0expiry/DASDcontrols, regularnativeworkloads onisolatedR. No assertions/skips/format/authority changed. Final artifact/native pending.",
-  "sourceSetSHA256": "11bef626d92996bdfb9a83ec18ef4dee5c9cc81d60ab43818dc713cad8cc9126",
+  "baseGitCommit": "e73a872f29455c66e9a93032f643c3e7a6c21671",
+  "scope": "N2production unchanged; targeted35 includes unchangedT04assertion plus aggregate observations that distinguish unsettled metadata from normalhistorycompaction. No loopbudget/assertion/guard/skip changed; full1620 stillrequired.",
+  "sourceSetSHA256": "2f961a668000eb0ac0d5768d1fc1138f0afcbef21478aea104cdbaaee665ed7c",
   "files": [
     {
       "path": ".gitattributes",
@@ -29,9 +29,9 @@
     },
     {
       "path": ".github/workflows/package3-qualification.yml",
-      "bytes": 7999,
-      "sha256": "ffef2519b6c67ee9c2630ab0f9286501c47a0b8afeae0eeceaf9c8a0ffae95df",
-      "canonical_sha256": "ffef2519b6c67ee9c2630ab0f9286501c47a0b8afeae0eeceaf9c8a0ffae95df",
+      "bytes": 8133,
+      "sha256": "f36fb96460152f24051c4ea94cdd0b422b6ea87672fae57994091116de6a20c1",
+      "canonical_sha256": "f36fb96460152f24051c4ea94cdd0b422b6ea87672fae57994091116de6a20c1",
       "line_endings": "LF"
     },
     {
@@ -4000,9 +4000,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceDeleteApprovalTests.cs",
-      "bytes": 25941,
-      "sha256": "26b0a0bbe2c4a75b2dd4544a4b4dff6fb4805108ca6a8a36346e15de0f73fedb",
-      "canonical_sha256": "26b0a0bbe2c4a75b2dd4544a4b4dff6fb4805108ca6a8a36346e15de0f73fedb",
+      "bytes": 27496,
+      "sha256": "b65b1aabf82c4185ab4f4fd31664dbeebbd8ad4de7ff459d518315e41463472f",
+      "canonical_sha256": "b65b1aabf82c4185ab4f4fd31664dbeebbd8ad4de7ff459d518315e41463472f",
       "line_endings": "LF"
     },
     {
