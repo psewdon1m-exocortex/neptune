@@ -102,7 +102,7 @@ public sealed class IdentityOnlyFreshCycleTests
     [Fact]
     public async Task DefaultNamedDoesNotSilentlySelectIdentityOnlyWithoutDasdRights()
     {
-        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.Create();
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.CreateOnHostVolume();
         var failure=await ReducedMedium(async()=>{try{await using var e=await f.Open();throw new Xunit.Sdk.XunitException("Default Named unexpectedly opened without DASD rights.");}catch(LocalSourceGapException error){var native=Assert.IsType<Win32Exception>(error.InnerException);Assert.Equal(5,native.NativeErrorCode);return new{error.Code,native.NativeErrorCode,error.Message,selectedMode="Named"};}});
         Assert.Equal(0L,await f.Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name='local_source_roots'"));await f.Evidence("identity-medium-default-named-refusal",failure);
     }

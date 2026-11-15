@@ -71,7 +71,9 @@ public sealed partial class WindowsGuardedNativeEligibilityTests
     public async Task RetainedGapOrRebindRefusesWithoutChangingOriginalEvidence(string change)
     {
         if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }
-        await using var f = await WindowsFreshCycleTests.Fixture.Create();
+        await using var f = change == "expired-cursor"
+            ? await WindowsFreshCycleTests.Fixture.CreateOnHostVolume()
+            : await WindowsFreshCycleTests.Fixture.Create();
         await Source(f, LocalJournalReadMode.IdentityOnly, 1);
         var sql = change switch
         {

@@ -13,7 +13,7 @@ public sealed partial class WindowsGuardedNativeEligibilityTests
     [InlineData("broken-link")]
     public async Task InstalledSupersessionHistoryAllowsOrdinaryNativeAdmission(string gate)
     {
-        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.Create();File.WriteAllText(Path.Combine(f.Source,"file"),"original bytes");
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.CreateOnHostVolume();File.WriteAllText(Path.Combine(f.Source,"file"),"original bytes");
         await Medium(async()=>
         {
             var options=new WindowsCycleNativeOptions(LocalJournalReadMode.IdentityOnly,true);var budget=new WindowsCycleBudget(MinimumFreeDiskBytes:10L<<30);var spool=Path.Combine(f.Directory,"spool");

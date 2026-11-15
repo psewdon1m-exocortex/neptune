@@ -11,7 +11,7 @@ public sealed partial class JournalGapReplacementTests
     [InlineData("retained-capacity")][InlineData("retained-healthy")]
     public async Task ExplicitPendingGapSuccessorRequiresNativeLossAndPreservesOriginalLineage(string gate)
     {
-        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.Create();File.WriteAllText(Path.Combine(f.Source,"original"),"old immutable bytes");
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }await using var f=await WindowsFreshCycleTests.Fixture.CreateOnHostVolume();File.WriteAllText(Path.Combine(f.Source,"original"),"old immutable bytes");
         await Medium(async()=>
         {
             string original;await using(var e=await Open(f)){original=e.ScopeId;Assert.Null((await e.InitialSyncAsync(Ct)).Error);await Session(e).MarkGapAsync("JournalGap",Ct);}

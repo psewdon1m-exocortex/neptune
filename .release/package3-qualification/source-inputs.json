@@ -2,9 +2,9 @@
   "schema": "exocortex.package3.frozen-source.v1",
   "component": "neptune",
   "version": "0.1.19",
-  "baseGitCommit": "8ed74ab77da3a4c425c98038cb16624f13d64a01",
-  "scope": "N2 runtime unchanged; correct private Windows NTFS fixture capacity to preserve existing10GiBfree floor, with separate12GiBphysicalbacking admission. Targeted16 and full ordinary CI remain mandatory; final artifact/native acceptance pending.",
-  "sourceSetSHA256": "8d5b7d59e1d5abf0fa89faed36d88d8eeabe940fb927a291d636f1f34d51413a",
+  "baseGitCommit": "f932cb40e69fe90c44b5ac251b0ef663ed6a0f38",
+  "scope": "N2production unchanged since WALfix. All1620Windowscases retained, targeted34: freshhostvolume fixtures for cursor0expiry/DASDcontrols, regularnativeworkloads onisolatedR. No assertions/skips/format/authority changed. Final artifact/native pending.",
+  "sourceSetSHA256": "11bef626d92996bdfb9a83ec18ef4dee5c9cc81d60ab43818dc713cad8cc9126",
   "files": [
     {
       "path": ".gitattributes",
@@ -29,9 +29,9 @@
     },
     {
       "path": ".github/workflows/package3-qualification.yml",
-      "bytes": 7466,
-      "sha256": "5b66487bd5c6471874f5143efe5f58e688d3cf5013d155646d65e7e628caf024",
-      "canonical_sha256": "5b66487bd5c6471874f5143efe5f58e688d3cf5013d155646d65e7e628caf024",
+      "bytes": 7999,
+      "sha256": "ffef2519b6c67ee9c2630ab0f9286501c47a0b8afeae0eeceaf9c8a0ffae95df",
+      "canonical_sha256": "ffef2519b6c67ee9c2630ab0f9286501c47a0b8afeae0eeceaf9c8a0ffae95df",
       "line_endings": "LF"
     },
     {
@@ -225,9 +225,9 @@
     },
     {
       "path": "docs/PACKAGE3_QUALIFICATION.md",
-      "bytes": 4012,
-      "sha256": "2eee0794fe7a47d5065fe8ef3130cdeca08b08f4f09b723ecb909bc25bc75180",
-      "canonical_sha256": "2eee0794fe7a47d5065fe8ef3130cdeca08b08f4f09b723ecb909bc25bc75180",
+      "bytes": 4591,
+      "sha256": "848392ea603380d327c4f9d5852e3769bf405b2864a4bb5a9bbe9cac84228065",
+      "canonical_sha256": "848392ea603380d327c4f9d5852e3769bf405b2864a4bb5a9bbe9cac84228065",
       "line_endings": "LF"
     },
     {
@@ -3654,9 +3654,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/IdentityOnlyFreshCycleTests.cs",
-      "bytes": 17235,
-      "sha256": "ab2e55b2cc40ab5c266a42925a66886db3263e549a219e7b112f77d1a3fd92ab",
-      "canonical_sha256": "4e70743b7149399e120eee51519fc1fd60d3d0848e043afe1555cb8f8121a154",
+      "bytes": 17247,
+      "sha256": "45ee9be494b9ecc2f5fe5363315ab7a447b478722f646100d7793467f391c8fb",
+      "canonical_sha256": "8b3b0c0336dae3e0d219137b451d7b7b9efe51731b84947357743e235750472d",
       "line_endings": "CRLF"
     },
     {
@@ -3689,9 +3689,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/JournalGapSupersessionTests.cs",
-      "bytes": 8585,
-      "sha256": "286f695685c029716417413088f7d941ff0066289e098a6993a4e810782f7e86",
-      "canonical_sha256": "ab2b5d8093a8389a9e746954cf833bb8f2695a142e90ba1066110e8797c8fcc6",
+      "bytes": 8597,
+      "sha256": "7c122b00c8fadb95c1165d7fc2a1ad84d7fd8b02e3b908b799741407ec244a08",
+      "canonical_sha256": "9cbc937ab5a54fda8d1c431a490b05c2ba9ec6f831be296486ebad4e36ec3b41",
       "line_endings": "CRLF"
     },
     {
@@ -4584,9 +4584,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/WindowsFreshCycleTests.cs",
-      "bytes": 21279,
-      "sha256": "1b377c2377845b1c2719da65e7d2bd9e93314e8eca7a68fed55b8bfd74a54ae3",
-      "canonical_sha256": "bde444b4bcb40edcb5d0faff64dfd6d4c157d419cd632102bb97967e26f2d7a1",
+      "bytes": 21936,
+      "sha256": "3f941dbc30fee67bb5605cfe02c993e9542977afe9797b52af4afa8ad9a1e897",
+      "canonical_sha256": "fbe696c1f3da7dc4d59845c8ff6a44156ef322448078fac10024b1d4f52ee751",
       "line_endings": "CRLF"
     },
     {
@@ -4598,9 +4598,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/WindowsGuardedNativeEligibilityTests.cs",
-      "bytes": 12872,
-      "sha256": "a16055ad03fcaab2efee065439a2d9528e7a50237097954aa1df2c2cf3b08d7f",
-      "canonical_sha256": "a5b2e826ec62ae6f0751c29e909ef3373f18989bdab5be66cb08be8ab175d49b",
+      "bytes": 12987,
+      "sha256": "462b7c8e93ef567bcb78c84310cd665ef26fe049d5e53790f810a627b44e4977",
+      "canonical_sha256": "ad81da786ffbd2f2d60feeeee5b1a5d8285e753acae8550f8d282d92730cacec",
       "line_endings": "CRLF"
     },
     {
@@ -4612,9 +4612,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/WindowsGuardedSupersessionEligibilityTests.cs",
-      "bytes": 4157,
-      "sha256": "df931d45bd79fce08438dbf2c55eb9ba4253d0393b57cb1e9ae0e4facacf3767",
-      "canonical_sha256": "e845058fcafaa88eebd75d7ff26c4b8ffcf4784e890a9e36c1293b5246883927",
+      "bytes": 4169,
+      "sha256": "b5db7cae061238aaacf66b0db991162539149d052b25f15c1492dfbaa6820e56",
+      "canonical_sha256": "46c5efff7510975e67ca21a59ce35b1510da5567e2678fc99c8597ee3bbbe667",
       "line_endings": "CRLF"
     },
     {

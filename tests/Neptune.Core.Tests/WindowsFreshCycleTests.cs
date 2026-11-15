@@ -54,9 +54,17 @@ public sealed partial class WindowsFreshCycleTests
     }
     internal sealed class Fixture:IAsyncDisposable
     {
-        private static readonly string Root=Path.GetFullPath(Environment.GetEnvironmentVariable("NEPTUNE_FRESH_CYCLE_TEST_ROOT")??Path.Combine(Path.GetTempPath(),"neptune-lc3c-owned"));
-        internal readonly string Directory=Path.Combine(Root,Guid.NewGuid().ToString("N"));internal string Source=>Path.Combine(Directory,"source");internal string Database=>Path.Combine(Directory,"state.db");internal NeptuneStateStore Store=null!;internal FakeRemote Remote=new();
-        internal static async Task<Fixture> Create(TimeProvider? clock=null){var f=new Fixture();System.IO.Directory.CreateDirectory(f.Source);f.Store=new(f.Database,clock){ResourceScheduler=new(clock)};await f.Store.InitializeAsync(Ct);await f.Store.AddMappingAsync(new("mapping","client",f.Source,true,DateTimeOffset.UtcNow),Ct);return f;}
+        private static readonly string HostRoot=Path.GetFullPath(Path.Combine(Path.GetTempPath(),"neptune-lc3c-owned"));
+        private static readonly string Root=Path.GetFullPath(Environment.GetEnvironmentVariable("NEPTUNE_FRESH_CYCLE_TEST_ROOT")??HostRoot);
+        private readonly string _ownedRoot;
+        internal readonly string Directory;internal string Source=>Path.Combine(Directory,"source");internal string Database=>Path.Combine(Directory,"state.db");internal NeptuneStateStore Store=null!;internal FakeRemote Remote=new();
+        private Fixture(string root){_ownedRoot=root;Directory=Path.Combine(root,Guid.NewGuid().ToString("N"));}
+        internal static Task<Fixture> Create(TimeProvider? clock=null)=>CreateAt(Root,clock);
+        // Existing-volume ACL and expired-zero-cursor controls need the host's
+        // original volume. A new private VHD has different ACLs and FirstUsn=0.
+        // Allocate a fresh owned fixture there; never move an existing profile.
+        internal static Task<Fixture> CreateOnHostVolume(TimeProvider? clock=null)=>CreateAt(HostRoot,clock);
+        private static async Task<Fixture> CreateAt(string root,TimeProvider? clock){var f=new Fixture(root);System.IO.Directory.CreateDirectory(f.Source);f.Store=new(f.Database,clock){ResourceScheduler=new(clock)};await f.Store.InitializeAsync(Ct);await f.Store.AddMappingAsync(new("mapping","client",f.Source,true,DateTimeOffset.UtcNow),Ct);return f;}
         internal Task<WindowsFreshSyncEngine> Open(Func<WindowsCycleObservation,CancellationToken,Task>? observer=null)=>WindowsFreshSyncEngine.OpenAsync(Store,Source,Path.Combine(Directory,"spool"),new("mapping","client","audit","rules-v1",new Uri("https://test.invalid/"),Remote.Device,"audit-token","local-test",Remote.Binding),Remote,new(MinimumFreeDiskBytes:0),observer:observer,cancellationToken:Ct);
         // Advance only the fixture clock, after the native watcher has had a
         // chance to persist its hints. Never clear production retry/quiet rows.
@@ -105,7 +113,7 @@ public sealed partial class WindowsFreshCycleTests
                     WindowsCycleSharedBudget.Forget(spool);
             }
         }
-        public ValueTask DisposeAsync(){SqliteConnection.ClearAllPools();var full=Path.GetFullPath(Directory);if(!full.StartsWith(Root+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Owned fixture escaped.");ForgetOwnedSpoolReservations(full);System.IO.Directory.Delete(full,true);return ValueTask.CompletedTask;}
+        public ValueTask DisposeAsync(){SqliteConnection.ClearAllPools();var full=Path.GetFullPath(Directory);if(!full.StartsWith(_ownedRoot+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Owned fixture escaped.");ForgetOwnedSpoolReservations(full);System.IO.Directory.Delete(full,true);return ValueTask.CompletedTask;}
     }
     internal sealed partial class FakeRemote:IWindowsCycleRemote
     {
