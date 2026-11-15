@@ -98,26 +98,31 @@ public sealed partial class NeptuneStateStore
         if (!force && (physical <= BootstrapWalAdmissionBytes || now < Interlocked.Read(ref _bootstrapNextCheckpointAt)))
             return last is { Backpressure: true } ? last : new(false, physical, 0, 0, 0, false, false);
         if (await PreflightBootstrapTablesAsync(cancellationToken) != 2) throw new InvalidDataException("Bootstrap checkpoint requires known v2 state.");
-        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        BootstrapCheckpointResult result;
+        await using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
             DataSource = NativeDatabasePath(databasePath), Mode = SqliteOpenMode.ReadWrite, Cache = SqliteCacheMode.Private, Pooling = false, DefaultTimeout = 1
-        }.ToString());
-        await connection.OpenAsync(cancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA busy_timeout=0";
-        await command.ExecuteNonQueryAsync(cancellationToken);
-        command.CommandText = "PRAGMA page_size";
-        var pageSize = Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken));
-        command.CommandText = "PRAGMA wal_checkpoint(PASSIVE)";
-        Interlocked.Increment(ref _bootstrapCheckpointAttempts);
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        await reader.ReadAsync(cancellationToken);
-        var busy = reader.GetInt64(0) != 0;
-        var log = reader.GetInt64(1); var checkpointed = reader.GetInt64(2);
-        var outstanding = log >= 0 && checkpointed >= 0 ? Math.Max(0, log - checkpointed) * pageSize : physical;
-        var result = new BootstrapCheckpointResult(true, physical, log, checkpointed, outstanding, busy, outstanding > BootstrapWalAdmissionBytes);
+        }.ToString()))
+        {
+            await connection.OpenAsync(cancellationToken);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA busy_timeout=0";
+            await command.ExecuteNonQueryAsync(cancellationToken);
+            command.CommandText = "PRAGMA page_size";
+            var pageSize = Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken));
+            command.CommandText = "PRAGMA wal_checkpoint(PASSIVE)";
+            Interlocked.Increment(ref _bootstrapCheckpointAttempts);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            await reader.ReadAsync(cancellationToken);
+            var busy = reader.GetInt64(0) != 0;
+            var log = reader.GetInt64(1); var checkpointed = reader.GetInt64(2);
+            var outstanding = log >= 0 && checkpointed >= 0 ? Math.Max(0, log - checkpointed) * pageSize : physical;
+            result = new BootstrapCheckpointResult(true, physical, log, checkpointed, outstanding, busy, outstanding > BootstrapWalAdmissionBytes);
+        }
         Volatile.Write(ref _bootstrapLastCheckpoint, result);
-        Interlocked.Exchange(ref _bootstrapNextCheckpointAt, now + 1000);
+        // Slow checkpoint I/O or connection disposal must not consume the
+        // cooldown and immediately admit another expensive inspection.
+        Interlocked.Exchange(ref _bootstrapNextCheckpointAt, Environment.TickCount64 + 1000);
         return result;
     }
 

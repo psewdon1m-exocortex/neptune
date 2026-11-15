@@ -2,9 +2,9 @@
   "schema": "exocortex.package3.frozen-source.v1",
   "component": "neptune",
   "version": "0.1.19",
-  "baseGitCommit": "9eebcfebdc77e7b05605194092928457b8d81579",
-  "scope": "Exact qualified working-source bytes plus reviewed CI-only qualification changes; complete Git file set except this self-referential manifest. CI source results are distinct from native prebuilt-artifact evidence.",
-  "sourceSetSHA256": "f426a268f9d8b95571d353181ea9f801566068448f152524953d54d31dc01cf7",
+  "baseGitCommit": "7175772cce8dd54b4c41fc3b6bef44956733cd34",
+  "scope": "Exact corrected candidate source inputs for targeted and full ordinary CI; compilation/runtime acceptance pending. Existing prebuilt review artifacts retain their separate earlier native and source evidence.",
+  "sourceSetSHA256": "f177fef56b14ba1110e0ad23ce993749df9c5e5cbf721ec59786a5539c915091",
   "files": [
     {
       "path": ".gitattributes",
@@ -29,9 +29,9 @@
     },
     {
       "path": ".github/workflows/package3-qualification.yml",
-      "bytes": 5199,
-      "sha256": "24da06570d3e490f1c27f5729f467bcbda7c302e414c484b4aba9c04aa23c96b",
-      "canonical_sha256": "24da06570d3e490f1c27f5729f467bcbda7c302e414c484b4aba9c04aa23c96b",
+      "bytes": 6386,
+      "sha256": "d082714434dba1ad30559006dc3e22fb7c65291492b595a4489bc8d287ceb912",
+      "canonical_sha256": "d082714434dba1ad30559006dc3e22fb7c65291492b595a4489bc8d287ceb912",
       "line_endings": "LF"
     },
     {
@@ -225,9 +225,9 @@
     },
     {
       "path": "docs/PACKAGE3_QUALIFICATION.md",
-      "bytes": 1776,
-      "sha256": "75875998a7473c72e8955e328ba84cd966d8c810f819c3d1cc191212019ed776",
-      "canonical_sha256": "75875998a7473c72e8955e328ba84cd966d8c810f819c3d1cc191212019ed776",
+      "bytes": 2643,
+      "sha256": "eb5d6df96103aaf6681d8c0928882b56f8d421e5a25419c84319685d211187aa",
+      "canonical_sha256": "eb5d6df96103aaf6681d8c0928882b56f8d421e5a25419c84319685d211187aa",
       "line_endings": "LF"
     },
     {
@@ -940,9 +940,9 @@
     },
     {
       "path": "src/Neptune.Core/NeptuneStateStore.BootstrapQueue.cs",
-      "bytes": 11278,
-      "sha256": "a39497cb47a6bce9e65bdc1128f22883e5a492dd379269a2e181f8c5a5f52de9",
-      "canonical_sha256": "a39497cb47a6bce9e65bdc1128f22883e5a492dd379269a2e181f8c5a5f52de9",
+      "bytes": 11560,
+      "sha256": "3fbb67c05436de5e124a85c8cd4680802c321274d5fe68b3ab63a0abcafcab29",
+      "canonical_sha256": "3fbb67c05436de5e124a85c8cd4680802c321274d5fe68b3ab63a0abcafcab29",
       "line_endings": "LF"
     },
     {
@@ -4119,9 +4119,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/SmallBatchPipelineTests.cs",
-      "bytes": 8890,
-      "sha256": "74b3c638c5f861c16fa3e623de4f81ed5b2aecbf47341aa369f5c1c2f6742c5c",
-      "canonical_sha256": "74b3c638c5f861c16fa3e623de4f81ed5b2aecbf47341aa369f5c1c2f6742c5c",
+      "bytes": 9121,
+      "sha256": "5c9e4ccd76f1290859a74a0dbc6946d04aa6d146bf1720f84632d7901676ccd0",
+      "canonical_sha256": "5c9e4ccd76f1290859a74a0dbc6946d04aa6d146bf1720f84632d7901676ccd0",
       "line_endings": "LF"
     },
     {
@@ -4701,5 +4701,6 @@
       "canonical_sha256": "3247f78494d5506f75b7e0fa83808955abb6edddb09b2f4fdb4c39cad030f0d9",
       "line_endings": "LF"
     }
-  ]
+  ],
+  "sourceSetHashEncoding": "SHA256 of UTF8 JSON.stringify(files) in sorted path order"
 }
