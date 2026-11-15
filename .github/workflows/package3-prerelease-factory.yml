@@ -1,0 +1,60 @@
+name: Owner-approved package 3 prerelease staging
+on:
+  push:
+    branches: ["release-promotion/package3-20261115-a1315"]
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: package3-prerelease-factory-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  stage-qualified-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact successful CI and create qualification tag and draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B - <<'PY'
+          import base64,hashlib,json,os,urllib.request,urllib.error
+          s=json.loads("{\"repository\":\"psewdon1m-exocortex/neptune\",\"tag\":\"neptune-v0.1.19\",\"source\":\"cb16f02431ed492397ecf7a1d477c79553f524bc\",\"ciRuns\":[{\"id\":43667116108,\"head\":\"cb16f02431ed492397ecf7a1d477c79553f524bc\",\"expectedJobs\":5},{\"id\":43671289926,\"head\":\"032a29fb782bfb732fb8b9aee010914cab9c935d\",\"expectedJobs\":5}],\"title\":\"Neptune 0.1.19 — package 3 qualification candidate\",\"body\":\"Package 3 qualification prerelease; final production GO is outside this acceptance.\\n\\nArtifact source revision: `cb16f02431ed492397ecf7a1d477c79553f524bc`.\\nVerified required CI: https://github.com/psewdon1m-exocortex/neptune/actions/runs/43667116108.\\nExact asset set: 20 files. Qualification review SHA256: `4b97c8f73c979c5cb80ea3b5df48ba8dfa45412b116f506a5f9d8d4999f433ba`.\\n\\nFour genuine DBD1 publisher signatures; Windows Authenticode uses the owner-approved self-signed identity. Public CA trust and SmartScreen reputation are not asserted. Windows installed update, profile migration and native installation acceptance is recorded in the publication branch admission metadata.\\n\\nOwner-approved package 3 qualification exclusions: unavailable native ARM64 is N/A; lost historical schema3/4/5/6 and R1E/R1F fixtures remain NOT_RUN/WAIVED, not PASS; the separate C03 archival test remains waived and old-reader/new-v8 downgrade safety remains unconfirmed. Original historical Neptune T04 failure remains recorded with unconfirmed cause and owner-approved nonblocking disposition. Linux system binary prefix remains fixed.\\n\\nPublication marker: package3-qualification-20261115-a1315. Stable-channel promotion and deployment are outside this action.\",\"marker\":\"package3-qualification-20261115-a1315\",\"expectedReadinessSHA\":\"1db4dbf0585b61e8ead403bd6ad10e3e6e8ccf82a49af24caac4d752a839d22a\"}")
+          assert os.environ['GITHUB_REPOSITORY']==s['repository']
+          assert os.environ['GITHUB_REF']=='refs/heads/release-promotion/package3-20261115-a1315'
+          base='https://api.github.com/repos/'+s['repository']
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          client=urllib.request.build_opener(NoRedirect)
+          def api(method,route,data=None,allowed=(200,)):
+              raw=None if data is None else json.dumps(data).encode()
+              request=urllib.request.Request(base+route,data=raw,method=method,headers={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json','User-Agent':'exocortex-package3-qualified-prerelease-factory','Authorization':'Bearer '+os.environ['GH_TOKEN']})
+              try:
+                  with client.open(request,timeout=30) as response: code=response.status; body=response.read()
+              except urllib.error.HTTPError as error: code=error.code; body=error.read()
+              assert code in allowed,(method,route,code)
+              return code,(json.loads(body) if body else {})
+          for ci in s['ciRuns']:
+              _,run=api('GET','/actions/runs/'+str(ci['id']))
+              assert run['head_sha']==ci['head'] and run['event']=='push' and run['status']=='completed' and run['conclusion']=='success'
+              _,jobs=api('GET','/actions/runs/'+str(ci['id'])+'/jobs?per_page=100')
+              assert len(jobs['jobs'])==ci['expectedJobs'] and all(x['status']=='completed' and x['conclusion']=='success' for x in jobs['jobs'])
+          _,commit=api('GET','/git/commits/'+s['source']); assert commit['sha']==s['source']
+          if s['expectedReadinessSHA']:
+              _,data=api('GET','/contents/packaging/windows/release-readiness.json?ref='+os.environ['GITHUB_SHA'])
+              raw=base64.b64decode(data['content']); assert hashlib.sha256(raw).hexdigest()==s['expectedReadinessSHA']
+              ready=json.loads(raw); assert ready['schema']=='exocortex.neptune.windows-release-readiness.v1'
+              assert all(ready[k] is True for k in ['installed_update_accepted','profile_migration_accepted','native_install_accepted','production_signing_accepted'])
+          code,existing=api('GET','/releases/tags/'+s['tag'],allowed=(200,404))
+          if code==200:
+              assert existing['draft'] is True and existing['prerelease'] is True and s['marker'] in existing['body']
+              release=existing
+          else:
+              code,ref=api('GET','/git/ref/tags/'+s['tag'],allowed=(200,404))
+              if code==404:
+                  _,ref=api('POST','/git/refs',{'ref':'refs/tags/'+s['tag'],'sha':s['source']},allowed=(201,))
+              assert ref['object']['type']=='commit' and ref['object']['sha']==s['source']
+              _,release=api('POST','/releases',{'tag_name':s['tag'],'target_commitish':s['source'],'name':s['title'],'body':s['body'],'draft':True,'prerelease':True,'make_latest':'false','generate_release_notes':False},allowed=(201,))
+          assert release['draft'] is True and release['prerelease'] is True
+          print(json.dumps({'status':'PASS_PREQUALIFIED_SOURCE_TAG_AND_DRAFT_READY','repository':s['repository'],'tag':s['tag'],'source':s['source'],'releaseId':release['id'],'draft':True,'prerelease':True,'productCIRerun':False,'stablePromotion':False}))
+          PY
