@@ -7,6 +7,10 @@ on:
         description: Frozen package 3 source-input manifest; empty for ordinary CI.
         type: string
         default: ''
+      qualification_isolated_native_volume:
+        description: Private NTFS journal for package 3 native qualification; ordinary CI keeps its default.
+        type: boolean
+        default: false
   pull_request:
   push:
     branches: [main]
@@ -72,11 +76,29 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
+      - name: Prepare private native NTFS qualification volume
+        if: ${{ inputs.qualification_isolated_native_volume }}
+        shell: pwsh
+        run: ./scripts/package3-native-ci-volume.ps1 Start
       - name: Build and test portable/native baseline (live qualification is separate)
         shell: pwsh
         run: |
           dotnet build Neptune.slnx -c Release
           dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live" --no-build
+      - name: Detach only the owned native qualification volume
+        if: ${{ always() && inputs.qualification_isolated_native_volume }}
+        shell: pwsh
+        run: ./scripts/package3-native-ci-volume.ps1 Stop
+      - name: Preserve native volume setup and runtime evidence
+        if: ${{ always() && inputs.qualification_isolated_native_volume }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: neptune-native-volume-${{ github.sha }}-${{ github.job }}
+          path: |
+            ${{ runner.temp }}/package3-native-volume/**/*.json
+            ${{ runner.temp }}/package3-native-volume/*.log
+          if-no-files-found: error
+          retention-days: 14
       - name: Check vulnerable runtime dependencies
         run: dotnet list src/Neptune.Windows/Neptune.Windows.csproj package --vulnerable --include-transitive
       - name: Publish smoke test

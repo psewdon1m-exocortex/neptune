@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   candidate-regressions:
-    name: Candidate WAL and batch regressions
+    name: Candidate WAL, batch and native journal regressions
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
@@ -23,17 +23,35 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
+      - name: Prepare private native NTFS qualification volume
+        shell: pwsh
+        run: ./scripts/package3-native-ci-volume.ps1 Start
       - name: Check WAL cooldown, pipeline overlap and deterministic full-batch limits
         shell: pwsh
         run: >-
           dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release
-          --filter "FullyQualifiedName~Neptune.Core.Tests.BootstrapBoundedQueueTests.PassiveCheckpointDoesNotWaitForLongReaderAndBackpressurePreservesMetadataUntilRelease|FullyQualifiedName~Neptune.Core.Tests.JournalGapReplacementTests.SmallBatchPipelineOverlapsNextDeclarationAndRetainsAllOriginalChecks|FullyQualifiedName~Neptune.Core.Tests.SmallFileBatchSchedulerTests"
+          --filter "FullyQualifiedName~Neptune.Core.Tests.BootstrapBoundedQueueTests.PassiveCheckpointDoesNotWaitForLongReaderAndBackpressurePreservesMetadataUntilRelease|FullyQualifiedName~Neptune.Core.Tests.JournalGapReplacementTests.SmallBatchPipelineOverlapsNextDeclarationAndRetainsAllOriginalChecks|FullyQualifiedName~Neptune.Core.Tests.SmallFileBatchSchedulerTests|FullyQualifiedName~Neptune.Core.Tests.JournalGapReplacementTests.FreshBatchAdmissionKeepsCasAndDifferentParentsOutOfOverlappingJobs|FullyQualifiedName~Neptune.Core.Tests.WindowsFreshCycleTests.ActualQualifiedCursorGapInstallsSeparateRWithoutCaptureOrBaselineReset"
+      - name: Detach only the owned native qualification volume
+        if: always()
+        shell: pwsh
+        run: ./scripts/package3-native-ci-volume.ps1 Stop
+      - name: Preserve native qualification volume evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: neptune-candidate-native-volume-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/package3-native-volume/**/*.json
+            ${{ runner.temp }}/package3-native-volume/*.log
+          if-no-files-found: error
+          retention-days: 14
 
   quality-gate:
     needs: candidate-regressions
     uses: ./.github/workflows/ci.yml
     with:
       qualification_source_manifest: .release/package3-qualification/source-inputs.json
+      qualification_isolated_native_volume: true
 
   sign-exact-candidate-manifests:
     needs: quality-gate
