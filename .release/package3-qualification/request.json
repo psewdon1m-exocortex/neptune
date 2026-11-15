@@ -2,7 +2,7 @@
   "schema": "exocortex.package3.signing-request.v1",
   "product": "neptune",
   "version": "0.1.19",
-  "scope": "Existing-key signing and source CI for exact prebuilt qualified candidate; no tag/release/assets/publication.",
+  "scope": "Existing-key signing of exact final N2 review artifact metadata from green cb16f024 code; qualification CI only, no tag/release/assets/publication; native acceptance tracked separately.",
   "expectedKeyId": "dbd1ce8bd7d1074c8c5e896cad42571e99a71752be967518f771d42f48296c1b",
   "ownerWindowsCodeCertificateThumbprint": "ADB2CD23F8CC8F90A8E221BC9E5EE0F6340BB92B",
   "sourceManifest": ".release/package3-qualification/source-inputs.json",
@@ -10,32 +10,32 @@
     {
       "name": "neptune-windows-release.json",
       "bytes": 447,
-      "sha256": "f41c7f404b095e4cce977b5e7bd33cf1e99fd31a774c0164a409b06bb42edbf1"
+      "sha256": "005b84bfbdd3fdc4aa27e1aa5441b9b517810d0081d4777373af5a449ee85f83"
     },
     {
       "name": "neptune-windows-bundle.json",
       "bytes": 1431,
-      "sha256": "4bae74e52419543306cee754c4009fa29d0df619a1f3fef3cbfe4d17c662d6f1"
+      "sha256": "c18e7c5b86a2749979830914db34effca9c9a1bc765d6628e5449887093036ab"
     },
     {
       "name": "neptune-windows-payload.json",
-      "bytes": 747,
-      "sha256": "7dcb5b26fa90c3149dae357f15f83f17f510f9ea6a26eb6e489b9c9ce3cd2977"
+      "bytes": 748,
+      "sha256": "0e76ab3ff0d164906cf439ba898767c4720fc6d23e79ea9aad5d97b8c20bc0be"
     },
     {
       "name": "neptune-windows-package-evidence.json",
       "bytes": 1483,
-      "sha256": "ef71010cbf863363eef4b37a5e5aea9a5b7b92984bb30b14f2e19e0061d5cb92"
+      "sha256": "6737b39ac3190e5da447e6ff56dd5ae5b549dca03cde333a0232c0f3dbc9d6db"
     },
     {
       "name": "neptune-linux-release-linux-x64.json",
       "bytes": 422,
-      "sha256": "70348364712dfa2caff7148eb3b3a8fae0150c575386194589abb14220031e0c"
+      "sha256": "2fedc5bd408e4a9d66990a488db1bef873d32c29f27cbe6f79929a57b4748665"
     },
     {
       "name": "neptune-linux-release-linux-arm64.json",
       "bytes": 428,
-      "sha256": "d6bb3f3d258cf5374f63e3de517e2f354fe57b40a362a2f2fddc18dfd143703d"
+      "sha256": "b01fdab446ef55957659c60e554c7dee01fbf7a084361cbef2020d4de515781c"
     }
   ],
   "manifestsToSign": [
@@ -47,29 +47,32 @@
   "candidateArtifacts": [
     {
       "name": "neptune-linux-0.1.19-linux-x64.tar.gz",
-      "bytes": 46044535,
-      "sha256": "f9d7a59ba61bf3880e862835526c3b46a0b680ab471fe567dd61c3eb2f3c2f51"
+      "bytes": 46044610,
+      "sha256": "65fe9186ff3425719668114d90ba88e4a710a9a6765283df31995587933f2cba"
     },
     {
       "name": "neptune-linux-0.1.19-linux-arm64.tar.gz",
-      "bytes": 43863403,
-      "sha256": "7012c0b9209c1b6e4b79c148153d5ad04cd24a932d0c77db18332aeb2f68efb9"
+      "bytes": 43863545,
+      "sha256": "15e81c826f78e119310d43dbc80509c9b9e95d054c72a59e3cd6846ea21b7757"
     },
     {
       "name": "neptune-windows-0.1.19-win-x64.msi",
-      "bytes": 61706240,
-      "sha256": "0ed395a41534438adcdc34b827cdfc1e7aeb6cf4aeb38fe27d09fcc437348cb9"
+      "bytes": 61763584,
+      "sha256": "57fa202ec7be1182a78d58bc5aa7b1f1e7d0d3a9d61bf7068bdb0f1e5990b17a"
     },
     {
       "name": "neptune-windows-0.1.19-win-x64.zip",
-      "bytes": 75572031,
-      "sha256": "63247ad42a46b51acf8d26c7e371556b2e9d0b1c12c0e580ff4b465b9bfb3e02"
+      "bytes": 75610685,
+      "sha256": "a6b7d6b1b4590ce0661f1de43e3a662fb53a00d54ad92d43709ec27354180fb3"
     }
   ],
   "nativeARM64": "N/A_APPROVED / EXTERNAL_ENVIRONMENT_UNAVAILABLE; no test PASS",
   "historicalReader": "WAIVED_BY_OWNER / ARCHIVAL_INPUT_UNAVAILABLE / NOT_RUN; old reader/new-v8/downgrade UNCONFIRMED",
-  "prebuiltWindowsSourceBase": "9eebcfebdc77e7b05605194092928457b8d81579",
-  "runtimePEUnchangedBeforeAuthenticodeSHA256": "178f8a069018570e0f098dcae693d8bdaddd6f5ff81c9f8cfd9df82001b2a5b0",
-  "currentSignedWindowsPESHA256": "9d6269dfa040c13bccf2eca03d1172485099b41b9d80b77a3d0e5a115f5f9b9a",
-  "prebuiltSourceEvidenceManifestSHA256": "b2471f2ae44a83bcc30e86527a0fbe323cf5b45f0085e7bbf8b7473086be4a3c"
+  "prebuiltWindowsSourceBase": "cb16f02431ed492397ecf7a1d477c79553f524bc",
+  "runtimePEUnchangedBeforeAuthenticodeSHA256": "d82312805848a32ac9c07e7234afbfa7aa3f0456f80244c4cef86f6bdd022f4e",
+  "currentSignedWindowsPESHA256": "1cf18b18310e5ec6f3cb8fdbe310ad0212b7031f07c7d1785c66290f8866767e",
+  "prebuiltSourceEvidenceManifestSHA256": "1e7dfafbbdf407e6b0b71bedf3ed9321e45be01cf1a785303a3c4e314cc88b38",
+  "artifactSourceCommit": "cb16f02431ed492397ecf7a1d477c79553f524bc",
+  "artifactSourceSuccessfulCIRun": 43667116108,
+  "nativeScopeStatus": "N2 MSI/portable accepted scoped; affected initialized-profile and Linux native scope still pending. ARM64 owner exclusion unchanged."
 }

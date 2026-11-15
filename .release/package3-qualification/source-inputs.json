@@ -2,9 +2,9 @@
   "schema": "exocortex.package3.frozen-source.v1",
   "component": "neptune",
   "version": "0.1.19",
-  "baseGitCommit": "e73a872f29455c66e9a93032f643c3e7a6c21671",
-  "scope": "N2production unchanged; targeted35 includes unchangedT04assertion plus aggregate observations that distinguish unsettled metadata from normalhistorycompaction. No loopbudget/assertion/guard/skip changed; full1620 stillrequired.",
-  "sourceSetSHA256": "2f961a668000eb0ac0d5768d1fc1138f0afcbef21478aea104cdbaaee665ed7c",
+  "baseGitCommit": "cb16f02431ed492397ecf7a1d477c79553f524bc",
+  "scope": "FinalN2 review metadata/signingrequest only; productcode identical to green cb16f024; actual native acceptance tracked separately; no public release",
+  "sourceSetSHA256": "64068189cb3a59f04eda5451716f4c13feefa3b2344b99426a4ee70c46914b4d",
   "files": [
     {
       "path": ".gitattributes",
@@ -65,43 +65,43 @@
     {
       "path": ".release/package3-qualification/manifests/neptune-linux-release-linux-arm64.json",
       "bytes": 428,
-      "sha256": "d6bb3f3d258cf5374f63e3de517e2f354fe57b40a362a2f2fddc18dfd143703d",
-      "canonical_sha256": "56a71640549b97cce88bc22e7c75aa94df927468e3fd0776cadd21c981b3b96b",
+      "sha256": "b01fdab446ef55957659c60e554c7dee01fbf7a084361cbef2020d4de515781c",
+      "canonical_sha256": "aeff50ccd4b8b6a4594e2eef35a3ef3a7b0112d8874b509f4788a41b409a367a",
       "line_endings": "CRLF"
     },
     {
       "path": ".release/package3-qualification/manifests/neptune-linux-release-linux-x64.json",
       "bytes": 422,
-      "sha256": "70348364712dfa2caff7148eb3b3a8fae0150c575386194589abb14220031e0c",
-      "canonical_sha256": "01720ee87d168bd55e1ae8a2965a67aecc5d4970cfbbdfef9ca5def8b1c26cf9",
+      "sha256": "2fedc5bd408e4a9d66990a488db1bef873d32c29f27cbe6f79929a57b4748665",
+      "canonical_sha256": "f68c268adf133bfde161fbef96632ed0205decf37476a267788bae95a53a63a5",
       "line_endings": "CRLF"
     },
     {
       "path": ".release/package3-qualification/manifests/neptune-windows-bundle.json",
       "bytes": 1431,
-      "sha256": "4bae74e52419543306cee754c4009fa29d0df619a1f3fef3cbfe4d17c662d6f1",
-      "canonical_sha256": "4bae74e52419543306cee754c4009fa29d0df619a1f3fef3cbfe4d17c662d6f1",
+      "sha256": "c18e7c5b86a2749979830914db34effca9c9a1bc765d6628e5449887093036ab",
+      "canonical_sha256": "c18e7c5b86a2749979830914db34effca9c9a1bc765d6628e5449887093036ab",
       "line_endings": "LF"
     },
     {
       "path": ".release/package3-qualification/manifests/neptune-windows-package-evidence.json",
       "bytes": 1483,
-      "sha256": "ef71010cbf863363eef4b37a5e5aea9a5b7b92984bb30b14f2e19e0061d5cb92",
-      "canonical_sha256": "ef71010cbf863363eef4b37a5e5aea9a5b7b92984bb30b14f2e19e0061d5cb92",
+      "sha256": "6737b39ac3190e5da447e6ff56dd5ae5b549dca03cde333a0232c0f3dbc9d6db",
+      "canonical_sha256": "6737b39ac3190e5da447e6ff56dd5ae5b549dca03cde333a0232c0f3dbc9d6db",
       "line_endings": "LF"
     },
     {
       "path": ".release/package3-qualification/manifests/neptune-windows-payload.json",
-      "bytes": 747,
-      "sha256": "7dcb5b26fa90c3149dae357f15f83f17f510f9ea6a26eb6e489b9c9ce3cd2977",
-      "canonical_sha256": "7dcb5b26fa90c3149dae357f15f83f17f510f9ea6a26eb6e489b9c9ce3cd2977",
+      "bytes": 748,
+      "sha256": "0e76ab3ff0d164906cf439ba898767c4720fc6d23e79ea9aad5d97b8c20bc0be",
+      "canonical_sha256": "0e76ab3ff0d164906cf439ba898767c4720fc6d23e79ea9aad5d97b8c20bc0be",
       "line_endings": "LF"
     },
     {
       "path": ".release/package3-qualification/manifests/neptune-windows-release.json",
       "bytes": 447,
-      "sha256": "f41c7f404b095e4cce977b5e7bd33cf1e99fd31a774c0164a409b06bb42edbf1",
-      "canonical_sha256": "f41c7f404b095e4cce977b5e7bd33cf1e99fd31a774c0164a409b06bb42edbf1",
+      "sha256": "005b84bfbdd3fdc4aa27e1aa5441b9b517810d0081d4777373af5a449ee85f83",
+      "canonical_sha256": "005b84bfbdd3fdc4aa27e1aa5441b9b517810d0081d4777373af5a449ee85f83",
       "line_endings": "LF"
     },
     {
@@ -113,9 +113,9 @@
     },
     {
       "path": ".release/package3-qualification/request.json",
-      "bytes": 3024,
-      "sha256": "a11c32787a0b8803ca6fafdad37e7b3d9cb19e4977d00da165196c2c4138ba66",
-      "canonical_sha256": "a11c32787a0b8803ca6fafdad37e7b3d9cb19e4977d00da165196c2c4138ba66",
+      "bytes": 3377,
+      "sha256": "c721bdeaa5b1ae6c3e2468a753baeac91bbca1f20ead2eb4acc8b998bc2c5a53",
+      "canonical_sha256": "c721bdeaa5b1ae6c3e2468a753baeac91bbca1f20ead2eb4acc8b998bc2c5a53",
       "line_endings": "LF"
     },
     {
