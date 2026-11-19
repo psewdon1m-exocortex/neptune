@@ -514,3 +514,7 @@ Volt and Mastermind setup codes provision the selected archive/mirror capabiliti
 ## Test lanes and current qualification
 
 See [test lanes](docs/TEST_LANES.md) for baseline, native Windows, live and historical prerequisites. MSI signatures and Windows OS trust must be checked separately from portable payload integrity. A successful local build does not qualify a production install/update/rollback.
+
+### Windows profile disk reserve
+
+`preferences.json` supports `MinimumFreeDiskBytes` (a nonnegative 64-bit byte count). Existing profiles keep the default 40 GiB (`42949672960`). A lower explicit value changes only the local disk admission floor; negotiated data/large-job, spool and file-size ceilings remain unchanged. The selected value is captured at capability negotiation and applied through the normal owned-session resume path, preserving original work and source identities. Invalid negative stored values fall back to 40 GiB without re-enabling a paused profile or rewriting its settings.

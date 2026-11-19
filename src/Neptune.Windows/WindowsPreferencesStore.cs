@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Neptune.Core;
 
 namespace Neptune.Windows;
 
@@ -6,7 +7,15 @@ public sealed record WindowsPreferences(string Theme, bool SynchronizationEnable
 {
     // Explicit per-mapping opt-in; automatic benefit qualification remains OFF.
     public string[] SmallBatchMappings { get; init; } = [];
+    // Local, per-profile admission policy; server transport ceilings stay intact.
+    public long MinimumFreeDiskBytes { get; init; } = 40L * 1024 * 1024 * 1024;
     public static WindowsPreferences Default { get; } = new("dark", true, true);
+
+    internal WindowsCycleBudget ApplyLocalResourcePolicy(WindowsCycleBudget negotiated)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(MinimumFreeDiskBytes);
+        return negotiated with { MinimumFreeDiskBytes = MinimumFreeDiskBytes };
+    }
 }
 
 public sealed class WindowsPreferencesStore(string stateDirectory)
@@ -22,6 +31,8 @@ public sealed class WindowsPreferencesStore(string stateDirectory)
             var value = JsonSerializer.Deserialize<WindowsPreferences>(json);
             if (value is null || value.Theme is not ("dark" or "light")) return WindowsPreferences.Default;
             if(value.SmallBatchMappings is null||value.SmallBatchMappings.Length>16||value.SmallBatchMappings.Any(x=>string.IsNullOrWhiteSpace(x)||x.Length>128))value=value with{SmallBatchMappings=[]};
+            if (value.MinimumFreeDiskBytes < 0)
+                value = value with { MinimumFreeDiskBytes = WindowsPreferences.Default.MinimumFreeDiskBytes };
             using var document = JsonDocument.Parse(json);
             if (!document.RootElement.TryGetProperty(nameof(WindowsPreferences.SynchronizeSaturnPalette), out _))
                 value = value with { SynchronizeSaturnPalette = true };
@@ -35,6 +46,7 @@ public sealed class WindowsPreferencesStore(string stateDirectory)
     public void Write(WindowsPreferences value)
     {
         if (value.Theme is not ("dark" or "light")) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfNegative(value.MinimumFreeDiskBytes);
         Directory.CreateDirectory(stateDirectory);
         var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

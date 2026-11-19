@@ -153,7 +153,9 @@ internal static class WindowsGuardedCapabilities
             if (bytes.Length > MaximumBytes - count) throw new InvalidDataException("Sync capability exceeds its fixed limit.");
             bytes.Write(buffer, 0, count);
         }
-        var result = Parse(bytes.ToArray(), deviceId, rootId);
+        var parsed = Parse(bytes.ToArray(), deviceId, rootId);
+        var preferences = new WindowsPreferencesStore(stateDirectory).Read();
+        var result = parsed with { Budget = preferences.ApplyLocalResourcePolicy(parsed.Budget) };
         profileLease.RequireCurrent();
         using var markerLease = WindowsGuardedStateLease.Open(root, create: true);
         if (!enrolled)
