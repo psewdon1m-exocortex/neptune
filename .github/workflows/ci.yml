@@ -47,7 +47,7 @@ jobs:
       - name: Build and test portable/native baseline (live qualification is separate)
         run: |
           dotnet build src/Neptune.Linux/Neptune.Linux.csproj -c Release
-          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live"
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live" --logger trx --results-directory artifacts/test-results
       - name: Validate pinned Part 12 catalog and fail-closed gate
         run: |
           python3 scripts/test-known-problems-gate.py
@@ -63,6 +63,32 @@ jobs:
           dotnet publish src/Neptune.Linux/Neptune.Linux.csproj -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -o artifacts/linux-arm64
           test -x artifacts/linux-x64/Neptune.Linux
           test -x artifacts/linux-arm64/Neptune.Linux
+
+      - name: Preserve exact qualified Linux payloads
+        if: ${{ inputs.qualification_source_manifest != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in linux-x64 linux-arm64; do
+            tar -C "artifacts/$runtime" -czf "artifacts/neptune-qualified-$runtime.tar.gz" .
+            sha256sum "artifacts/neptune-qualified-$runtime.tar.gz" > "artifacts/neptune-qualified-$runtime.tar.gz.sha256"
+          done
+      - name: Upload qualified Linux payloads
+        if: ${{ inputs.qualification_source_manifest != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: neptune-linux-qualified-${{ github.sha }}
+          path: artifacts/neptune-qualified-*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve qualification Linux test results
+        if: ${{ always() && inputs.qualification_source_manifest != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: neptune-core-results-linux-${{ github.sha }}
+          path: artifacts/test-results/*.trx
+          if-no-files-found: error
+          retention-days: 14
 
   windows:
     name: Windows application
@@ -84,7 +110,7 @@ jobs:
         shell: pwsh
         run: |
           dotnet build Neptune.slnx -c Release
-          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live" --no-build
+          dotnet test tests/Neptune.Core.Tests/Neptune.Core.Tests.csproj -c Release --filter "Lane!=Live" --no-build --logger trx --results-directory artifacts/test-results
       - name: Detach only the owned native qualification volume
         if: ${{ always() && inputs.qualification_isolated_native_volume }}
         shell: pwsh
@@ -97,6 +123,14 @@ jobs:
           path: |
             ${{ runner.temp }}/package3-native-volume/**/*.json
             ${{ runner.temp }}/package3-native-volume/*.log
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve qualification Windows test results
+        if: ${{ always() && inputs.qualification_source_manifest != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: neptune-core-results-windows-${{ github.sha }}
+          path: artifacts/test-results/*.trx
           if-no-files-found: error
           retention-days: 14
       - name: Check vulnerable runtime dependencies

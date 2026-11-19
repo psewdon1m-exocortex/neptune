@@ -120,7 +120,14 @@ public sealed partial class NeptuneStateStore
                         if(await HasParentModule(c,tx,ct))
                         {await using var parents=SyncCommand(c,tx,"UPDATE local_parent_reconcile_plans SET owner_epoch=$owner WHERE scope_id=$scope AND root_key=$root AND coherence_id=$cohere AND owner_epoch=$previous AND revision=$revision AND gap=$gap AND journal=$journal AND status<3");parents.Parameters.AddWithValue("$owner",state.Cursor.OwnerEpoch);parents.Parameters.AddWithValue("$scope",scope);parents.Parameters.AddWithValue("$root",root);parents.Parameters.AddWithValue("$cohere",current.CoherenceId);parents.Parameters.AddWithValue("$previous",current.OwnerEpoch);parents.Parameters.AddWithValue("$revision",state.LegacyRevision);parents.Parameters.AddWithValue("$gap",state.GapEpoch);parents.Parameters.AddWithValue("$journal",state.Cursor.JournalIdHex);await parents.ExecuteNonQueryAsync(ct);}
                     }
-                    else if(candidate.State.Status!=LocalNamespaceStatus.Incomplete)throw new LocalSourceGapException("ReplacementBuildingRestart","Unqualified Building candidate cannot be silently reused; original request/IDs retained.");
+                    else if(candidate.State.Status!=LocalNamespaceStatus.Incomplete)
+                    {
+                        var failed=cohere.State.Status==LocalCoherenceStatus.Uncertain&&cohere.State.Error is not null&&candidate.State.Status==LocalNamespaceStatus.EnumerationComplete&&!current.SeedComplete
+                            &&cohere.Root==root&&candidate.RootKey==root&&cohere.State.OwnerEpoch==current.OwnerEpoch&&candidate.State.OwnerEpoch==current.OwnerEpoch&&candidate.State.RootFileId128==binding.RootFileId&&candidate.Mapping==binding.MappingId&&candidate.Client==binding.ClientId
+                            &&cohere.State.JournalId==state.Cursor.JournalIdHex&&cohere.State.LegacyRevision==state.LegacyRevision&&candidate.State.LegacyRevision==state.LegacyRevision&&cohere.State.GapEpoch==state.GapEpoch;
+                        if(!failed||!await MarkFailedReplacementEnumerationIncomplete(c,tx,request.ReplacementId,scope,current.CoherenceId,cohere.State.CandidateId,binding.RootIncarnation,ct))
+                            throw new LocalSourceGapException("ReplacementBuildingRestart","Unqualified Building candidate cannot be silently reused; original request/IDs retained.");
+                    }
                 }
                 await using var q=SyncCommand(c,tx,"UPDATE local_cycle_scopes SET owner_epoch=$owner WHERE scope_id=$scope;UPDATE local_cycle_replacement_requests SET new_owner=$owner WHERE replacement_id=$id");q.Parameters.AddWithValue("$scope",scope);q.Parameters.AddWithValue("$id",request.ReplacementId);q.Parameters.AddWithValue("$owner",state.Cursor.OwnerEpoch);await q.ExecuteNonQueryAsync(ct);
             }

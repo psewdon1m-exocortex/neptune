@@ -71,7 +71,7 @@ public sealed partial class WindowsFreshSyncEngine
                     // Once the native cut is committed, cancellation during
                     // seeding must retain that cut and its continuation cursor.
                     _coherence=state.CoherenceId;await _session.BindCycleCoherenceAsync(ScopeId,_coherence,ct);while(await _session.SeedCycleEntriesAsync(ScopeId,ct)>0)ct.ThrowIfCancellationRequested();
-                    await RequireReplacementNativeIdentity(ct);await _session.CompleteReplacementStageAsync(ScopeId,plan.ReplacementId,LocalJournalReplacementStatus.LocalQualified,ct);plan=plan with{Status=LocalJournalReplacementStatus.LocalQualified,CandidateAttempts=attempt};_journalReplacement=plan;
+                    await RequireReplacementNativeIdentity(ct);await _session.CompleteReplacementStageAsync(ScopeId,plan.ReplacementId,LocalJournalReplacementStatus.LocalQualified,ct);plan=plan with{Status=LocalJournalReplacementStatus.LocalQualified,CandidateAttempts=attempt,Error=null};_journalReplacement=plan;
                 }
                 if(plan.Status==LocalJournalReplacementStatus.LocalQualified)
                 {

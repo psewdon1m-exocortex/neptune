@@ -1,0 +1,19 @@
+name: Package 5 journal recovery candidate qualification
+
+on:
+  push:
+    branches: ["release-qualification/package5-*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package5-neptune-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/ci.yml
+    with:
+      qualification_source_manifest: .release/package5-qualification/source-inputs.json
+      qualification_isolated_native_volume: true

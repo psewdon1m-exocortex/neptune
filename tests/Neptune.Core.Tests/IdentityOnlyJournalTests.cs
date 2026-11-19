@@ -135,6 +135,41 @@ public sealed class IdentityOnlyJournalTests
         Assert.Equal(0L,await f.Scalar("SELECT COUNT(*) FROM local_projection_edges"));Assert.Equal(2L,await f.Scalar("SELECT COUNT(*) FROM local_projection_unresolved WHERE substr(payload,1,4)=x'4e55534e'"));Assert.Equal("Unknown",(await s.ReadLocalProjectionAsync(projection.ProjectionId,Ct)).LocalCompleteness);
     }
     [Fact]
+    public async Task ZeroJournalBoundaryRequiresObservedCutAndPreservesOwnerAndUncertaintyGuards()
+    {
+        await using var f=await Fixture.Create();
+        var bounds=new LocalJournalBounds(Journal,0,0,0,2,4,false);
+        string coherence;
+        await using(var session=await f.Store.OpenLocalJournalSessionAsync(f.Binding,bounds,0,admission:null,readMode:LocalJournalReadMode.IdentityOnly,cancellationToken:Ct))
+        {
+            var candidate=await SyntheticCandidate(f,session,true);coherence=candidate.Item2!;
+            await Assert.ThrowsAsync<InvalidOperationException>(()=>session.ApplyNextCoherenceAsync(coherence,0,Ct));
+            await Internal(session,"SetCoherenceCutAsync",coherence,bounds,Ct);
+            var anchored=await session.ReadCoherenceAsync(coherence,Ct);
+            Assert.Equal(LocalCoherenceStatus.Anchored,anchored.Status);
+            Assert.Equal(0,anchored.StartUsn);Assert.Equal(0,anchored.CutUsn);Assert.Equal(0,anchored.AppliedUsn);
+            Assert.Equal("Unknown",anchored.SourceCycle);Assert.Equal("Unknown",anchored.Baseline);
+            await Assert.ThrowsAsync<InvalidDataException>(()=>Internal(session,"SetCoherenceCutAsync",coherence,bounds,Ct));
+            await f.Store.InspectLocalJournalWalAsync(force:true,cancellationToken:Ct);
+            var empty=await session.ApplyNextCoherenceAsync(coherence,0,Ct);
+            Assert.Equal(0,empty.Records);Assert.Equal(0,empty.AppliedUsn);
+            await Ingest(session,0,"02000000000000000000000000000000",f.Binding.RootFileId,2);
+            var dirty=await session.ApplyNextCoherenceAsync(coherence,0,Ct);
+            Assert.Equal(1,dirty.Dirty);Assert.Equal(0,dirty.Unresolved);
+            await Ingest(session,80,new string('f',32),new string('e',32),0x10000);
+            var uncertain=await session.ApplyNextCoherenceAsync(coherence,80,Ct);
+            Assert.Equal(1,uncertain.Unresolved);
+            await Ingest(session,160,new string('f',32),new string('e',32),2);
+            var later=await session.ApplyNextCoherenceAsync(coherence,160,Ct);
+            Assert.Equal(0,later.Outside);Assert.Equal(1,later.Unresolved);
+            var final=await session.ReadCoherenceAsync(coherence,Ct);
+            Assert.Equal(LocalCoherenceStatus.Uncertain,final.Status);Assert.Equal(0,final.CutUsn);Assert.Equal(240,final.AppliedUsn);
+        }
+        var currentBounds=bounds with{NextUsn=240};
+        await using var reopened=await f.Store.OpenLocalJournalSessionAsync(f.Binding,currentBounds,240,admission:null,readMode:LocalJournalReadMode.IdentityOnly,cancellationToken:Ct);
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>reopened.ApplyNextCoherenceAsync(coherence,240,Ct));
+    }
+    [Fact]
     public async Task IdentityOnlyCoherenceKeepsKnownDirtyOutsideAndHardlinkUncertaintyDistinct()
     {
         await using var f=await Fixture.Create();await using var s=await f.Open(LocalJournalReadMode.IdentityOnly);var (_,coherence)=await SyntheticCandidate(f,s,true);var file="02000000000000000000000000000000";

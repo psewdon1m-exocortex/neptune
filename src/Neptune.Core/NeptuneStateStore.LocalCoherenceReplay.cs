@@ -39,9 +39,21 @@ public sealed partial class NeptuneStateStore
         var limit=NamespaceMutationCapacity;await CoherenceAdmission(root,owner,id,local,limit+4,ct);
         await using var c=await OpenCoherenceAsync(ct);using var t=c.BeginTransaction(deferred:false);var before=await NamespaceChanges(c,t,ct);var row=await RequireCoherenceAsync(c,t,root,owner,id,false,ct);
         if(row.State.AppliedUsn!=expected)return await ReplayCoherence(c,t,id,expected,ct);
-        if(row.State.CutUsn==0)throw new InvalidOperationException("Observed complete scan/journal cut is required before classification.");
+        if(row.State.CutUsn==0)
+        {
+            await using var observed=SyncCommand(c,t,"SELECT 1 FROM local_coherence_roots WHERE coherence_id=$coherence AND start_usn=0 AND last_start IS NOT NULL AND last_end IS NOT NULL AND last_hash IS NOT NULL");CoherenceId(observed,id);
+            if(await observed.ExecuteScalarAsync(ct)is null)throw new InvalidOperationException("Observed complete scan/journal cut is required before classification.");
+        }
         var source=await ReadLocalStateAsync(c,t,root,owner,ct);var target=row.State.Status==LocalCoherenceStatus.Building?row.State.CutUsn:source.Cursor.NextReadUsn;
-        if(expected<row.State.StartUsn||expected>target||source.RetiredThroughUsn>=expected&&expected<target)throw new LocalSourceGapException("CoherencePrefixGap","Required historical prefix was retired or is invalid.");
+        var retired=source.RetiredThroughUsn>=expected&&expected<target;
+        if(retired&&expected==0&&source.RetiredThroughUsn==0)
+        {
+            // The format's initial retirement watermark is also zero. Only
+            // the retained original record can prove that USN 0 was not retired.
+            await using var first=SyncCommand(c,t,"SELECT 1 FROM local_source_inbox WHERE root_key=$root AND journal_id=$journal AND usn=0");first.Parameters.AddWithValue("$root",root);first.Parameters.AddWithValue("$journal",row.State.JournalId);
+            retired=await first.ExecuteScalarAsync(ct)is null;
+        }
+        if(expected<row.State.StartUsn||expected>target||retired)throw new LocalSourceGapException("CoherencePrefixGap","Required historical prefix was retired or is invalid.");
         var records=new List<(LocalUsnRecord Record,byte[] Raw)>(257);
         await using(var q=SyncCommand(c,t,"SELECT usn,payload FROM local_source_inbox WHERE root_key=$root AND journal_id=$journal AND usn>=$start AND usn<$target ORDER BY usn LIMIT 257"))
         {q.Parameters.AddWithValue("$root",root);q.Parameters.AddWithValue("$journal",row.State.JournalId);q.Parameters.AddWithValue("$start",expected);q.Parameters.AddWithValue("$target",target);await using var r=await q.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct)){var raw=(byte[])r.GetValue(1);records.Add((ProjectionRecord(row.State.JournalId,r.GetInt64(0),source.Cursor.NextReadUsn,raw),raw));}}

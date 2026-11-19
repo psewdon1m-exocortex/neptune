@@ -1,27 +1,48 @@
 {
   "schema": "exocortex.neptune.windows-release-readiness.v1",
-  "installed_update_accepted": true,
-  "profile_migration_accepted": true,
-  "native_install_accepted": true,
-  "production_signing_accepted": true,
-  "reason": "Package3 candidate-specific release admission accepted after real installed MSI/portable/native lifecycle, preserved profile/pending and genuine publisher/self-signed Authenticode verification. Owner approved self-signed identity and nonblocking historical exceptions; no public CA/SmartScreen or production deployment claim.",
-  "scope": "Only already-qualified Neptune0.1.19 N2 exact artifacts compiled from cb16f02431ed492397ecf7a1d477c79553f524bc; admission metadata is not a runtime/payload source change.",
-  "source_revision": "cb16f02431ed492397ecf7a1d477c79553f524bc",
-  "accepted_artifacts": {
-    "exe": "1cf18b18310e5ec6f3cb8fdbe310ad0212b7031f07c7d1785c66290f8866767e",
-    "msi": "57fa202ec7be1182a78d58bc5aa7b1f1e7d0d3a9d61bf7068bdb0f1e5990b17a",
-    "zip": "a6b7d6b1b4590ce0661f1de43e3a662fb53a00d54ad92d43709ec27354180fb3"
-  },
+  "installed_update_accepted": false,
+  "profile_migration_accepted": false,
+  "native_install_accepted": false,
+  "production_signing_accepted": false,
+  "reason": "Neptune0.1.20 NEP01 runtime fix is under qualification. Previous N2 artifact-specific readiness does not transfer to new bytes.",
+  "scope": "Neptune0.1.20 package5 candidate; signing/native installed impact gates pending",
+  "source_revision": "PENDING_NEW_CANDIDATE_COMMIT",
+  "accepted_artifacts": {},
   "evidence_ids": [
-    "A1115",
-    "A1179",
-    "A1212",
-    "A1214",
-    "A1221",
-    "A1245",
-    "A1307"
+    "A1548",
+    "A1552",
+    "A1553",
+    "A1554",
+    "A1555"
   ],
-  "required_remote_ci": "https://github.com/psewdon1m-exocortex/neptune/actions/runs/43667116108",
+  "required_remote_ci": "PENDING_NEW_CANDIDATE_CI",
   "signing_policy": "Owner-approved self-signed Authenticode; DBD1 publisher signatures; default trust only verified in isolated test account",
-  "package8_global_release_decision": "OUT_OF_SCOPE_NOT_ASSERTED"
+  "package8_global_release_decision": "OUT_OF_SCOPE_NOT_ASSERTED",
+  "previous_accepted_N2": {
+    "schema": "exocortex.neptune.windows-release-readiness.v1",
+    "installed_update_accepted": true,
+    "profile_migration_accepted": true,
+    "native_install_accepted": true,
+    "production_signing_accepted": true,
+    "reason": "Package3 candidate-specific release admission accepted after real installed MSI/portable/native lifecycle, preserved profile/pending and genuine publisher/self-signed Authenticode verification. Owner approved self-signed identity and nonblocking historical exceptions; no public CA/SmartScreen or production deployment claim.",
+    "scope": "Only already-qualified Neptune0.1.19 N2 exact artifacts compiled from cb16f02431ed492397ecf7a1d477c79553f524bc; admission metadata is not a runtime/payload source change.",
+    "source_revision": "cb16f02431ed492397ecf7a1d477c79553f524bc",
+    "accepted_artifacts": {
+      "exe": "1cf18b18310e5ec6f3cb8fdbe310ad0212b7031f07c7d1785c66290f8866767e",
+      "msi": "57fa202ec7be1182a78d58bc5aa7b1f1e7d0d3a9d61bf7068bdb0f1e5990b17a",
+      "zip": "a6b7d6b1b4590ce0661f1de43e3a662fb53a00d54ad92d43709ec27354180fb3"
+    },
+    "evidence_ids": [
+      "A1115",
+      "A1179",
+      "A1212",
+      "A1214",
+      "A1221",
+      "A1245",
+      "A1307"
+    ],
+    "required_remote_ci": "https://github.com/psewdon1m-exocortex/neptune/actions/runs/43667116108",
+    "signing_policy": "Owner-approved self-signed Authenticode; DBD1 publisher signatures; default trust only verified in isolated test account",
+    "package8_global_release_decision": "OUT_OF_SCOPE_NOT_ASSERTED"
+  }
 }

@@ -5,6 +5,18 @@ internal sealed record ReplacementOriginalPage(long After,IReadOnlyList<(long Nu
 internal sealed record ReplacementCompletedAnchor(LocalCoherenceState State,int Attempt);
 public sealed partial class NeptuneStateStore
 {
+    private static async Task<bool> MarkFailedReplacementEnumerationIncomplete(SqliteConnection c,SqliteTransaction t,string id,string scope,string coherence,string candidate,long created,CancellationToken ct)
+    {
+        // A completed directory enumeration is not a qualified native cut.
+        // Resume only an explicitly failed, recorded attempt with no B/work;
+        // keep its IDs/evidence and let the existing bounded retry allocate
+        // the next candidate. Unknown Building/crash states remain fenced.
+        await using var proof=SyncCommand(c,t,"SELECT a.reason FROM local_cycle_replacement_requests p JOIN local_cycle_replacement_attempts a ON a.replacement_id=p.replacement_id AND a.attempt=p.candidate_attempts JOIN local_cycle_scopes s ON s.scope_id=p.new_scope WHERE p.replacement_id=$id AND p.new_scope=$scope AND p.status=0 AND a.state=2 AND a.reason IS NOT NULL AND p.error=a.reason AND a.candidate_id=$candidate AND a.coherence_id=$cohere AND s.coherence_id=$cohere AND s.seed_complete=0 AND s.owner_epoch=p.new_owner AND NOT EXISTS(SELECT 1 FROM local_cycle_work WHERE scope_id=$scope) AND NOT EXISTS(SELECT 1 FROM local_cycle_files WHERE scope_id=$scope AND baseline IS NOT NULL)");
+        proof.Parameters.AddWithValue("$id",id);proof.Parameters.AddWithValue("$scope",scope);proof.Parameters.AddWithValue("$candidate",candidate);proof.Parameters.AddWithValue("$cohere",coherence);
+        if(await proof.ExecuteScalarAsync(ct)is not string reason)return false;
+        await using var mark=SyncCommand(c,t,"UPDATE local_namespace_candidates SET status=2,error=$reason WHERE candidate_id=$candidate AND status=1 AND root_created=$created");mark.Parameters.AddWithValue("$candidate",candidate);mark.Parameters.AddWithValue("$created",created);mark.Parameters.AddWithValue("$reason",reason);
+        return await mark.ExecuteNonQueryAsync(ct)==1;
+    }
     internal async Task<ReplacementCompletedAnchor?> ReadReplacementCompletedAnchor(string root,string owner,string scope,string id,CancellationToken ct)
     {
         await using var c=await OpenCycleConnection(ct);using var t=c.BeginTransaction(deferred:true);

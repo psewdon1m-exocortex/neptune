@@ -223,6 +223,52 @@ public sealed partial class JournalGapReplacementTests
             await using var restored=await Replace(f,request);Assert.Equal(scope,restored.ScopeId);Assert.Equal(LocalJournalReplacementStatus.Installed,restored.JournalReplacement!.Status);await restored.QualifyJournalReplacementAsync(Ct);var fresh=await restored.FreshSyncAsync(Ct);Assert.Null(fresh.Error);Assert.Equal("NoWorkAtAppliedEventBoundary",fresh.Decision);Assert.Equal(0,fresh.CapturedFiles);Assert.Equal(prepares,f.Remote.Prepares);Assert.Equal(baseline,await f.Scalar("SELECT baseline FROM local_cycle_files WHERE scope_id='"+scope+"'"));return true;
         });
     }
+    [Fact]
+    public async Task FailedCompletedEnumerationRetriesSameRequestWithoutReusingUnqualifiedCut()
+    {
+        if(!OperatingSystem.IsWindows()){Assert.Skip("Requires Windows native filesystem fixture");return;}
+        await using var f=await WindowsFreshCycleTests.Fixture.Create();
+        File.WriteAllText(Path.Combine(f.Source,"original"),"immutable original bytes");
+        await Medium(async()=>
+        {
+            string old;
+            await using(var original=await Open(f))
+            {old=original.ScopeId;Assert.Null((await original.InitialSyncAsync(Ct)).Error);await Session(original).MarkGapAsync("JournalGap",Ct);}
+            var before=await Snapshot(f,old);
+            var request=new JournalGapReplacementRequest(Guid.NewGuid().ToString("N"),old);
+            string scope,candidate="",coherence="";
+            await using(var replacement=await Replace(f,request))
+            {
+                scope=replacement.ScopeId;var session=Session(replacement);
+                var attempt=await SessionCall<int>(session,"BeginReplacementAttemptAsync",scope,request.ReplacementId,Ct);
+                await using var coordinator=await WindowsLocalCoherenceCoordinator.OpenWithModeAsync(f.Source,LocalJournalReadMode.IdentityOnly,Ct,(o,t)=>
+                {if(o.Stage==LocalCoherenceStage.BeforeCut)throw new IOException("Controlled native cut failure after enumeration");return Task.CompletedTask;});
+                Func<string,string,CancellationToken,Task> record=async(n,c,t)=>
+                {candidate=n;coherence=c;await SessionCall(session,"RecordReplacementCandidateAsync",scope,request.ReplacementId,attempt,n,c,t);};
+                typeof(WindowsLocalCoherenceCoordinator).GetMethod("SetReplacementAnchorStarted",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(coordinator,[record]);
+                var error=await Assert.ThrowsAsync<IOException>(()=>coordinator.BuildAnchorAsync(session,new(MinimumFreeDiskBytes:10L<<30),new(MinimumFreeDiskBytes:10L<<30),Ct));
+                await SessionCall(session,"FailReplacementAttemptAsync",scope,request.ReplacementId,attempt,error.Message,Ct);
+                Assert.Equal(1L,await f.Scalar("SELECT status FROM local_namespace_candidates WHERE candidate_id='"+candidate+"'"));
+                Assert.Equal(2L,await f.Scalar("SELECT status FROM local_coherence_roots WHERE coherence_id='"+coherence+"'"));
+                Assert.Equal(0L,await f.Scalar("SELECT COUNT(*) FROM local_cycle_work WHERE scope_id='"+scope+"'"));
+            }
+            await using(var resumed=await Replace(f,request))
+            {
+                Assert.Equal(scope,resumed.ScopeId);
+                await resumed.QualifyJournalReplacementAsync(Ct);
+                Assert.Equal(LocalJournalReplacementStatus.Installed,resumed.JournalReplacement!.Status);
+                Assert.Equal(2,resumed.JournalReplacement.CandidateAttempts);
+                Assert.Null(resumed.JournalReplacement.Error);
+            }
+            Assert.Equal(candidate,await f.Scalar("SELECT candidate_id FROM local_cycle_replacement_attempts WHERE attempt=1"));
+            Assert.Equal(coherence,await f.Scalar("SELECT coherence_id FROM local_cycle_replacement_attempts WHERE attempt=1"));
+            Assert.Equal(2L,await f.Scalar("SELECT state FROM local_cycle_replacement_attempts WHERE attempt=1"));
+            Assert.Equal(2L,await f.Scalar("SELECT COUNT(*) FROM local_cycle_replacement_attempts"));
+            Assert.Equal(1L,await f.Scalar("SELECT COUNT(*) FROM local_cycle_replacement_requests"));
+            Assert.Equal(before,await Snapshot(f,old));
+            return true;
+        });
+    }
     [Theory][InlineData("before-seed")][InlineData("partial-seed")][InlineData("complete-seed")]
     public async Task CompletedNativeCutResumesOriginalCandidateAcrossSeedActivationBoundary(string boundary)
     {

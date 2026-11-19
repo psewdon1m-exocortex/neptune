@@ -105,7 +105,10 @@ public sealed partial class NeptuneStateStore
         if(row.State.Status!=LocalCoherenceStatus.Building||row.State.CutUsn!=0||bounds.JournalIdHex!=row.State.JournalId||bounds.NextUsn<row.State.StartUsn||bounds.NextUsn>state.Cursor.NextReadUsn||Math.Max(bounds.FirstUsn,bounds.LowestValidUsn)>row.State.StartUsn
             ||ns.State.Status!=LocalNamespaceStatus.EnumerationComplete||ns.State.Exclusions!=0||row.State.MatchedEntries!=ns.State.Entries||row.State.VerifiedParents!=ns.State.ValidatedParents)
             throw new InvalidDataException("Complete native namespace and observed retained journal boundary are required.");
-        await using(var q=SyncCommand(c,t,"UPDATE local_coherence_roots SET cut_usn=$cut WHERE coherence_id=$coherence")){CoherenceId(q,id);q.Parameters.AddWithValue("$cut",bounds.NextUsn);await q.ExecuteNonQueryAsync(ct);}await CommitCoherence(c,t,before,ct);
+        // Zero is a real boundary on a newly created journal. Complete its
+        // empty [0,0) interval atomically, leaving a durable replay receipt
+        // that distinguishes this observed cut from an unfinished scan.
+        await using(var q=SyncCommand(c,t,"UPDATE local_coherence_roots SET cut_usn=$cut,status=CASE WHEN $cut=0 THEN 1 ELSE status END,last_start=CASE WHEN $cut=0 THEN 0 ELSE last_start END,last_end=CASE WHEN $cut=0 THEN 0 ELSE last_end END,last_hash=CASE WHEN $cut=0 THEN $empty ELSE last_hash END,last_records=CASE WHEN $cut=0 THEN 0 ELSE last_records END,last_dirty=CASE WHEN $cut=0 THEN 0 ELSE last_dirty END,last_outside=CASE WHEN $cut=0 THEN 0 ELSE last_outside END,last_unknown=CASE WHEN $cut=0 THEN 0 ELSE last_unknown END WHERE coherence_id=$coherence")){CoherenceId(q,id);q.Parameters.AddWithValue("$cut",bounds.NextUsn);q.Parameters.AddWithValue("$empty",LocalHash(""));await q.ExecuteNonQueryAsync(ct);}await CommitCoherence(c,t,before,ct);
     }
     internal async Task<LocalCoherenceState> ReadOwnedCoherenceAsync(string root,string owner,string id,CancellationToken ct)
     {
