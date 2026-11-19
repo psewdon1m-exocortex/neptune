@@ -1,10 +1,10 @@
 {
   "schema": "exocortex.package3.frozen-source.v1",
-  "at": "2026-11-19T04:45:34.710Z",
+  "at": "2026-11-19T05:11:30.651Z",
   "component": "neptune",
   "version": "0.1.20",
-  "baseGitCommit": "b7a82da618a8868c5240c220406fe97f5158876d",
-  "scope": "Package5 NEP01 candidate, unchanged runtime delta; strengthen native rollback test WAL baseline while preserving exact DB/WAL assertions after actual remote failure",
+  "baseGitCommit": "7a574b23ac7d505154caa52961497b6d41dcf99b",
+  "scope": "Package5 NEP01 runtime unchanged; make existing missing-note-return regression wait for actual native missing-file observation instead of wall-clock race; strict assertions preserved",
   "files": [
     {
       "path": ".gitattributes",
@@ -3888,9 +3888,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/ObsidianSaveConcurrencyTests.cs",
-      "bytes": 18289,
-      "sha256": "4b4f065fdc14290ad91e86d74cd3d01aec0f49677e07f3278d1f562f1ccfde39",
-      "canonical_sha256": "4b4f065fdc14290ad91e86d74cd3d01aec0f49677e07f3278d1f562f1ccfde39",
+      "bytes": 19510,
+      "sha256": "bac97f9733902dd9c9e83379bcfaf50eb5ad755a420d8ee563b9b064e7cc2077",
+      "canonical_sha256": "bac97f9733902dd9c9e83379bcfaf50eb5ad755a420d8ee563b9b064e7cc2077",
       "line_endings": "LF"
     },
     {
@@ -4730,5 +4730,5 @@
       "line_endings": "LF"
     }
   ],
-  "sourceSetSHA256": "95b180ef2d7544ba555180140928e748781c7bfbe64e092a26a2e8ed1cd15cf4"
+  "sourceSetSHA256": "7cfbe5ee244403fd15b0e97e92ea66907b5ee08316368529c9e24eaf2e92f8db"
 }

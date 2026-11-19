@@ -185,7 +185,21 @@ public sealed class ObsidianSaveConcurrencyTests
         var cleanupScans = 0;
         var cancelledUploads = 0;
         var replaced = false;
-        Task replacement = Task.CompletedTask;
+        var missingReads = 0; var restored = 0; Exception? replacementError = null;
+        // Returning on a wall-clock delay can precede the first native read
+        // on a slow runner, so it does not prove the intended missing-source
+        // observation. Restore only after this exact FileInfo read has thrown.
+        EventHandler<System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs> restoreAfterMissing = (_, observed) =>
+        {
+            if (observed.Exception is not FileNotFoundException missing
+                || !string.Equals(missing.FileName, file, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) return;
+            Interlocked.Increment(ref missingReads);
+            if (returns && Interlocked.CompareExchange(ref restored, 1, 0) == 0)
+            {
+                try { File.WriteAllText(file, "new contents"); }
+                catch (Exception failure) { replacementError = failure; }
+            }
+        };
         using var http = new HttpClient(ServiceHandler(async request =>
         {
             if (request.RequestUri!.AbsolutePath == "/api/v1/sync/uploads/cancel")
@@ -200,7 +214,7 @@ public sealed class ObsidianSaveConcurrencyTests
                 {
                     replaced = true;
                     File.Delete(file);
-                    if (returns) replacement = Task.Run(async () => { await Task.Delay(50, Ct); await File.WriteAllTextAsync(file, "new contents", Ct); }, Ct);
+
                 }
                 return new(HttpStatusCode.Created);
             }
@@ -228,7 +242,13 @@ public sealed class ObsidianSaveConcurrencyTests
             var scope = Hash(Encoding.UTF8.GetBytes("https://saturn.test\n" + connection.SaturnToken));
             await state.SaveSyncUploadCheckpointAsync(new SyncUploadCheckpoint(scope,
                 "https://saturn.test/webdav/sync/Assigned/obsidian/temporarily-missing.md", new string('a', 64), "retained", null), Ct);
-            var result = await service.SyncAsync("client", [mapping], connection, cancellationToken: Ct);
+            WindowsSyncResult result;
+            AppDomain.CurrentDomain.FirstChanceException += restoreAfterMissing;
+            try { result = await service.SyncAsync("client", [mapping], connection, cancellationToken: Ct); }
+            finally { AppDomain.CurrentDomain.FirstChanceException -= restoreAfterMissing; }
+            Assert.True(Volatile.Read(ref missingReads) > 0, "The product must actually observe this missing source before the editor returns it.");
+            Assert.Null(replacementError);
+            Assert.Equal(returns ? 1 : 0, Volatile.Read(ref restored));
             Assert.Equal(returns ? 2 : 1, result.UploadedFiles);
             Assert.Equal(returns ? 0 : 1, result.DeferredFiles);
             Assert.Equal(0, cleanupScans);
@@ -237,7 +257,6 @@ public sealed class ObsidianSaveConcurrencyTests
             Assert.Empty(result.Mirrors);
             Assert.Equal("unaffected", Encoding.UTF8.GetString(remote["sibling.md"]));
             Assert.Equal(returns ? "new contents" : "old", Encoding.UTF8.GetString(remote[Name]));
-            await replacement;
             if (!returns) await File.WriteAllTextAsync(file, "new contents", Ct);
             var settled = await service.SyncAsync("client", [mapping], connection, cancellationToken: Ct);
             Assert.Equal(0, settled.DeferredFiles);
@@ -249,7 +268,7 @@ public sealed class ObsidianSaveConcurrencyTests
             Assert.Empty(await state.ListSyncUploadCheckpointsAsync(scope, Ct));
             Assert.Single(settled.Mirrors);
         }
-        finally { await replacement; SqliteConnection.ClearAllPools(); Directory.Delete(directory, recursive: true); }
+        finally { SqliteConnection.ClearAllPools(); Directory.Delete(directory, recursive: true); }
     }
 
     [Fact]
