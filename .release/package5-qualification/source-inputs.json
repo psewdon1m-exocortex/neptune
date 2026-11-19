@@ -1,10 +1,10 @@
 {
   "schema": "exocortex.package3.frozen-source.v1",
-  "at": "2026-11-19T05:11:30.651Z",
+  "at": "2026-11-19T06:17:52.893Z",
   "component": "neptune",
   "version": "0.1.20",
-  "baseGitCommit": "7a574b23ac7d505154caa52961497b6d41dcf99b",
-  "scope": "Package5 NEP01 runtime unchanged; make existing missing-note-return regression wait for actual native missing-file observation instead of wall-clock race; strict assertions preserved",
+  "baseGitCommit": "278b1e888e688d03459599cdbca42b3d18751b7f",
+  "scope": "Package5: retire only uncaptured unattempted queued/deferred work after approved published delete and new complete native absence proof; preserve newer generations and retained originals; deterministic regression plus 121 bounded delete diagnostics",
   "files": [
     {
       "path": ".gitattributes",
@@ -1758,9 +1758,9 @@
     },
     {
       "path": "src/Neptune.Core/NeptuneStateStore.NamespaceDeleteRecheck.cs",
-      "bytes": 10074,
-      "sha256": "21316341e00adfd158f938f42d0766730530991a910fd793c5e8bcefdda42053",
-      "canonical_sha256": "be859b874dc34e506f3d7f2a3c81683abb84bcc0f32e4cac3c9e5fcf6223d134",
+      "bytes": 13201,
+      "sha256": "1dbb8f4bcbe26a3c4a988b514142c42e9ded412a9e7dfdf231a7fd97ff99dcf8",
+      "canonical_sha256": "831d6acc031dca66db6319832a6c780845bdbaed21f700ab5ffb72f3ec035beb",
       "line_endings": "CRLF"
     },
     {
@@ -4021,9 +4021,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/ReleaseAcceptanceDeleteApprovalTests.cs",
-      "bytes": 27496,
-      "sha256": "b65b1aabf82c4185ab4f4fd31664dbeebbd8ad4de7ff459d518315e41463472f",
-      "canonical_sha256": "b65b1aabf82c4185ab4f4fd31664dbeebbd8ad4de7ff459d518315e41463472f",
+      "bytes": 36388,
+      "sha256": "ddc60d46fb7956b81032408e402b9bffa1530de44fbbca6774d5aaefd2e5c043",
+      "canonical_sha256": "ddc60d46fb7956b81032408e402b9bffa1530de44fbbca6774d5aaefd2e5c043",
       "line_endings": "LF"
     },
     {
@@ -4730,5 +4730,5 @@
       "line_endings": "LF"
     }
   ],
-  "sourceSetSHA256": "7cfbe5ee244403fd15b0e97e92ea66907b5ee08316368529c9e24eaf2e92f8db"
+  "sourceSetSHA256": "a76c77668e2ad538bdc5e9387059068796e3ad5048a823b7be35dacffb19abab"
 }

@@ -8,6 +8,9 @@ internal sealed record NamespaceDeleteRecheck(NamespaceOperation Original,LocalC
 
 public sealed partial class NeptuneStateStore
 {
+    // A source hint can enqueue capture after a published delete. Only work
+    // that never acquired bytes or an original intent may yield to new absence proof.
+    private const string UnacceptedDeleteRecheckWork="w.phase IN(0,8) AND w.spool_path IS NULL AND w.size IS NULL AND w.sha256 IS NULL AND w.capture_proof IS NULL AND w.input_json IS NULL AND w.intent_hash IS NULL AND w.upload_id IS NULL AND w.received=0 AND w.result_json IS NULL AND NOT EXISTS(SELECT 1 FROM client_stream_operations s WHERE s.operation_id=w.operation_id) AND NOT EXISTS(SELECT 1 FROM client_metadata_seals m WHERE m.operation_id=w.operation_id)";
     private static async Task<bool> IsSettledDeletedNamespace(Microsoft.Data.Sqlite.SqliteConnection c,Microsoft.Data.Sqlite.SqliteTransaction t,string scope,string node,CancellationToken ct)
     {
         await using(var module=SyncCommand(c,t,"SELECT 1 FROM sqlite_master WHERE name='client_namespace_operations'"))if(await module.ExecuteScalarAsync(ct)is null)return false;
@@ -40,7 +43,7 @@ public sealed partial class NeptuneStateStore
             WHERE f.scope_id=$scope AND f.phase<4 AND f.baseline IS NULL AND f.remote_node IS NULL
             AND f.created=json_extract(o.entry_json,'$.created') AND {native}=COALESCE(json_extract(o.entry_json,'$.nativeNodeId'),json_extract(o.entry_json,'$.nodeId'))
             AND NOT EXISTS(SELECT 1 FROM json_each($excludes) e WHERE neptune_path_within(f.path,e.value))
-            AND NOT EXISTS(SELECT 1 FROM local_cycle_work w WHERE w.scope_id=f.scope_id AND w.node_id=f.node_id AND w.active=1)
+            AND NOT EXISTS(SELECT 1 FROM local_cycle_work w WHERE w.scope_id=f.scope_id AND w.node_id=f.node_id AND w.active=1 AND NOT ({UnacceptedDeleteRecheckWork}))
             AND NOT EXISTS(SELECT 1 FROM client_namespace_operations active WHERE active.scope_id=f.scope_id AND active.node_id=f.node_id AND active.state NOT IN('PUBLISHED','NOT_PUBLISHED','CANCELLED'))
             ORDER BY f.node_id LIMIT 120
             """))
@@ -60,7 +63,7 @@ public sealed partial class NeptuneStateStore
     internal async Task RetireDeletedNamespaceRechecks(string root,string owner,string scopeId,string planId,IReadOnlyList<NamespaceDeleteRecheck> checks,CancellationToken ct)
     {
         if(checks.Count is <1 or >120)throw new ArgumentOutOfRangeException(nameof(checks));
-        await ClientAdmission(root,owner,scopeId,checks.Count*2,ct);
+        await ClientAdmission(root,owner,scopeId,checks.Count*4,ct);
         await using var c=await OpenCycleConnection(ct);using var t=c.BeginTransaction(deferred:false);var scope=await RequireCycle(c,t,root,owner,scopeId,false,ct);
         var local=await ReadLocalStateAsync(c,t,root,owner,ct);var coherence=await RequireCoherenceAsync(c,t,root,owner,scope.CoherenceId!,false,ct);
         var progress=await CycleProgress(c,t,scopeId,ct);
@@ -83,6 +86,28 @@ public sealed partial class NeptuneStateStore
             if(current.SourceNodeId!=check.Current.SourceNodeId||current.Created!=check.Current.Created||current.Generation!=check.Current.Generation||current.RelativePath!=check.Current.RelativePath||current.BaselineJson is not null||await IsCycleExcluded(c,t,scopeId,current.RelativePath,ct))continue;
             var receipt=SyncMutationWire.Read(Encoding.UTF8.GetBytes(check.Original.Receipt!),check.Original.Request);
             if(receipt.State!="PUBLISHED"||receipt.Description is null||receipt.LastSequence is not { } sequence||progress.Sequence<sequence||await CycleRemoteNode(c,t,scopeId,receipt.Description.NodeId,ct)is not null)continue;
+            // The proof must exclude both the current native identity and path.
+            // Never retire a captured/sealed/attempted original, even if an old
+            // namespace receipt exists for the same local row.
+            await using(var absent=SyncCommand(c,t,$"""
+                SELECT 1 WHERE NOT EXISTS(SELECT 1 FROM local_parent_reconcile_entries e WHERE e.plan_id=$plan AND (e.node_id=$native OR e.path=$path))
+                AND NOT EXISTS(SELECT 1 FROM client_namespace_operations active WHERE active.scope_id=$scope AND active.node_id=$node AND active.state NOT IN('PUBLISHED','NOT_PUBLISHED','CANCELLED'))
+                AND NOT EXISTS(SELECT 1 FROM local_cycle_work w WHERE w.scope_id=$scope AND w.node_id=$node AND w.active=1 AND NOT ({UnacceptedDeleteRecheckWork} AND w.journal_generation<=$journal AND w.watcher_generation<=$watcher))
+                """))
+            {
+                CycleId(absent,scopeId);absent.Parameters.AddWithValue("$node",current.NodeId);absent.Parameters.AddWithValue("$native",current.SourceNodeId);absent.Parameters.AddWithValue("$path",current.RelativePath);absent.Parameters.AddWithValue("$plan",planId);absent.Parameters.AddWithValue("$journal",current.Generation.Journal);absent.Parameters.AddWithValue("$watcher",current.Generation.Watcher);
+                if(await absent.ExecuteScalarAsync(ct)is null)continue;
+            }
+            string? unaccepted;
+            await using(var find=SyncCommand(c,t,"SELECT operation_id FROM local_cycle_work WHERE scope_id=$scope AND node_id=$node AND active=1"))
+            {CycleId(find,scopeId);find.Parameters.AddWithValue("$node",current.NodeId);unaccepted=await find.ExecuteScalarAsync(ct)as string;}
+            if(unaccepted is not null)
+            {
+                // Keep the work identity/history. Failed is terminal, not a
+                // fabricated successful capture or publication.
+                await using var retire=SyncCommand(c,t,"UPDATE local_cycle_work SET phase=9,active=NULL,error=substr('Confirmed absent after approved delete; unaccepted work retired. '||COALESCE(error,''),1,1024) WHERE scope_id=$scope AND operation_id=$operation AND active=1;DELETE FROM client_operation_schedule WHERE scope_id=$scope AND operation_id=$operation");
+                CycleId(retire,scopeId);retire.Parameters.AddWithValue("$operation",unaccepted);await retire.ExecuteNonQueryAsync(ct);
+            }
             await using var q=SyncCommand(c,t,"""
                 UPDATE local_cycle_files SET phase=4,ack_journal=$journal,ack_watcher=$watcher
                 WHERE scope_id=$scope AND node_id=$node AND remote_node IS NULL AND baseline IS NULL
