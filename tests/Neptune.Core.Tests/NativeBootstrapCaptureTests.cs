@@ -371,13 +371,33 @@ public sealed class NativeBootstrapCaptureTests
     {
         await using var f = await Fixture.CreateAsync(); await InvokeAsync(f.Store, "EnsureNativeBootstrapWorkSchemaAsync", Ct);
         var manifest = f.Database + ".bootstrap-work-v3-backup.json"; var json = await File.ReadAllTextAsync(manifest, Ct);
-        // Keep this fixture's WAL owner open while asserting raw persistence.
-        // Parallel fixtures may clear pooled handles; a last-close checkpoint
-        // can otherwise change the DB header without a rollback writing data.
+        // Establish the physical baseline before pinning a real read snapshot.
+        // An open connection alone has not necessarily attached to this WAL;
+        // unrelated ClearAllPools may otherwise checkpoint our prior frames.
         await using var wal = new SqliteConnection("Data Source=" + f.Database + ";Pooling=False"); await wal.OpenAsync(Ct);
-        await using var checkpoint = wal.CreateCommand(); checkpoint.CommandText = "PRAGMA wal_autocheckpoint=0"; await checkpoint.ExecuteNonQueryAsync(Ct);
+        await using (var setup = wal.CreateCommand())
+        {
+            setup.CommandText = "PRAGMA wal_autocheckpoint=0; CREATE TABLE native_rollback_probe(value TEXT)";
+            await setup.ExecuteNonQueryAsync(Ct);
+        }
+        await using (var checkpoint = wal.CreateCommand())
+        {
+            checkpoint.CommandText = "PRAGMA wal_checkpoint(TRUNCATE)";
+            await using var result = await checkpoint.ExecuteReaderAsync(Ct);
+            Assert.True(await result.ReadAsync(Ct)); Assert.Equal(0L, result.GetInt64(0));
+            Assert.Equal(0L, result.GetInt64(1)); Assert.Equal(0L, result.GetInt64(2));
+        }
+        await using var snapshot = wal.BeginTransaction(deferred: true);
+        await using var pin = wal.CreateCommand(); pin.Transaction = snapshot;
+        pin.CommandText = "SELECT COUNT(*) FROM native_rollback_probe";
+        Assert.Equal(0L, await pin.ExecuteScalarAsync(Ct));
+        // Keep committed user bytes in the WAL while the pre-write reader
+        // prevents checkpoint movement of the physical byte-exact baseline.
+        await f.ExecuteAsync("INSERT INTO native_rollback_probe VALUES('committed original retained during refusal')");
+        Assert.Equal(0L, await pin.ExecuteScalarAsync(Ct));
         var active = await ReadSharedAsync(f.Database);
         var log = File.Exists(f.Database + "-wal") ? await ReadSharedAsync(f.Database + "-wal") : [];
+        Assert.True(log.Length > 32, "The refusal must preserve a real committed WAL payload.");
         await File.WriteAllTextAsync(manifest, "[]", Ct);
         await Assert.ThrowsAsync<InvalidDataException>(() => f.Store.CreatePreNativeBootstrapCaptureRollbackCopyAsync(Path.Combine(f.Root, "bad-array.db"), Ct));
         await File.WriteAllTextAsync(manifest, json[..^1] + ",\"TargetFormat\":3}", Ct);
@@ -389,6 +409,10 @@ public sealed class NativeBootstrapCaptureTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Store.CreatePreNativeBootstrapCaptureRollbackCopyAsync(f.Database, Ct));
         Assert.Equal(active, await ReadSharedAsync(f.Database));
         Assert.Equal(log, File.Exists(f.Database + "-wal") ? await ReadSharedAsync(f.Database + "-wal") : []);
+        Assert.Equal(1L, await f.ScalarAsync("SELECT COUNT(*) FROM native_rollback_probe"));
+        Assert.False(File.Exists(Path.Combine(f.Root, "bad-array.db")));
+        Assert.False(File.Exists(Path.Combine(f.Root, "duplicate.db")));
+        Assert.False(File.Exists(Path.Combine(f.Root, "tampered.db")));
     }
 
     [Fact]
