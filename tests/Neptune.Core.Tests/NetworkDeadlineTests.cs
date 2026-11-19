@@ -16,28 +16,31 @@ public sealed class NetworkDeadlineTests
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
         var origin = new Uri($"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}/");
-        var peers = new List<Task>();
-        var server = Task.Run(async () =>
+        var headersSent = 0;
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Keep the deliberately stalled loopback peer off the shared pool.
+        // The short client deadline must test a response body, not whether a
+        // queued Task.Run gets scheduled before an already-cancelled socket.
+        var server = Task.Factory.StartNew(() =>
         {
+            ready.SetResult();
             try
             {
                 while (!stop.IsCancellationRequested)
                 {
-                    var peer = await listener.AcceptTcpClientAsync(stop.Token);
-                    peers.Add(Task.Run(async () =>
-                    {
-                        using (peer)
-                        {
-                            var stream = peer.GetStream(); var buffer = new byte[8192];
-                            Assert.True(await stream.ReadAsync(buffer, stop.Token) > 0);
-                            await stream.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\n{"), stop.Token);
-                            try { while (await stream.ReadAsync(buffer, stop.Token) != 0) { } } catch (IOException) { }
-                        }
-                    }, stop.Token));
+                    using var peer = listener.AcceptTcpClient();
+                    var stream = peer.GetStream();
+                    var buffer = new byte[8192];
+                    if (stream.Read(buffer) == 0) continue;
+                    stream.Write(Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\n{"));
+                    Interlocked.Increment(ref headersSent);
+                    try { while (stream.Read(buffer) != 0) { } } catch (IOException) { }
                 }
             }
-            catch (OperationCanceledException) { }
-        }, Ct);
+            catch (SocketException) when (stop.IsCancellationRequested) { }
+            catch (ObjectDisposedException) when (stop.IsCancellationRequested) { }
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        await ready.Task;
         try
         {
             var remote = new WindowsFreshCycleTests.FakeRemote();
@@ -49,9 +52,9 @@ public sealed class NetworkDeadlineTests
         }
         finally
         {
-            stop.Cancel(); await server;
-            try { await Task.WhenAll(peers); } catch (OperationCanceledException) { }
+            stop.Cancel(); listener.Stop(); await server;
         }
+        Assert.Equal(9, Volatile.Read(ref headersSent));
     }
 
     [Fact]

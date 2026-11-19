@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.AccessControl;
 using Neptune.Core;
 using Xunit;
 
@@ -6,6 +7,69 @@ namespace Neptune.Core.Tests;
 
 public sealed partial class WindowsFreshCycleTests
 {
+
+    [Fact]
+    public async Task ActualReadDataDeniedSourceKeepsOriginalAndRetriesAfterAclRestoration()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Requires Windows native filesystem fixture"); return; }
+        await using var f = await Fixture.Create(new Stage3Clock());
+        var path = Path.Combine(f.Source, "denied.bin");
+        File.WriteAllText(path, "retained denied original");
+        File.WriteAllText(Path.Combine(f.Source, "healthy.bin"), "healthy neighbor");
+        var original = new FileInfo(path).GetAccessControl(System.Security.AccessControl.AccessControlSections.Access);
+        var descriptor = original.GetSecurityDescriptorBinaryForm();
+        void Restore()
+        {
+            var restored = new System.Security.AccessControl.FileSecurity();
+            restored.SetSecurityDescriptorBinaryForm(descriptor, System.Security.AccessControl.AccessControlSections.Access);
+            new FileInfo(path).SetAccessControl(restored);
+        }
+        try
+        {
+            var denied = new System.Security.AccessControl.FileSecurity();
+            denied.SetSecurityDescriptorBinaryForm(descriptor, System.Security.AccessControl.AccessControlSections.Access);
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            denied.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(identity.User!, System.Security.AccessControl.FileSystemRights.ReadData, System.Security.AccessControl.AccessControlType.Deny));
+            new FileInfo(path).SetAccessControl(denied);
+            Assert.Throws<UnauthorizedAccessException>(() => { using var read = File.OpenRead(path); });
+            await using var engine = await f.Open();
+            var first = await engine.InitialSyncAsync(Ct);
+            await f.Evidence("read-data-denied-before-restore", first);
+            Assert.Null(first.Error);
+            Assert.Equal(1, first.PublishedFiles);
+            Assert.Equal(1, first.Deferred);
+            Assert.Equal("SOURCE_BUSY", first.RetryState);
+            var operation = (string)(await f.Scalar("SELECT w.operation_id FROM local_cycle_work w JOIN local_cycle_files f ON f.scope_id=w.scope_id AND f.node_id=w.node_id WHERE f.path='denied.bin' AND w.active=1"))!;
+            Assert.NotNull(operation);
+            Assert.Equal(1L, await f.Scalar($"SELECT COUNT(*) FROM local_cycle_work WHERE operation_id='{operation}' AND phase=8 AND capture_proof IS NULL AND input_json IS NULL"));
+            Restore();
+            var restoredAcl = new FileInfo(path).GetAccessControl(System.Security.AccessControl.AccessControlSections.Access);
+            var originalRaw = new System.Security.AccessControl.RawSecurityDescriptor(descriptor, 0);
+            var restoredRaw = new System.Security.AccessControl.RawSecurityDescriptor(restoredAcl.GetSecurityDescriptorBinaryForm(), 0);
+            // SetSecurityInfo may add the native AUTO_INHERITED bookkeeping
+            // flag. Every ACE, its order and all other control flags must match.
+            var originalDacl = new byte[originalRaw.DiscretionaryAcl!.BinaryLength];
+            var restoredDacl = new byte[restoredRaw.DiscretionaryAcl!.BinaryLength];
+            originalRaw.DiscretionaryAcl.GetBinaryForm(originalDacl, 0);
+            restoredRaw.DiscretionaryAcl.GetBinaryForm(restoredDacl, 0);
+            Assert.Equal(originalDacl, restoredDacl);
+            Assert.Equal(originalRaw.ControlFlags & ~System.Security.AccessControl.ControlFlags.DiscretionaryAclAutoInherited, restoredRaw.ControlFlags & ~System.Security.AccessControl.ControlFlags.DiscretionaryAclAutoInherited);
+            Assert.Equal("retained denied original", File.ReadAllText(path));
+            var after = await f.FreshWhenDueAsync(engine, Ct);
+            Assert.Null(after.Error);
+            Assert.Equal(1, after.PublishedFiles);
+            Assert.Equal(0, after.Deferred);
+            Assert.Equal("neptune-cycle-" + operation, f.Remote.LastInput!.Intent.IdempotencyKey);
+            Assert.Equal(1L, await f.Scalar($"SELECT COUNT(*) FROM local_cycle_work WHERE operation_id='{operation}' AND phase=5 AND active IS NULL AND capture_proof IS NOT NULL AND input_json IS NOT NULL"));
+            var noop = await f.FreshWhenDueAsync(engine, Ct);
+            Assert.Null(noop.Error);
+            Assert.Equal(0, noop.PublishedFiles);
+            Assert.Equal(2, f.Remote.Prepares);
+            await f.Evidence("read-data-denied-same-original-resumed", new { operation, first, after, noop, originalRetained = true });
+        }
+        finally { Restore(); }
+    }
+
     [Fact]
     public async Task ActualAuthoritativeNotPublishedBecomesConflictWithoutLosingSealedEvidence()
     {

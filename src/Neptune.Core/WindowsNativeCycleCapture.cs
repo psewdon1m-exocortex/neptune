@@ -33,7 +33,7 @@ public sealed partial class WindowsNativeCycleCapture : IAsyncDisposable
     {
         ct.ThrowIfCancellationRequested();if(entry.Directory)throw new InvalidOperationException();var full=Resolve(entry.RelativePath);
         using var ancestry=WindowsBootstrapSourceCapture.HoldDirectoryPath(Path.GetDirectoryName(full)!);using var root=Open(RootProof.RootPath,0x80,3);ValidateRoot(root);
-        SafeFileHandle handle;try{handle=Open(full,0x80000000u|0x80u,1);}catch(Win32Exception e)when(e.NativeErrorCode is 2 or 3 or 32 or 33){throw new BootstrapCaptureDeferredException("Source writer/mapping is still open.");}
+        SafeFileHandle handle;try{handle=Open(full,0x80000000u|0x80u,1);}catch(Win32Exception e)when(e.NativeErrorCode is 2 or 3 or 5 or 32 or 33){throw new BootstrapCaptureDeferredException("Source access, writer or mapping is temporarily unavailable.");}
         using(handle){WindowsBootstrapSourceCapture.RequireHandlePath(handle,full);var actual=ReadIdentity(handle,false);if(actual.FileId128!=entry.SourceNodeId||actual.Created!=entry.Created||actual.Links!=1)throw new BootstrapCaptureDeferredException("Current indexed source incarnation/link count changed; await native reconciliation.");return Task.FromResult(actual.Size);}
     }
     internal async Task<LocalCycleSeal> CaptureAsync(LocalCycleWork work,string path,long maximumBytes,CancellationToken ct)
@@ -47,7 +47,7 @@ public sealed partial class WindowsNativeCycleCapture : IAsyncDisposable
         if(parentProof.FileId128!=entry.ParentId)throw new IOException("Original cycle parent changed before capture.");
         SafeFileHandle handle;
         try{handle=Open(full,0x80000000u|0x80u,1);}
-        catch(Win32Exception e)when(e.NativeErrorCode is 2 or 3 or 32 or 33){throw new BootstrapCaptureDeferredException("An active writer/delete handle or writable mapping prevents a stable cycle version.");}
+        catch(Win32Exception e)when(e.NativeErrorCode is 2 or 3 or 5 or 32 or 33){throw new BootstrapCaptureDeferredException("Source access, an active writer/delete handle or writable mapping prevents a stable cycle version.");}
         await using var source=new FileStream(handle,FileAccess.Read,128*1024,isAsync:false);
         WindowsBootstrapSourceCapture.RequireHandlePath(handle,full);RequireExactLeaf(handle,Path.GetFileName(full));
         var before=ReadIdentity(handle,false);
