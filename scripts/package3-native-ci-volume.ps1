@@ -1,6 +1,6 @@
 param([ValidateSet('Start','Stop')][string]$Mode)
 $ErrorActionPreference='Stop'
-if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or $env:GITHUB_REPOSITORY -ne 'psewdon1m-exocortex/neptune' -or $env:GITHUB_REF -notlike 'refs/heads/release-qualification/package3-*' -or $env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$'){throw 'Isolated qualification CI only'}
+if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or $env:GITHUB_REPOSITORY -ne 'psewdon1m-exocortex/neptune' -or ($env:GITHUB_REF -notlike 'refs/heads/release-qualification/package3-*' -and $env:GITHUB_REF -notlike 'refs/heads/release-qualification/package5-*') -or $env:GITHUB_SHA -notmatch '^[a-f0-9]{40}$'){throw 'Isolated qualification CI only'}
 $root=Join-Path $env:RUNNER_TEMP 'package3-native-volume';$statePath=Join-Path $root 'ownership.json'
 function Save($s){[IO.File]::WriteAllText($statePath,($s|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))}
 if($Mode -eq 'Start'){

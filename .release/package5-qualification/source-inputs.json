@@ -1,10 +1,10 @@
 {
   "schema": "exocortex.package3.frozen-source.v1",
-  "at": "2026-11-19T04:25:36.393Z",
+  "at": "2026-11-19T04:29:16.905Z",
   "component": "neptune",
   "version": "0.1.20",
-  "baseGitCommit": "3eb567a815df377f83f817b7a32537d9d228dc98",
-  "scope": "Package5 NEP01 legal empty-journal recovery; minimal runtime delta and exact qualified payload preservation",
+  "baseGitCommit": "91a331924523540cebbf7ca603c5e447b06049d5",
+  "scope": "Package5 NEP01 candidate; explicit package5-only addition to existing isolated-CI branch guard, runtime bytes unchanged from91a3319",
   "files": [
     {
       "path": ".gitattributes",
@@ -477,9 +477,9 @@
     },
     {
       "path": "scripts/package3-native-ci-volume.ps1",
-      "bytes": 5291,
-      "sha256": "ac6c99276cbe429949b4c087c39f949862fdf7d4d5649dbf4b9271cb00ba798d",
-      "canonical_sha256": "ac6c99276cbe429949b4c087c39f949862fdf7d4d5649dbf4b9271cb00ba798d",
+      "bytes": 5369,
+      "sha256": "508b4c7c8a0a2d38c20e9ba84333fb36b0da7c0915962972b814d623c10a1d64",
+      "canonical_sha256": "508b4c7c8a0a2d38c20e9ba84333fb36b0da7c0915962972b814d623c10a1d64",
       "line_endings": "LF"
     },
     {
@@ -4730,5 +4730,5 @@
       "line_endings": "LF"
     }
   ],
-  "sourceSetSHA256": "44adcaace5a6cdda85acea33e2ae72000f69a2508d3def9e2dbd61954508347e"
+  "sourceSetSHA256": "46cfdc82f3969e84a435b3b06fb348b57c98fb4da0737157a14a7074061ba074"
 }
