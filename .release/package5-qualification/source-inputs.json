@@ -1,10 +1,10 @@
 {
   "schema": "exocortex.package3.frozen-source.v1",
-  "at": "2026-11-19T15:22:41.716Z",
+  "at": "2026-11-20T13:45:51.475Z",
   "component": "neptune",
   "version": "0.1.20",
-  "baseGitCommit": "8e52a26c4dcad31b89c19aa470acb2ac99a46d21",
-  "scope": "Package5 explicit local profile disk reserve; default40GiB, original identities/queues/wire ceilings preserved",
+  "baseGitCommit": "891e3b35dd939d3fb740eefb073b54522227fe7f",
+  "scope": "Package5 candidate N5: verified equal stream adoption after native journal replacement; legacy unattempted conflict re-evaluation preserves terminal history and accepted originals. No schema/protocol change.",
   "files": [
     {
       "path": ".gitattributes",
@@ -1801,9 +1801,9 @@
     },
     {
       "path": "src/Neptune.Core/NeptuneStateStore.LocalCycleLifecycle.cs",
-      "bytes": 10859,
-      "sha256": "9569cb51e18e0bf927c4672b7a3ad0eed7b2d025e182b7c859661c0f6b5365af",
-      "canonical_sha256": "79fc104917d783b128cc3a6d592488318d8ef1afb6f1a6746dcfd58de4a5afff",
+      "bytes": 10970,
+      "sha256": "f7b0a358b7a7a04ce98fa55c720637f1c33bc15a658899560210a9a8551f6196",
+      "canonical_sha256": "4ce9b6321666078d984a8e9cd6f04b8abbf16ddac8ec441208fcb5221b20ca02",
       "line_endings": "CRLF"
     },
     {
@@ -2644,6 +2644,13 @@
       "line_endings": "LF"
     },
     {
+      "path": "src/Neptune.Core/NeptuneStateStore.StreamAdoption.cs",
+      "bytes": 2688,
+      "sha256": "73c794c9b690550f0c4eb47fe68beb71a1d35ee9fcc17d8486d5d9c3635c0cd4",
+      "canonical_sha256": "73c794c9b690550f0c4eb47fe68beb71a1d35ee9fcc17d8486d5d9c3635c0cd4",
+      "line_endings": "LF"
+    },
+    {
       "path": "src/Neptune.Core/NeptuneStateStore.StreamParts.cs",
       "bytes": 4222,
       "sha256": "b3b33668c95338721946e4f4f80ac0b38ac22ddf7205d4305ec8e6da493ca62f",
@@ -2995,9 +3002,9 @@
     },
     {
       "path": "src/Neptune.Core/WindowsFreshSyncEngine.ParallelStream.cs",
-      "bytes": 8801,
-      "sha256": "504e8b493339c3fbc2e12039bd27cc05a545829281c69c5b9b760bceeab63bd8",
-      "canonical_sha256": "504e8b493339c3fbc2e12039bd27cc05a545829281c69c5b9b760bceeab63bd8",
+      "bytes": 9228,
+      "sha256": "78627e5617aa35cb33eb760f74d75c8c01e68ab848f23ba3d979dc3b03911397",
+      "canonical_sha256": "78627e5617aa35cb33eb760f74d75c8c01e68ab848f23ba3d979dc3b03911397",
       "line_endings": "LF"
     },
     {
@@ -3023,9 +3030,16 @@
     },
     {
       "path": "src/Neptune.Core/WindowsFreshSyncEngine.Stream.cs",
-      "bytes": 9698,
-      "sha256": "c7d304068b986c91b606466b6903f1daab518de3823656c155c0665597ee6461",
-      "canonical_sha256": "c7d304068b986c91b606466b6903f1daab518de3823656c155c0665597ee6461",
+      "bytes": 10125,
+      "sha256": "a1dc2c27e94900bd7f70a131688159c4f4305234947aced867886dce40fb4f73",
+      "canonical_sha256": "a1dc2c27e94900bd7f70a131688159c4f4305234947aced867886dce40fb4f73",
+      "line_endings": "LF"
+    },
+    {
+      "path": "src/Neptune.Core/WindowsFreshSyncEngine.StreamAdoption.cs",
+      "bytes": 2153,
+      "sha256": "cc2bd8566045c7e01c68dbb7fe95ce09776cb62ed9b9171a405d4ba420d72810",
+      "canonical_sha256": "cc2bd8566045c7e01c68dbb7fe95ce09776cb62ed9b9171a405d4ba420d72810",
       "line_endings": "LF"
     },
     {
@@ -4867,6 +4881,13 @@
       "line_endings": "LF"
     },
     {
+      "path": "tests/Neptune.Core.Tests/StreamVerifiedEqualAdoptionTests.cs",
+      "bytes": 7342,
+      "sha256": "a8d4e8b31a5cf7c7637b0116afd01641968cdbc43e0f1cc275f3e8561795b0ad",
+      "canonical_sha256": "a8d4e8b31a5cf7c7637b0116afd01641968cdbc43e0f1cc275f3e8561795b0ad",
+      "line_endings": "LF"
+    },
+    {
       "path": "tests/Neptune.Core.Tests/SyncMigrationBackupPathTests.cs",
       "bytes": 2631,
       "sha256": "15305c4d800f5cd0166a5a4210ce4f770b3d0311697d323078560d11169aff0c",
@@ -5249,6 +5270,6 @@
       "line_endings": "LF"
     }
   ],
-  "sourceSetSHA256": "e082b174b6ceccc27eb69598eaa0f28973cb0ed2f5ea902b137f693b74335b52",
+  "sourceSetSHA256": "10b2b9318486ecd8c5d6a6a57aae71f9861a468677281af206eb2e6a5499cab3",
   "sourceSetHashDefinition": "SHA256 UTF8 compact JSON ordered [path,bytes,sha256] tuples"
 }

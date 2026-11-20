@@ -44,7 +44,16 @@ public sealed partial class WindowsFreshSyncEngine
             {
                 var target=retained is null?await _session.ReadCycleTargetAsync(ScopeId,work.Entry,ct):default;
                 if(retained is null&&target.Target is not null)
-                {var baseline=work.Entry.BaselineJson is null?null:JsonSerializer.Deserialize<LocalCycleBaseline>(work.Entry.BaselineJson,LocalCycleWire.Json);if(baseline?.Description!=target.Target)throw new CycleConflictException("Streaming cannot overwrite an unknown remote version.");}
+                {
+                    var baseline=work.Entry.BaselineJson is null?null:JsonSerializer.Deserialize<LocalCycleBaseline>(work.Entry.BaselineJson,LocalCycleWire.Json);
+                    if(baseline?.Description!=target.Target)
+                    {
+                        if(await TryAdoptVerifiedEqualStreamAsync(work,target.Target,path,ct)){admission?.Complete();return true;}
+                        throw new CycleConflictException(_configuration.AllowVerifiedEqualAdoption
+                            ?"Streaming cannot overwrite a remote version with different bytes."
+                            :"Streaming cannot overwrite an unknown remote version.");
+                    }
+                }
                 var seal=await _capture.CaptureStreamAsync(work,path,async(witness,size,token)=>
                 {
                     if(size>Math.Min(_resources.Budget.MaximumNewFileBytes??1024L*1024*1024,1024L*1024*1024))throw new BootstrapCaptureDeferredException("Stream source exceeds negotiated size limit.");

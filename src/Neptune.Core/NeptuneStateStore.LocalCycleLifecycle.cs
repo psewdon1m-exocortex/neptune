@@ -81,7 +81,7 @@ public sealed partial class NeptuneStateStore
     // Original attempted intent, upload ID and sealed bytes are never replaced.
     internal async Task<int> RetryOwnedCycleDeferred(string root,string owner,string id,LocalJournalAdmission local,CancellationToken ct)
     {
-        await CycleAdmission(root,owner,id,local,256,ct);await using var c=await OpenCycleConnection(ct);using var t=c.BeginTransaction(deferred:false);var before=await NamespaceChanges(c,t,ct);_=await RequireCycle(c,t,root,owner,id,false,ct);
+        await CycleAdmission(root,owner,id,local,256,ct);await using var c=await OpenCycleConnection(ct);using var t=c.BeginTransaction(deferred:false);var before=await NamespaceChanges(c,t,ct);var scope=await RequireCycle(c,t,root,owner,id,false,ct);
         bool scheduled;await using(var module=SyncCommand(c,t,"SELECT 1 FROM sqlite_master WHERE name='client_operation_schedule'"))scheduled=await module.ExecuteScalarAsync(ct)is not null;
         var due=scheduled?" AND NOT EXISTS(SELECT 1 FROM client_operation_schedule s WHERE s.scope_id=local_cycle_work.scope_id AND s.operation_id=local_cycle_work.operation_id AND s.not_before>$now)":"";
         var rows=new List<(string Operation,string Node)>();await using(var q=SyncCommand(c,t,"SELECT operation_id,node_id FROM local_cycle_work WHERE scope_id=$scope AND active=1 AND phase=8 AND input_json IS NULL"+due+" ORDER BY work_no LIMIT 120")){CycleId(q,id);if(scheduled)q.Parameters.AddWithValue("$now",Clock.GetUtcNow().ToUnixTimeMilliseconds());await using var r=await q.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))rows.Add((r.GetString(0),r.GetString(1)));}
@@ -89,7 +89,8 @@ public sealed partial class NeptuneStateStore
         {
             await using var q=SyncCommand(c,t,"UPDATE local_cycle_work SET phase=CASE WHEN capture_proof IS NULL THEN 0 ELSE 1 END,error=NULL WHERE operation_id=$operation AND phase=8 AND input_json IS NULL;UPDATE local_cycle_files SET phase=1 WHERE scope_id=$scope AND node_id=$node");CycleId(q,id);q.Parameters.AddWithValue("$operation",row.Operation);q.Parameters.AddWithValue("$node",row.Node);await q.ExecuteNonQueryAsync(ct);
         }
-        await CommitCycle(c,t,before,ct);return rows.Count;
+        var reconsidered=await ReconsiderUnattemptedLegacyStreamConflicts(c,t,scope,ct);
+        await CommitCycle(c,t,before,ct);return rows.Count+reconsidered;
     }
 }
 public sealed partial class LocalSourceJournalSession
