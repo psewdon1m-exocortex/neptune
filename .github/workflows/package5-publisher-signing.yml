@@ -1,0 +1,109 @@
+name: Package 5 exact candidate publisher signatures
+on:
+  push:
+    branches: ["release-signing/package5-20261120-a1644"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: package5-publisher-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  sign-exact-candidate-manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 2
+      - name: Verify exact prior CI and frozen metadata-only request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,urllib.request
+          assert os.environ['GITHUB_REPOSITORY']=='psewdon1m-exocortex/neptune'
+          assert os.environ['GITHUB_REF']=='refs/heads/release-signing/package5-20261120-a1644'
+          raw=pathlib.Path('.release/package5-signing/request.json').read_bytes();assert hashlib.sha256(raw).hexdigest()=='12aca4815d6a233098028982e90f772ecc85200ca742b67cea86b77bdf951f20'
+          req=json.loads(raw);assert req['schema']=='exocortex.package5.publisher-signing-request.v1'
+          assert req['sourceCommit']=='891e3b35dd939d3fb740eefb073b54522227fe7f' and req['version']=='0.1.20' and req['ciRun']==44553920257
+          changed=subprocess.check_output(['git','diff','--name-only',req['sourceCommit'],os.environ['GITHUB_SHA']],text=True).splitlines()
+          assert changed and all(p.startswith('.release/package5-signing/') or p=='.github/workflows/package5-publisher-signing.yml' for p in changed)
+          base='https://api.github.com/repos/psewdon1m-exocortex/neptune'
+          def get(route):
+              q=urllib.request.Request(base+route,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','User-Agent':'exocortex-package5-qualified-signing'})
+              with urllib.request.urlopen(q,timeout=30) as response:return json.load(response)
+          run=get('/actions/runs/'+str(req['ciRun']));assert run['head_sha']==req['sourceCommit'] and run['event']=='push' and run['status']=='completed' and run['conclusion']=='success'
+          jobs=get('/actions/runs/'+str(req['ciRun'])+'/jobs?per_page=100')['jobs'];assert len(jobs)==req['expectedCIJobs']==3 and all(j['conclusion']=='success' and j['status']=='completed' for j in jobs)
+          target=pathlib.Path(os.environ['RUNNER_TEMP'])/'package5-neptune-signed';target.mkdir()
+          assert len(req['metadataFiles'])==6 and len(req['manifestsToSign'])==4
+          for f in req['metadataFiles']:
+              assert f['name'].startswith('neptune-') and '/' not in f['name'] and f['name'].endswith('.json')
+              b=(pathlib.Path('.release/package5-signing')/f['name']).read_bytes();assert len(b)==f['bytes'] and hashlib.sha256(b).hexdigest()==f['sha256'];(target/f['name']).write_bytes(b)
+          (target/'request.json').write_bytes(raw)
+          print('Exact prior CI and all frozen descriptors verified; qualification only, no production readiness or publication.')
+          PY
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 891e3b35dd939d3fb740eefb073b54522227fe7f
+      - name: Restore and verify exact qualified source bytes
+        run: python3 scripts/verify-package3-source.py .release/package5-qualification/source-inputs.json --report "$RUNNER_TEMP/package5-signing-source.json"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - name: Export public identity from existing protected publisher key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: node scripts/sign-release.mjs --export-public-key "$RUNNER_TEMP/package5-neptune-signed/neptune.pem"
+      - name: Verify expected publisher identity and frozen descriptor bytes before signing
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createHash,createPublicKey} from 'node:crypto';
+          const req=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/package5-neptune-signed/request.json'));
+          const out=process.env.RUNNER_TEMP+'/package5-neptune-signed/';
+          const sha=b=>createHash('sha256').update(b).digest('hex');
+          assert.equal(req.expectedKeyId,'dbd1ce8bd7d1074c8c5e896cad42571e99a71752be967518f771d42f48296c1b');
+          assert.equal(sha(fs.readFileSync(out+'neptune.pem')),req.expectedPublicPEMSHA256);assert.equal(sha(createPublicKey(fs.readFileSync(out+'neptune.pem')).export({type:'spki',format:'der'})),req.expectedKeyId);
+          for(const f of req.metadataFiles){assert(/^neptune-[a-z0-9-]+\.json$/.test(f.name));const b=fs.readFileSync(out+f.name);assert.equal(b.length,f.bytes);assert.equal(sha(b),f.sha256);}
+          assert.equal(req.version,'0.1.20');
+          console.log('Expected publisher public identity and all frozen metadata bytes verified.');
+          NODE
+      - name: Sign the four exact candidate manifests
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          node scripts/sign-release.mjs \
+            "$RUNNER_TEMP/package5-neptune-signed/neptune-linux-release-linux-x64.json" \
+            "$RUNNER_TEMP/package5-neptune-signed/neptune-linux-release-linux-arm64.json" \
+            "$RUNNER_TEMP/package5-neptune-signed/neptune-windows-release.json" \
+            "$RUNNER_TEMP/package5-neptune-signed/neptune-windows-bundle.json"
+      - name: Independently verify every signature using OpenSSL
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'package5-neptune-signed'
+          req=json.loads((root/'request.json').read_bytes())
+          rows=[]
+          for name in req['manifestsToSign']:
+              envelope=json.loads((root/(name+'.sig.json')).read_bytes())
+              assert envelope['schema']=='exocortex.release-signature.v1'
+              assert envelope['algorithm']=='RSA-PSS-SHA256' and envelope['key_id']==req['expectedKeyId']
+              signature=base64.b64decode(envelope['signature'],validate=True)
+              sigfile=root/(name+'.signature.bin');sigfile.write_bytes(signature)
+              subprocess.run(['openssl','dgst','-sha256','-verify',str(root/'neptune.pem'),'-signature',str(sigfile),'-sigopt','rsa_padding_mode:pss','-sigopt','rsa_pss_saltlen:32',str(root/name)],check=True)
+              sigfile.unlink()
+              rows.append({'name':name,'manifest_sha256':hashlib.sha256((root/name).read_bytes()).hexdigest(),'signature_sha256':hashlib.sha256((root/(name+'.sig.json')).read_bytes()).hexdigest(),'openssl_actual_exit':0})
+          (root/'verification-report.json').write_text(json.dumps({'status':'PASS_SCOPED_ACTUAL_CI_FOUR_FROZEN_NEPTUNE_MANIFEST_SIGNATURES','expected_key_id':req['expectedKeyId'],'signatures':rows,'source_commit':req['sourceCommit'],'qualified_ci_run':req['ciRun'],'GUI':'DEFERRED_BY_OWNER','production_readiness_claimed':False,'release_created':False,'assets_published':False},indent=2)+'\n')
+          PY
+      - name: Preserve signed public metadata and independent proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package5-neptune-publisher-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/package5-neptune-signed/*.json
+            ${{ runner.temp }}/package5-neptune-signed/neptune.pem
+            ${{ runner.temp }}/package5-signing-source.json
+          if-no-files-found: error
+          retention-days: 30

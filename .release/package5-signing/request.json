@@ -1,0 +1,83 @@
+{
+  "schema": "exocortex.package5.publisher-signing-request.v1",
+  "version": "0.1.20",
+  "repository": "psewdon1m-exocortex/neptune",
+  "sourceCommit": "891e3b35dd939d3fb740eefb073b54522227fe7f",
+  "sourceManifestSHA256": "cda2643266c74ba5bba8a6fe780eac3fd602f3d213912ffa36596bd2ae601b57",
+  "ciRun": 44553920257,
+  "expectedCIJobs": 3,
+  "expectedKeyId": "dbd1ce8bd7d1074c8c5e896cad42571e99a71752be967518f771d42f48296c1b",
+  "expectedPublicPEMSHA256": "2b8ce9f326e98158883c95aa57cc898c6ad1fe6ffd4125d0a471471881ea3b2a",
+  "metadataFiles": [
+    {
+      "name": "neptune-linux-release-linux-x64.json",
+      "bytes": 421,
+      "sha256": "67f74d659be11bcc6f38f5359092958dbe01ad9ab85ebccdb8d3d6c14fe97764"
+    },
+    {
+      "name": "neptune-linux-release-linux-arm64.json",
+      "bytes": 427,
+      "sha256": "f2ba62c43011148620ec15afd30a458c4b41966cdd47bfe217dcbbfddd01cf11"
+    },
+    {
+      "name": "neptune-windows-release.json",
+      "bytes": 447,
+      "sha256": "e58d4fb7428d8b15b082d29b2815677ce34eb481ade725e60337b193318d1fa6"
+    },
+    {
+      "name": "neptune-windows-bundle.json",
+      "bytes": 1431,
+      "sha256": "6a3bddde9744ae2955d8f340d2d37e2531c80a06e08a9b82d6e444eb83024f6d"
+    },
+    {
+      "name": "neptune-windows-payload.json",
+      "bytes": 747,
+      "sha256": "0381960f85d9b0d4f5626594a2ad1ee43c8530772f0927eee872c79efdaa27fb"
+    },
+    {
+      "name": "neptune-windows-package-evidence.json",
+      "bytes": 1483,
+      "sha256": "cbd9810a8ac1673987d8d451a1971b68ffceb182f16883535c34a8cf165a6f22"
+    }
+  ],
+  "manifestsToSign": [
+    "neptune-linux-release-linux-x64.json",
+    "neptune-linux-release-linux-arm64.json",
+    "neptune-windows-release.json",
+    "neptune-windows-bundle.json"
+  ],
+  "artifacts": [
+    {
+      "name": "neptune-linux-0.1.20-linux-x64.tar.gz",
+      "bytes": 46334577,
+      "sha256": "f513db23f0328f4d2582b802025a0f27615df685ad554d9c7feee71e9aede7a2"
+    },
+    {
+      "name": "neptune-linux-0.1.20-linux-arm64.tar.gz",
+      "bytes": 44156929,
+      "sha256": "ec04ab6a7b0875a52ce78a3d650b4f6875dfbb5be09d06b38c21b247475d6c60"
+    },
+    {
+      "name": "neptune-windows-0.1.20-win-x64.msi",
+      "bytes": 61710336,
+      "sha256": "791641bf0aeb25114b5e88dc0c6ca04966b0af4d7159f5368daf00c2e34fe0ea"
+    },
+    {
+      "name": "neptune-windows-0.1.20-win-x64.zip",
+      "bytes": 75575192,
+      "sha256": "4d1b19a4bcc549cdedafb73cc3e8aeaacee911c53acd11be0134b5a2093d3baf"
+    }
+  ],
+  "scope": {
+    "purpose": "Package5 qualification candidate only",
+    "GUI": "DEFERRED_BY_OWNER_NO_COMPUTER_USE",
+    "productionReadiness": false,
+    "publications": 0,
+    "nativeARM64": "OWNER_UNAVAILABLE_NOT_PASS",
+    "windowsDefaultTrust": "EXPECTED_SELF_SIGNED_UNTRUSTED_ROOT_NOT_PASS"
+  },
+  "reviewEvidenceSHA256": [
+    "15d262a60cfea89bac12c785c7cbf24f20046242631232e9217e3875661f5e26",
+    "4dc86220f6fc657ddf11d2d74919790cef41e1407ebdef69cf35a86d14a90adf"
+  ]
+}
