@@ -52,8 +52,14 @@ public sealed partial class NeptuneStateStore
         if(!old.SeedComplete||old.CoherenceId is null||old.Status>1||!(await CycleProgress(c,t,old.ScopeId,ct)).Complete)blockers.Add("Complete the retained local/remote boundary first.");
         await using var q=SyncCommand(c,t,"SELECT 1 FROM local_cycle_work WHERE active=1 LIMIT 1");
         if(await q.ExecuteScalarAsync(ct)is not null||await HasClientOriginals(c,t,old.ScopeId,true,ct))blockers.Add("Resolve and acknowledge original operations before adoption.");
-        q.CommandText="SELECT 1 FROM local_cycle_files WHERE scope_id=$scope AND phase<>4 LIMIT 1";CycleId(q,old.ScopeId);
-        if(await q.ExecuteScalarAsync(ct)is not null)blockers.Add("Resolve pending local generations/conflicts before adoption.");
+        var policy=await ReadMappingPolicy(c,t,old.ScopeId,ct);
+        q.CommandText="SELECT path,phase FROM local_cycle_files WHERE scope_id=$scope AND phase<>4 ORDER BY node_id";CycleId(q,old.ScopeId);
+        await using(var pending=await q.ExecuteReaderAsync(ct))
+            while(await pending.ReadAsync(ct))
+                // Excluded candidates intentionally remain unattempted. Other
+                // pending phases still block, even under an excluded prefix.
+                if(pending.GetInt32(1)!=0||!policy.Excludes(pending.GetString(0)))
+                {blockers.Add("Resolve pending local generations/conflicts before adoption.");break;}
         q.Parameters.Clear();q.CommandText="SELECT 1 FROM sqlite_master WHERE name='client_policy_changes'";
         if(await q.ExecuteScalarAsync(ct)is not null){q.CommandText="SELECT 1 FROM client_policy_changes LIMIT 1";if(await q.ExecuteScalarAsync(ct)is not null)blockers.Add("Finish the previous policy continuation first.");}
         q.CommandText="SELECT 1 FROM local_source_roots WHERE root_key=$root AND valid=1 AND gap_code IS NULL AND legacy_revision=$revision AND gap_epoch=$gap";q.Parameters.AddWithValue("$root",old.Root);q.Parameters.AddWithValue("$revision",old.Revision);q.Parameters.AddWithValue("$gap",old.Gap);

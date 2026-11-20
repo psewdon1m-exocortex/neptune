@@ -1,10 +1,10 @@
 {
   "schema": "exocortex.package3.frozen-source.v1",
-  "at": "2026-11-20T13:45:51.475Z",
+  "at": "2026-11-20T14:42:31.343Z",
   "component": "neptune",
   "version": "0.1.20",
-  "baseGitCommit": "891e3b35dd939d3fb740eefb073b54522227fe7f",
-  "scope": "Package5 candidate N5: verified equal stream adoption after native journal replacement; legacy unattempted conflict re-evaluation preserves terminal history and accepted originals. No schema/protocol change.",
+  "baseGitCommit": "c4f60cc7524f72ae0eebb9d4d80cc8eb1b44924a",
+  "scope": "Package5 candidate N6: supported binding adoption accepts only phase0 candidates excluded by current mapping policy; included generations and all other pending phases still block, original history/scopes/policy retained.",
   "files": [
     {
       "path": ".gitattributes",
@@ -1465,9 +1465,9 @@
     },
     {
       "path": "src/Neptune.Core/NeptuneStateStore.BindingAdoption.cs",
-      "bytes": 21060,
-      "sha256": "eafd88d8b2470cb0efdd585750fab2ac2a60936b6ae9eaaec353f3fc91e3b132",
-      "canonical_sha256": "eafd88d8b2470cb0efdd585750fab2ac2a60936b6ae9eaaec353f3fc91e3b132",
+      "bytes": 21464,
+      "sha256": "c7c97b9606da71ae3a32b1d82beccd09684b55ead9453de0930f73b1527bfa59",
+      "canonical_sha256": "c7c97b9606da71ae3a32b1d82beccd09684b55ead9453de0930f73b1527bfa59",
       "line_endings": "LF"
     },
     {
@@ -4763,9 +4763,9 @@
     },
     {
       "path": "tests/Neptune.Core.Tests/Stage3ChatBTests.Adoption.cs",
-      "bytes": 4844,
-      "sha256": "46898e14410b3f81aa57e699ee8882fe8e3be8cf4275ddc87d57719cb273461c",
-      "canonical_sha256": "46898e14410b3f81aa57e699ee8882fe8e3be8cf4275ddc87d57719cb273461c",
+      "bytes": 9013,
+      "sha256": "9977f37a0f1125b6fb7b265264dc3ff9a19d952d10d6d91cb2bd23b3c13d1455",
+      "canonical_sha256": "9977f37a0f1125b6fb7b265264dc3ff9a19d952d10d6d91cb2bd23b3c13d1455",
       "line_endings": "LF"
     },
     {
@@ -5270,6 +5270,6 @@
       "line_endings": "LF"
     }
   ],
-  "sourceSetSHA256": "10b2b9318486ecd8c5d6a6a57aae71f9861a468677281af206eb2e6a5499cab3",
+  "sourceSetSHA256": "0a2993a35fbda0c49b681c596d016d9fa47c9a8c666eaffab2c09f07dfc49fb0",
   "sourceSetHashDefinition": "SHA256 UTF8 compact JSON ordered [path,bytes,sha256] tuples"
 }
